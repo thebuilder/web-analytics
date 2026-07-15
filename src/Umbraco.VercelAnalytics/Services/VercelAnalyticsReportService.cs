@@ -15,7 +15,7 @@ public sealed class VercelAnalyticsReportService(
     {
         var connection = registry.Get(query.Connection);
         if (connection is null || !connection.IsConfigured) return null;
-        var cacheKey = $"vercel-analytics:summary:{Normalize(query)}";
+        var cacheKey = $"vercel-analytics:{registry.SettingsRevision}:summary:{Normalize(query)}";
         return await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = registry.Settings.CacheDuration;
@@ -34,7 +34,7 @@ public sealed class VercelAnalyticsReportService(
     {
         var connection = registry.Get(query.Connection);
         if (connection is null || !connection.IsConfigured) return null;
-        var cacheKey = $"vercel-analytics:breakdown:{dimension}:{limit}:{Normalize(query)}";
+        var cacheKey = $"vercel-analytics:{registry.SettingsRevision}:breakdown:{dimension}:{limit}:{Normalize(query)}";
         return await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = registry.Settings.CacheDuration;

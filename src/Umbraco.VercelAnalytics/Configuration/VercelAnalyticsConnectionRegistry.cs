@@ -13,6 +13,8 @@ public sealed class VercelAnalyticsConnectionRegistry(
 
     public VercelAnalyticsSettings Settings => settingsStore.Get();
 
+    public long SettingsRevision => settingsStore.Revision;
+
     public IEnumerable<VercelAnalyticsConnection> Connections => CreateSnapshot().Connections.Values;
 
     public VercelAnalyticsConnection? Get(string alias) =>

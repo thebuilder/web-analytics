@@ -48,6 +48,9 @@ public sealed class VercelAnalyticsSettingsStore
     private readonly IKeyValueService? _keyValueService;
     private readonly Microsoft.Extensions.Options.IOptions<VercelAnalyticsOptions> _serverOptions;
     private VercelAnalyticsSettings? _cached;
+    private long _revision;
+
+    public long Revision => Interlocked.Read(ref _revision);
 
     public VercelAnalyticsSettingsStore(
         IKeyValueService keyValueService,
@@ -83,6 +86,7 @@ public sealed class VercelAnalyticsSettingsStore
         var json = JsonSerializer.Serialize(normalized, SerializerOptions);
         _keyValueService?.SetValue(StorageKey, json);
         lock (_lock) _cached = normalized;
+        Interlocked.Increment(ref _revision);
     }
 
     private static VercelAnalyticsSettings FromServerOptions(VercelAnalyticsOptions options) => new()

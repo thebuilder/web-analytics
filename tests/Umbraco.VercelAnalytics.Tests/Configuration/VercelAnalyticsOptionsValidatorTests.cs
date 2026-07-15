@@ -83,6 +83,22 @@ public sealed class VercelAnalyticsOptionsValidatorTests
         Assert.Equal("main", hostname?.Alias);
     }
 
+    [Fact]
+    public void Registry_supports_explicit_and_all_document_type_modes()
+    {
+        var options = CreateOptions();
+        var explicitKey = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        options.Connections["main"].EnabledDocumentTypeKeys = [explicitKey.ToString()];
+        var registry = new VercelAnalyticsConnectionRegistry(Options.Create(options));
+
+        Assert.True(registry.Get("main")!.IsDocumentTypeEnabled("anything", explicitKey));
+        Assert.False(registry.Get("main")!.IsDocumentTypeEnabled("anything", Guid.NewGuid()));
+
+        options.Connections["main"].EnableAllDocumentTypes = true;
+        registry = new VercelAnalyticsConnectionRegistry(Options.Create(options));
+        Assert.True(registry.Get("main")!.IsDocumentTypeEnabled("newPage", Guid.NewGuid()));
+    }
+
     private static VercelAnalyticsOptions CreateOptions() => new()
     {
         Enabled = true,
