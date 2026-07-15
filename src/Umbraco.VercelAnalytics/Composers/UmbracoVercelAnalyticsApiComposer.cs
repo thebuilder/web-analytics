@@ -9,6 +9,7 @@ using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.DependencyInjection;
 using Umbraco.Cms.Api.Management.OpenApi;
 using Umbraco.Cms.Api.Common.OpenApi;
+using Umbraco.VercelAnalytics.Configuration;
 
 namespace Umbraco.VercelAnalytics.Composers
 {
@@ -16,7 +17,12 @@ namespace Umbraco.VercelAnalytics.Composers
     {
         public void Compose(IUmbracoBuilder builder)
         {
-
+            builder.Services
+                .AddOptions<VercelAnalyticsOptions>()
+                .Bind(builder.Config.GetSection(VercelAnalyticsOptions.SectionName))
+                .ValidateOnStart();
+            builder.Services.AddSingleton<IValidateOptions<VercelAnalyticsOptions>, VercelAnalyticsOptionsValidator>();
+            builder.Services.AddSingleton<VercelAnalyticsConnectionRegistry>();
             builder.Services.AddSingleton<IOperationIdHandler, CustomOperationHandler>();
 
             builder.Services.Configure<SwaggerGenOptions>(opt =>
