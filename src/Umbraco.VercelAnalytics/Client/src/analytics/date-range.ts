@@ -26,8 +26,8 @@ export function dateRangeForPreset(
 }
 
 export function intervalForRange(inclusiveDays: number): AnalyticsInterval {
-  if (inclusiveDays <= 90) return "Day";
-  if (inclusiveDays <= 366) return "Week";
+  if (inclusiveDays <= 30) return "Day";
+  if (inclusiveDays <= 90) return "Week";
   return "Month";
 }
 

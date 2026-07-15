@@ -252,7 +252,6 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
       ` : ""}
       ${connection?.warnings.map((warning) => html`<uui-tag color="warning">${warning}</uui-tag>`)}
       ${this._route?.warnings.map((warning) => html`<uui-tag color="warning">${warning}</uui-tag>`)}
-      ${this._connection ? html`<uui-tag color="positive">Connection configured</uui-tag>` : ""}
     `;
   }
 
