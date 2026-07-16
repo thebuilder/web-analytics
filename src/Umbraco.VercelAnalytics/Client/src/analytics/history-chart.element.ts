@@ -4,7 +4,6 @@ import {
   customElement,
   html,
   property,
-  state,
 } from "@umbraco-cms/backoffice/external/lit";
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import {
@@ -29,7 +28,6 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
   @property({ attribute: false }) points: Array<{ timestamp: string; visitors: number; pageViews?: number; count?: number }> = [];
   @property() metric: "visitors" | "pageViews" | "count" = "visitors";
   @property() interval: AnalyticsInterval = "Day";
-  @state() private _showTable = false;
   #chart?: Chart;
 
   protected updated(): void {
@@ -154,21 +152,6 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
       <div class="chart" role="img" aria-label="${label} history for ${this.points.length} periods${progressDescription}">
         <canvas aria-hidden="true"></canvas>
       </div>
-      <uui-button
-        look="secondary"
-        label=${this._showTable ? "Hide history data table" : "View history data table"}
-        @click=${() => (this._showTable = !this._showTable)}>
-        ${this._showTable ? "Hide data table" : "View data table"}
-      </uui-button>
-      ${this._showTable ? html`
-        <table>
-          <caption>${label} history</caption>
-          <thead><tr><th scope="col">Date</th><th scope="col">${label}</th></tr></thead>
-          <tbody>${this.points.map((point, index) => html`
-            <tr><td>${formatAnalyticsDate(point.timestamp, this.interval)}${latestPeriodInProgress && index === this.points.length - 1 ? " (in progress)" : ""}</td><td>${(point[this.metric] ?? 0).toLocaleString()}</td></tr>
-          `)}</tbody>
-        </table>
-      ` : ""}
     `;
   }
 
@@ -179,12 +162,8 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
 
   static styles = css`
     :host { display: block; }
-    .chart { height: 18rem; margin-bottom: var(--uui-size-space-4); }
+    .chart { height: 18rem; }
     canvas { width: 100%; height: 100%; }
-    table { border-collapse: collapse; width: 100%; margin-top: var(--uui-size-space-4); }
-    th, td { border-bottom: 1px solid var(--uui-color-border); padding: var(--uui-size-space-3); text-align: left; }
-    th:last-child, td:last-child { text-align: right; }
-    caption { text-align: left; font-weight: 700; margin-bottom: var(--uui-size-space-3); }
   `;
 }
 

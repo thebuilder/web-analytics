@@ -625,7 +625,6 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
             <div class="chart-skeleton" aria-hidden="true">
               <span></span><span></span><span></span><span></span>
             </div>
-            <span class="history-button-skeleton" aria-hidden="true"></span>
           ` : this._summary?.points.length
               ? html`<vercel-analytics-history-chart .points=${this._summary.points} .metric=${this._metric} .interval=${this._range.interval}></vercel-analytics-history-chart>`
               : html`<umb-empty-state headline="No history"><p>No traffic was recorded in this period.</p></umb-empty-state>`}
@@ -840,9 +839,8 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
     .eyebrow { color: var(--uui-color-text-alt); font-weight: 700; }
     .history { --uui-box-default-padding: 0; margin-bottom: var(--uui-size-layout-1); overflow: hidden; }
     .history-panel { padding: var(--uui-size-space-5); }
-    .chart-skeleton { block-size: 18rem; display: grid; margin-bottom: var(--uui-size-space-4); }
+    .chart-skeleton { block-size: 18rem; display: grid; }
     .chart-skeleton span { border-top: 1px solid var(--uui-color-border); }
-    .history-button-skeleton { background: var(--uui-color-surface-alt); block-size: 2.5rem; border-radius: var(--uui-border-radius); display: block; inline-size: 8.5rem; }
     .summary-error { --uui-box-default-padding: 0; --uui-box-border-width: 1px; --uui-box-border-color: color-mix(in srgb, var(--uui-color-warning-standalone) 35%, var(--uui-color-border)); --uui-box-box-shadow: none; margin-bottom: var(--uui-size-layout-1); overflow: hidden; }
     .summary-error-content { align-items: center; background: color-mix(in srgb, var(--uui-color-warning) 8%, var(--uui-color-surface)); border-inline-start: 3px solid var(--uui-color-warning-standalone); display: flex; flex-wrap: wrap; gap: var(--uui-size-space-5); padding: var(--uui-size-space-5); }
     .summary-error-content uui-icon { color: var(--uui-color-warning-standalone); font-size: 1.5rem; }
