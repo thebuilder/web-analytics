@@ -66,6 +66,22 @@ export function formatAnalyticsDate(
   }).format(date);
 }
 
+export function formatAnalyticsTooltipDate(
+  timestamp: string,
+  interval: AnalyticsInterval,
+  locale?: string,
+): string {
+  const label = formatAnalyticsDate(timestamp, interval, locale);
+  if (interval !== "Day") return label;
+
+  const weekday = new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
+
+  return `${label} · ${weekday}`;
+}
+
 export function isAnalyticsPeriodInProgress(
   timestamp: string,
   interval: AnalyticsInterval,

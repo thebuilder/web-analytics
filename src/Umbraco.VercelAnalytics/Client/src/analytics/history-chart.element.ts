@@ -17,9 +17,10 @@ import {
   PointElement,
   Tooltip,
 } from "chart.js";
+import type { Plugin } from "chart.js";
 import type { AnalyticsPoint } from "../api/types.gen.js";
 import type { AnalyticsInterval } from "../api/types.gen.js";
-import { formatAnalyticsDate, isAnalyticsPeriodInProgress } from "./date-range.js";
+import { formatAnalyticsDate, formatAnalyticsTooltipDate, isAnalyticsPeriodInProgress } from "./date-range.js";
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip);
 
@@ -47,20 +48,47 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
 
     const style = getComputedStyle(this);
     const color = style.getPropertyValue("--uui-color-interactive").trim() || "#3544b1";
+    const guideColor = style.getPropertyValue("--uui-color-text").trim() || "#1b264f";
+    const surfaceColor = style.getPropertyValue("--uui-color-surface").trim() || "#ffffff";
+    const borderColor = style.getPropertyValue("--uui-color-border").trim() || "#d8d7d9";
+    const label = this.metric === "visitors" ? "Visitors" : "Page views";
     const latestPoint = this.points[this.points.length - 1];
     const latestPeriodInProgress = latestPoint
       ? isAnalyticsPeriodInProgress(latestPoint.timestamp, this.interval)
       : false;
+    const hoverGuide: Plugin<"line"> = {
+      id: "vercelAnalyticsHoverGuide",
+      afterDatasetsDraw: (chart) => {
+        const activeElement = chart.tooltip?.getActiveElements()[0];
+        if (!activeElement) return;
+
+        const { ctx, chartArea } = chart;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(activeElement.element.x, chartArea.top);
+        ctx.lineTo(activeElement.element.x, chartArea.bottom);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = guideColor;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(activeElement.element.x, activeElement.element.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+      },
+    };
     this.#chart = new Chart(canvas, {
       type: "line",
       data: {
         labels: this.points.map((point) => formatAnalyticsDate(point.timestamp, this.interval)),
         datasets: [{
+          label,
           data: this.points.map((point) => point[this.metric]),
           borderColor: color,
           backgroundColor: `${color}1f`,
           fill: true,
-          pointRadius: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
           tension: 0.2,
           segment: {
             borderDash: (context) => latestPeriodInProgress && context.p1DataIndex === this.points.length - 1
@@ -71,10 +99,34 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
       },
       options: {
         animation: false,
+        interaction: {
+          axis: "x",
+          intersect: false,
+          mode: "index",
+        },
         maintainAspectRatio: false,
-        plugins: { tooltip: { enabled: true } },
+        plugins: {
+          tooltip: {
+            backgroundColor: surfaceColor,
+            bodyColor: guideColor,
+            borderColor,
+            borderWidth: 1,
+            callbacks: {
+              label: (context) => `${label}  ${context.formattedValue}`,
+              title: (items) => {
+                const point = this.points[items[0]?.dataIndex ?? -1];
+                return point ? formatAnalyticsTooltipDate(point.timestamp, this.interval) : "";
+              },
+            },
+            cornerRadius: 8,
+            padding: 12,
+            titleColor: guideColor,
+            enabled: true,
+          },
+        },
         scales: { y: { beginAtZero: true } },
       },
+      plugins: [hoverGuide],
     });
   }
 

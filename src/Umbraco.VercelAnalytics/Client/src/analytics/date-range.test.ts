@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dateRangeForPreset, formatAnalyticsDate, inclusiveRangeDays, intervalForRange, isAnalyticsPeriodInProgress, normalizeCustomRange } from "./date-range.js";
+import { dateRangeForPreset, formatAnalyticsDate, formatAnalyticsTooltipDate, inclusiveRangeDays, intervalForRange, isAnalyticsPeriodInProgress, normalizeCustomRange } from "./date-range.js";
 
 describe("analytics date ranges", () => {
   it("creates an inclusive 30 day range", () => {
@@ -34,6 +34,8 @@ describe("analytics date ranges", () => {
   it("formats chart dates compactly like the Vercel dashboard", () => {
     expect(formatAnalyticsDate("2026-07-15T00:00:00Z", "Day", "en-US")).toBe("Jul 15");
     expect(formatAnalyticsDate("2026-07-01T00:00:00Z", "Month", "en-US")).toBe("Jul ’26");
+    expect(formatAnalyticsTooltipDate("2026-07-14T00:00:00Z", "Day", "en-US")).toBe("Jul 14 · Tue");
+    expect(formatAnalyticsTooltipDate("2026-07-01T00:00:00Z", "Month", "en-US")).toBe("Jul ’26");
   });
 
   it("identifies the current aggregate bucket as incomplete", () => {
