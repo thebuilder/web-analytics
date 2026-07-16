@@ -150,6 +150,7 @@ export class VercelAnalyticsEventDetailsDialogElement extends UmbElementMixin(Li
     .dialog-content { block-size: min(30rem, 52dvh); display: flex; flex-direction: column; min-block-size: 0; position: relative; }
     .property-tabs { display: flex; gap: var(--uui-size-space-1); overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }
     .property-tabs button { appearance: none; background: transparent; border: 0; border-bottom: 3px solid transparent; color: var(--uui-color-text-alt); cursor: pointer; flex: 0 0 auto; font: inherit; padding: var(--uui-size-space-3) var(--uui-size-space-4); }
+    .property-tabs button:first-child { padding-inline-start: 0; }
     .property-tabs button:hover { color: var(--uui-color-text); }
     .property-tabs button[aria-selected="true"] { border-bottom-color: var(--uui-color-selected); color: var(--uui-color-text); font-weight: 700; }
     .property-tabs button:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: -3px; }
@@ -167,8 +168,8 @@ export class VercelAnalyticsEventDetailsDialogElement extends UmbElementMixin(Li
     thead th:not(:first-child), td { text-align: right; width: 8rem; }
     tbody th { font-weight: 500; min-width: 12rem; position: relative; }
     td { font-variant-numeric: tabular-nums; position: relative; z-index: 1; }
-    .visitors-content { align-items: center; display: flex; justify-content: flex-end; }
-    .filter-button { align-items: center; background: transparent; border: 0; border-radius: var(--uui-border-radius); color: var(--uui-color-interactive); cursor: pointer; display: inline-flex; justify-content: center; margin-inline-end: var(--uui-size-space-2); min-block-size: 2rem; min-inline-size: 2rem; opacity: 0; }
+    .visitors-content { display: inline-flex; position: relative; }
+    .filter-button { align-items: center; background: transparent; border: 0; border-radius: var(--uui-border-radius); color: var(--uui-color-interactive); cursor: pointer; display: inline-flex; inset-block-start: 50%; inset-inline-end: calc(100% + var(--uui-size-space-2)); justify-content: center; min-block-size: 2rem; min-inline-size: 2rem; opacity: 0; position: absolute; transform: translateY(-50%); }
     tr:hover .filter-button, .filter-button:focus-visible, .filter-button[aria-pressed="true"] { opacity: 1; }
     .filter-button:hover { background: var(--uui-color-surface-emphasis); }
     .filter-button:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 1px; }
