@@ -1,32 +1,40 @@
 import { LitElement, css, customElement, html, property } from "@umbraco-cms/backoffice/external/lit";
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import type { AnalyticsBreakdownRow } from "../api/types.gen.js";
+import { analyticsRowHref, withoutAggregatedOthers } from "./breakdown-rows.js";
 
 @customElement("vercel-analytics-breakdown-table")
 export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitElement) {
   @property() headline = "Breakdown";
   @property() unavailable?: string;
+  @property() baseUrl?: string;
+  @property({ type: Boolean }) linkValues = false;
   @property({ attribute: false }) rows: AnalyticsBreakdownRow[] = [];
 
   render() {
     if (this.unavailable) return html`<p class="message">${this.unavailable}</p>`;
-    if (this.rows.length === 0) return html`<p class="message">No traffic was recorded for this breakdown.</p>`;
-    const maximum = Math.max(...this.rows.map((row) => row.visitors), 1);
+    const rows = withoutAggregatedOthers(this.rows);
+    if (rows.length === 0) return html`<p class="message">No traffic was recorded for this breakdown.</p>`;
+    const maximum = Math.max(...rows.map((row) => row.visitors), 1);
 
     return html`
       <table>
         <caption>${this.headline}</caption>
         <thead><tr><th scope="col">Value</th><th scope="col">Visitors</th><th scope="col">Page views</th></tr></thead>
-        <tbody>${this.rows.map((row) => html`
+        <tbody>${rows.map((row) => {
+          const href = this.linkValues ? analyticsRowHref(this.baseUrl, row.value) : undefined;
+          return html`
           <tr>
             <th scope="row">
               <span class="bar" style=${`--bar-width:${(row.visitors / maximum) * 100}%`}></span>
-              <span>${row.value || "Unknown"}</span>
+              <span>${href
+                ? html`<a href=${href} target="_blank" rel="noopener noreferrer">${row.value || "Unknown"}<span class="visually-hidden"> (opens in a new tab)</span></a>`
+                : row.value || "Unknown"}</span>
             </th>
             <td>${row.visitors.toLocaleString()}</td>
             <td>${row.pageViews.toLocaleString()}</td>
           </tr>
-        `)}</tbody>
+        `;})}</tbody>
       </table>
     `;
   }
@@ -39,7 +47,18 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
     td { text-align: right; font-variant-numeric: tabular-nums; }
     tbody th { position: relative; font-weight: 500; min-width: 10rem; }
     tbody th span:last-child { position: relative; }
-    .bar { position: absolute; inset: var(--uui-size-space-1) auto var(--uui-size-space-1) 0; width: var(--bar-width); background: var(--uui-color-surface-alt); border-radius: var(--uui-border-radius); }
+    a { color: var(--uui-color-interactive-emphasis); text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+    a:hover { text-decoration-thickness: 2px; }
+    a:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
+    .bar {
+      background: color-mix(in srgb, var(--uui-color-interactive) 16%, var(--uui-color-surface));
+      border-inline-start: 3px solid var(--uui-color-interactive);
+      border-radius: var(--uui-border-radius);
+      inset: var(--uui-size-space-1) auto var(--uui-size-space-1) 0;
+      position: absolute;
+      width: var(--bar-width);
+    }
+    .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
     .message { color: var(--uui-color-text-alt); }
   `;
 }

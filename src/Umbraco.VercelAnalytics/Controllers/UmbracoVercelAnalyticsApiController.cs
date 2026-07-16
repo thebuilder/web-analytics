@@ -38,6 +38,7 @@ public sealed class UmbracoVercelAnalyticsApiController(
                 connection.DisplayName,
                 string.Equals(connection.Alias, registry.Settings.DefaultConnection, StringComparison.OrdinalIgnoreCase),
                 connection.IsConfigured,
+                connection.Hostnames.Order(StringComparer.OrdinalIgnoreCase).ToArray(),
                 ConnectionWarnings(connection))).OrderBy(connection => connection.DisplayName).ToArray());
         return Ok(response);
     }

@@ -18,6 +18,8 @@ import {
   Tooltip,
 } from "chart.js";
 import type { AnalyticsPoint } from "../api/types.gen.js";
+import type { AnalyticsInterval } from "../api/types.gen.js";
+import { formatAnalyticsDate } from "./date-range.js";
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip);
 
@@ -25,6 +27,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryS
 export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
   @property({ attribute: false }) points: AnalyticsPoint[] = [];
   @property() metric: "visitors" | "pageViews" = "visitors";
+  @property() interval: AnalyticsInterval = "Day";
   @state() private _showTable = false;
   #chart?: Chart;
 
@@ -47,7 +50,7 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
     this.#chart = new Chart(canvas, {
       type: "line",
       data: {
-        labels: this.points.map((point) => new Date(point.timestamp).toLocaleDateString()),
+        labels: this.points.map((point) => formatAnalyticsDate(point.timestamp, this.interval)),
         datasets: [{
           data: this.points.map((point) => point[this.metric]),
           borderColor: color,
@@ -83,7 +86,7 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
           <caption>${label} history</caption>
           <thead><tr><th scope="col">Date</th><th scope="col">${label}</th></tr></thead>
           <tbody>${this.points.map((point) => html`
-            <tr><td>${new Date(point.timestamp).toLocaleDateString()}</td><td>${point[this.metric].toLocaleString()}</td></tr>
+            <tr><td>${formatAnalyticsDate(point.timestamp, this.interval)}</td><td>${point[this.metric].toLocaleString()}</td></tr>
           `)}</tbody>
         </table>
       ` : ""}

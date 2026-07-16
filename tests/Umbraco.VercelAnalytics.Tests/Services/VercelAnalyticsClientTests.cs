@@ -68,6 +68,23 @@ public sealed class VercelAnalyticsClientTests
     }
 
     [Fact]
+    public async Task Breakdown_forwards_on_demand_result_limit()
+    {
+        var handler = new RecordingHandler("""{"data":[]}""");
+        var client = CreateClient(handler);
+        var connection = CreateConnection();
+
+        await client.GetBreakdownAsync(
+            connection,
+            new AnalyticsQuery(connection.Alias, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 2), AnalyticsInterval.Day),
+            AnalyticsDimension.RequestPath,
+            100,
+            CancellationToken.None);
+
+        Assert.Contains("limit=100", handler.Request!.RequestUri!.Query);
+    }
+
+    [Fact]
     public async Task Error_response_throws_sanitized_exception()
     {
         var handler = new RecordingHandler("forbidden", HttpStatusCode.Forbidden);

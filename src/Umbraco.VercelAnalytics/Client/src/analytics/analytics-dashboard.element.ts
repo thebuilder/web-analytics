@@ -20,11 +20,20 @@ import type {
 import { dateRangeForPreset, normalizeCustomRange, type AnalyticsDateRange, type DatePreset } from "./date-range.js";
 import { reportErrorMessage } from "./report-error.js";
 import { detectUtmCapability, isUtmDimension, type UtmCapability } from "./utm-capability.js";
+import { topBreakdownRows } from "./breakdown-rows.js";
 import "./history-chart.element.js";
 import "./breakdown-table.element.js";
+import "./breakdown-dialog.element.js";
 
 type BreakdownState = { data?: AnalyticsBreakdown; error?: string; loading: boolean };
 type ReportScope = { documentId?: string; culture?: string; path?: string };
+type ExpandedBreakdown = {
+  dimension: AnalyticsDimension;
+  headline: string;
+  rows: AnalyticsBreakdown["rows"];
+  loading: boolean;
+  error?: string;
+};
 
 const BREAKDOWNS: ReadonlyArray<{ dimension: AnalyticsDimension; headline: string; wide?: boolean; planLimited?: boolean }> = [
   { dimension: "RequestPath", headline: "Pages and routes", wide: true },
@@ -56,8 +65,10 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
   @state() private _metric: "visitors" | "pageViews" = "visitors";
   @state() private _configurationError?: string;
   @state() private _utmCapability: UtmCapability = "unknown";
+  @state() private _expanded?: ExpandedBreakdown;
   #initializationRequest = 0;
   #reportRequest = 0;
+  #expandedRequest = 0;
   #lastScopeKey?: string;
   #utmCapabilityByConnection = new Map<string, UtmCapability>();
 
@@ -127,6 +138,7 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
 
   async #loadReports(): Promise<void> {
     if (!this._connection) return;
+    this._expanded = undefined;
     const request = ++this.#reportRequest;
     this._summaryLoading = true;
     this._summaryError = undefined;
@@ -152,7 +164,7 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
     const breakdownPromises = requestedBreakdowns.map(async ({ dimension }) => {
       const { data, error, response } = await UmbracoVercelAnalyticsService.breakdown({
         path: { dimension },
-        query: { ...query, limit: 10 },
+        query: { ...query, limit: 11 },
       });
       if (request !== this.#reportRequest) return;
       if (isUtmDimension(dimension)) {
@@ -175,6 +187,43 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
       this.#utmCapabilityByConnection.set(this._connection, detectedCapability);
       this._utmCapability = detectedCapability;
     }
+  }
+
+  #linkBaseUrl(): string | undefined {
+    if (this._route?.url) {
+      try {
+        return new URL(this._route.url).origin;
+      } catch {
+        return `https://${this._route.hostname}`;
+      }
+    }
+
+    const hostname = this._connections.find((item) => item.alias === this._connection)?.hostnames[0];
+    return hostname ? `https://${hostname}` : undefined;
+  }
+
+  async #openBreakdown(dimension: AnalyticsDimension, headline: string): Promise<void> {
+    if (!this._connection) return;
+    const request = ++this.#expandedRequest;
+    this._expanded = { dimension, headline, rows: [], loading: true };
+    const { data, error, response } = await UmbracoVercelAnalyticsService.breakdown({
+      path: { dimension },
+      query: {
+        connection: this._connection,
+        ...this._range,
+        ...this.#scope(),
+        limit: 100,
+      },
+    });
+    if (request !== this.#expandedRequest || this._expanded?.dimension !== dimension) return;
+    this._expanded = error
+      ? { dimension, headline, rows: [], loading: false, error: reportErrorMessage({ status: response.status }) }
+      : { dimension, headline, rows: data?.rows ?? [], loading: false };
+  }
+
+  #closeBreakdown(): void {
+    this.#expandedRequest++;
+    this._expanded = undefined;
   }
 
   #selectOptions(items: Array<{ value: string; name: string }>, selected?: string) {
@@ -265,12 +314,12 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
         <uui-box><span class="eyebrow">Page views</span><strong>${this._summary.totals.pageViews.toLocaleString()}</strong></uui-box>
       </section>
       <uui-box headline="History" class="history">
-        <div slot="header-actions" class="metric-switch" role="group" aria-label="History metric">
-          <uui-button label="Show visitors history" look=${this._metric === "visitors" ? "primary" : "secondary"} @click=${() => (this._metric = "visitors")}>Visitors</uui-button>
-          <uui-button label="Show page views history" look=${this._metric === "pageViews" ? "primary" : "secondary"} @click=${() => (this._metric = "pageViews")}>Page views</uui-button>
-        </div>
+        <uui-tab-group slot="header-actions" aria-label="History metric">
+          <uui-tab label="Visitors" .active=${this._metric === "visitors"} @click=${() => (this._metric = "visitors")}>Visitors</uui-tab>
+          <uui-tab label="Page views" .active=${this._metric === "pageViews"} @click=${() => (this._metric = "pageViews")}>Page views</uui-tab>
+        </uui-tab-group>
         ${this._summary.points.length
-          ? html`<vercel-analytics-history-chart .points=${this._summary.points} .metric=${this._metric}></vercel-analytics-history-chart>`
+          ? html`<vercel-analytics-history-chart .points=${this._summary.points} .metric=${this._metric} .interval=${this._range.interval}></vercel-analytics-history-chart>`
           : html`<umb-empty-state headline="No history"><p>No traffic was recorded in this period.</p></umb-empty-state>`}
       </uui-box>
     `;
@@ -279,13 +328,24 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
   #renderBreakdown(dimension: AnalyticsDimension, headline: string, wide = false, planLimited = false) {
     if (planLimited && this._utmCapability === "unavailable") return "";
     const state = this._breakdowns[dimension];
+    const rows = topBreakdownRows(state?.data?.rows ?? []);
+    const linkValues = dimension === "RequestPath" || dimension === "Route";
     return html`
       <uui-box headline=${headline} class=${wide ? "wide" : ""}>
+        ${!state?.loading && !state?.error && rows.length ? html`
+          <uui-button
+            slot="header-actions"
+            look="secondary"
+            label=${`View all ${headline}`}
+            @click=${() => this.#openBreakdown(dimension, headline)}>View all</uui-button>
+        ` : ""}
         ${state?.loading ? html`<uui-loader-bar aria-label=${`Loading ${headline}`}></uui-loader-bar>` : ""}
         ${!state?.loading ? html`
           <vercel-analytics-breakdown-table
             .headline=${headline}
-            .rows=${state?.data?.rows ?? []}
+            .rows=${rows}
+            .baseUrl=${this.#linkBaseUrl()}
+            .linkValues=${linkValues}
             .unavailable=${state?.error}></vercel-analytics-breakdown-table>
           ${state?.error ? html`<uui-button look="secondary" label=${`Retry ${headline} report`} @click=${this.#loadReports}>Retry</uui-button>` : ""}
           ${planLimited && state?.error ? html`<p class="hint">UTM reporting availability depends on your Vercel plan and reporting window.</p>` : ""}
@@ -303,6 +363,16 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
         <section class="grid" aria-label="Traffic breakdowns">
           ${BREAKDOWNS.map((item) => this.#renderBreakdown(item.dimension, item.headline, item.wide, item.planLimited))}
         </section>
+        ${this._expanded ? html`
+          <vercel-analytics-breakdown-dialog
+            .headline=${this._expanded.headline}
+            .rows=${this._expanded.rows}
+            .loading=${this._expanded.loading}
+            .unavailable=${this._expanded.error}
+            .baseUrl=${this.#linkBaseUrl()}
+            .linkValues=${this._expanded.dimension === "RequestPath" || this._expanded.dimension === "Route"}
+            @close-breakdown=${this.#closeBreakdown}></vercel-analytics-breakdown-dialog>
+        ` : ""}
       </main>
     `;
   }
@@ -313,7 +383,7 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
     header { display: flex; align-items: end; justify-content: space-between; gap: var(--uui-size-layout-1); margin-bottom: var(--uui-size-layout-1); }
     h1 { margin: 0; font-size: var(--uui-type-h1-size); }
     header p, .hint { color: var(--uui-color-text-alt); }
-    .controls, .custom-range, .metric-switch { display: flex; align-items: end; flex-wrap: wrap; gap: var(--uui-size-space-4); }
+    .controls, .custom-range { display: flex; align-items: end; flex-wrap: wrap; gap: var(--uui-size-space-4); }
     .custom-range { justify-content: flex-end; margin-bottom: var(--uui-size-layout-1); }
     .summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--uui-size-layout-1); margin-bottom: var(--uui-size-layout-1); }
     .summary strong { display: block; font-size: clamp(2rem, 4vw, 3.5rem); line-height: 1.1; margin-top: var(--uui-size-space-3); font-variant-numeric: tabular-nums; }

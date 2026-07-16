@@ -41,3 +41,21 @@ export function normalizeCustomRange(from: string, to: string): AnalyticsDateRan
   const days = Math.floor((toDate.valueOf() - fromDate.valueOf()) / 86_400_000) + 1;
   return { from, to, interval: intervalForRange(days) };
 }
+
+export function formatAnalyticsDate(
+  timestamp: string,
+  interval: AnalyticsInterval,
+  locale?: string,
+): string {
+  const date = new Date(timestamp);
+  if (interval === "Month") {
+    const month = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(date);
+    return `${month} ’${String(date.getUTCFullYear()).slice(-2)}`;
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}

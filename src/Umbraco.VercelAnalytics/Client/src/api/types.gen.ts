@@ -33,6 +33,7 @@ export type AnalyticsConnectionSummary = {
     displayName: string;
     isDefault: boolean;
     isConfigured: boolean;
+    hostnames: Array<string>;
     warnings: Array<string>;
 };
 

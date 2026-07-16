@@ -49,6 +49,7 @@ public sealed record AnalyticsConnectionSummary(
     string DisplayName,
     bool IsDefault,
     bool IsConfigured,
+    IReadOnlyList<string> Hostnames,
     IReadOnlyList<string> Warnings);
 
 public sealed record AnalyticsConnectionsResponse(
