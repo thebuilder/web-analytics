@@ -33,7 +33,7 @@ export class VercelAnalyticsEventTableElement extends UmbElementMixin(LitElement
               <tr>
                 <th scope="row">
                   <span class="bar" style=${`--bar-width:${(row.count / maximum) * 100}%;--bar-minimum:${row.count > 0 ? "4px" : "0px"}`}></span>
-                  <button type="button" title=${`View history for ${row.eventName}`} @click=${() => this.#select(row.eventName)}>${row.eventName}</button>
+                  <button type="button" title=${`View details for ${row.eventName}`} @click=${() => this.#select(row.eventName)}>${row.eventName}</button>
                 </th>
                 <td>${row.visitors.toLocaleString()}</td>
                 <td>${row.count.toLocaleString()}</td>

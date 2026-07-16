@@ -195,13 +195,13 @@ public sealed class VercelAnalyticsClientTests
     public async Task Event_property_values_parse_metrics_and_quote_dynamic_dimension()
     {
         var handler = new RecordingHandler(
-            """{"data":[{"eventData":"Enterprise","count":12,"visitors":10}]}""");
+            """{"data":[{"signup-source":"Enterprise","count":12,"visitors":10}]}""");
         var client = CreateClient(handler);
         var connection = CreateConnection();
 
         var result = await client.GetEventPropertyValuesAsync(
             connection,
-            new AnalyticsQuery(connection.Alias, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 2), AnalyticsInterval.Day),
+            new AnalyticsQuery(connection.Alias, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 2), AnalyticsInterval.Day, "/news"),
             "Signup",
             "signup-source",
             100,
@@ -210,6 +210,7 @@ public sealed class VercelAnalyticsClientTests
         Assert.Equal(new AnalyticsEventPropertyValue("Enterprise", 12, 10), Assert.Single(result));
         Assert.Contains("by=eventData%2F%27signup-source%27", handler.Request!.RequestUri!.Query);
         Assert.Contains("limit=100", handler.Request.RequestUri.Query);
+        Assert.Contains("filter=requestPath eq '/news' and eventName eq 'Signup'", Uri.UnescapeDataString(handler.Request.RequestUri.Query));
     }
 
     [Fact]

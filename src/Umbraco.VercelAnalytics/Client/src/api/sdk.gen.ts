@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { BreakdownData, BreakdownErrors, BreakdownResponses, ConnectionsData, ConnectionsErrors, ConnectionsResponses, DocumentRoutesData, DocumentRoutesErrors, DocumentRoutesResponses, EventHistoryData, EventHistoryErrors, EventHistoryResponses, EventsData, EventsErrors, EventsResponses, SaveSettingsData, SaveSettingsErrors, SaveSettingsResponses, SettingsData, SettingsErrors, SettingsResponses, SummaryData, SummaryErrors, SummaryResponses, TestConnectionData, TestConnectionErrors, TestConnectionResponses } from './types.gen';
+import type { BreakdownData, BreakdownErrors, BreakdownResponses, ConnectionsData, ConnectionsErrors, ConnectionsResponses, DocumentRoutesData, DocumentRoutesErrors, DocumentRoutesResponses, EventDetailsData, EventDetailsErrors, EventDetailsResponses, EventsData, EventsErrors, EventsResponses, SaveSettingsData, SaveSettingsErrors, SaveSettingsResponses, SettingsData, SettingsErrors, SettingsResponses, SummaryData, SummaryErrors, SummaryResponses, TestConnectionData, TestConnectionErrors, TestConnectionResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -71,15 +71,15 @@ export class UmbracoVercelAnalyticsService {
         });
     }
 
-    public static eventHistory<ThrowOnError extends boolean = false>(options?: Options<EventHistoryData, ThrowOnError>) {
-        return (options?.client ?? client).get<EventHistoryResponses, EventHistoryErrors, ThrowOnError>({
+    public static eventDetails<ThrowOnError extends boolean = false>(options?: Options<EventDetailsData, ThrowOnError>) {
+        return (options?.client ?? client).get<EventDetailsResponses, EventDetailsErrors, ThrowOnError>({
             security: [
                 {
                     scheme: 'bearer',
                     type: 'http'
                 }
             ],
-            url: '/umbraco/management/api/v1/vercel-analytics/reports/events/history',
+            url: '/umbraco/management/api/v1/vercel-analytics/reports/events/details',
             ...options
         });
     }

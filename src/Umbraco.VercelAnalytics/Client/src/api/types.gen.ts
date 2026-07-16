@@ -61,14 +61,19 @@ export type AnalyticsDocumentRoute = {
     warnings: Array<string>;
 };
 
-export type AnalyticsEventHistory = {
+export type AnalyticsEventDetails = {
     eventName: string;
     totals: AnalyticsEventTotals;
-    points: Array<AnalyticsEventPoint>;
+    properties: Array<AnalyticsEventProperty>;
 };
 
-export type AnalyticsEventPoint = {
-    timestamp: string;
+export type AnalyticsEventProperty = {
+    name: string;
+    values: Array<AnalyticsEventPropertyValue>;
+};
+
+export type AnalyticsEventPropertyValue = {
+    value: string;
     count: number;
     visitors: number;
 };
@@ -267,7 +272,7 @@ export type EventsResponses = {
 
 export type EventsResponse = EventsResponses[keyof EventsResponses];
 
-export type EventHistoryData = {
+export type EventDetailsData = {
     body?: never;
     path?: never;
     query?: {
@@ -281,24 +286,24 @@ export type EventHistoryData = {
         path?: string;
         filter?: Array<string>;
     };
-    url: '/umbraco/management/api/v1/vercel-analytics/reports/events/history';
+    url: '/umbraco/management/api/v1/vercel-analytics/reports/events/details';
 };
 
-export type EventHistoryErrors = {
+export type EventDetailsErrors = {
     /**
      * The resource is protected and requires an authentication token
      */
     401: unknown;
 };
 
-export type EventHistoryResponses = {
+export type EventDetailsResponses = {
     /**
      * OK
      */
-    200: AnalyticsEventHistory;
+    200: AnalyticsEventDetails;
 };
 
-export type EventHistoryResponse = EventHistoryResponses[keyof EventHistoryResponses];
+export type EventDetailsResponse = EventDetailsResponses[keyof EventDetailsResponses];
 
 export type SummaryData = {
     body?: never;

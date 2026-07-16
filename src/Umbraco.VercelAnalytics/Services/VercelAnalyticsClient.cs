@@ -138,7 +138,7 @@ public sealed class VercelAnalyticsClient(HttpClient httpClient) : IVercelAnalyt
         using var response = await SendAsync(connection, EventAggregatePath, parameters, cancellationToken);
         var envelope = await response.Content.ReadFromJsonAsync<AggregateEnvelope>(cancellationToken);
         return envelope?.Data
-            .Select(ParseEventPropertyValue)
+            .Select(item => ParseEventPropertyValue(item, propertyName))
             .Where(value => value.Value is not "Others" and not "Unknown")
             .ToArray()
             ?? throw new JsonException("Vercel Analytics event property values response did not contain data.");
@@ -239,10 +239,20 @@ public sealed class VercelAnalyticsClient(HttpClient httpClient) : IVercelAnalyt
         GetInt64(element, "count"),
         GetInt64(element, "visitors"));
 
-    private static AnalyticsEventPropertyValue ParseEventPropertyValue(JsonElement element) => new(
-        element.TryGetProperty("eventData", out var value) ? value.ToString() : "Unknown",
-        GetInt64(element, "count"),
-        GetInt64(element, "visitors"));
+    private static AnalyticsEventPropertyValue ParseEventPropertyValue(JsonElement element, string propertyName)
+    {
+        var value = element.TryGetProperty(propertyName, out var namedValue)
+            ? namedValue
+            : element.TryGetProperty($"eventData/{propertyName}", out var qualifiedValue)
+                ? qualifiedValue
+                : element.TryGetProperty("eventData", out var eventDataValue)
+                    ? eventDataValue
+                    : default;
+        return new AnalyticsEventPropertyValue(
+            value.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? "Unknown" : value.ToString(),
+            GetInt64(element, "count"),
+            GetInt64(element, "visitors"));
+    }
 
     private static long GetInt64(JsonElement element, string name) =>
         element.TryGetProperty(name, out var value) && value.TryGetInt64(out var result) ? result : 0;
