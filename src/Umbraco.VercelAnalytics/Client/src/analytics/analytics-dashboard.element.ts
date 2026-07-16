@@ -731,7 +731,7 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
     .breakdown-footer { align-items: center; background: color-mix(in srgb, var(--uui-color-surface-alt) 42%, var(--uui-color-surface)); border-top: 1px solid var(--uui-color-border); bottom: 0; box-sizing: border-box; display: flex; justify-content: flex-end; left: 0; min-block-size: 3.75rem; padding: var(--uui-size-space-2) var(--uui-size-space-4); position: absolute; right: 0; }
     .breakdown-hint { margin: 0; padding: var(--uui-size-space-3) var(--uui-size-space-5); }
     .breakdown-tabs { align-items: stretch; display: flex; margin: calc(-1 * var(--uui-size-space-3)); }
-    .breakdown-tabs button { appearance: none; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--uui-color-text-alt); cursor: pointer; font: inherit; font-weight: 500; padding: var(--uui-size-space-3); }
+    .breakdown-tabs button { appearance: none; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--uui-color-text-alt); cursor: pointer; font: inherit; font-weight: 500; padding: calc(var(--uui-size-space-3) - 1px) var(--uui-size-space-3); }
     .breakdown-tabs button[aria-selected="true"] { border-bottom-color: var(--uui-color-selected); color: var(--uui-color-text); }
     .breakdown-tabs button:hover { background: var(--uui-color-surface-alt); }
     .breakdown-tabs button:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: -2px; }
