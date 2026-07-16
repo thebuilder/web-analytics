@@ -8,7 +8,7 @@ import {
 } from "@umbraco-cms/backoffice/external/lit";
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
-import type { UUIInputElement, UUISelectElement } from "@umbraco-cms/backoffice/external/uui";
+import type { UUISelectElement } from "@umbraco-cms/backoffice/external/uui";
 import { UmbracoVercelAnalyticsService } from "../api/sdk.gen.js";
 import type {
   AnalyticsBreakdown,
@@ -20,7 +20,7 @@ import type {
   AnalyticsEventsReport,
   AnalyticsSummary,
 } from "../api/types.gen.js";
-import { dateRangeForPreset, inclusiveRangeDays, normalizeCustomRange, type AnalyticsDateRange, type DatePreset } from "./date-range.js";
+import { dateRangeForPreset, inclusiveRangeDays, type AnalyticsDateRange, type DatePreset } from "./date-range.js";
 import { reportErrorMessage } from "./report-error.js";
 import { detectUtmCapability, isUtmDimension, type UtmCapability } from "./utm-capability.js";
 import { topBreakdownRows } from "./breakdown-rows.js";
@@ -42,6 +42,8 @@ import "./breakdown-dialog.element.js";
 import "./event-table.element.js";
 import "./event-dialog.element.js";
 import "./event-details-dialog.element.js";
+import "./date-range-picker.element.js";
+import type { AnalyticsDateRangeChangeDetail } from "./date-range-picker.element.js";
 
 type BreakdownState = { data?: AnalyticsBreakdown; error?: string; loading: boolean };
 type EventState = { data?: AnalyticsEventsReport; loading: boolean };
@@ -431,23 +433,9 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
     void this.#loadReports();
   }
 
-  #onPresetChange(event: Event): void {
-    const value = (event.target as UUISelectElement).value as string;
-    this._preset = value === "custom" ? "custom" : Number(value) as Exclude<DatePreset, "custom">;
-    if (this._preset !== "custom") {
-      this._range = dateRangeForPreset(this._preset);
-      this.#syncUrlState();
-      void this.#loadReports();
-    }
-  }
-
-  #onCustomDate(field: "from" | "to", event: Event): void {
-    const value = (event.target as UUIInputElement).value as string;
-    const normalized = normalizeCustomRange(field === "from" ? value : this._range.from, field === "to" ? value : this._range.to);
-    if (normalized) this._range = normalized;
-  }
-
-  #applyCustomRange(): void {
+  #onDateRangeChange(event: CustomEvent<AnalyticsDateRangeChangeDetail>): void {
+    this._preset = event.detail.preset;
+    this._range = event.detail.range;
     this.#syncUrlState();
     void this.#loadReports();
   }
@@ -532,32 +520,10 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
               .options=${this.#selectOptions(this._connections.map((item) => ({ value: item.alias, name: item.displayName })), this._connection)}
               @change=${this.#onConnectionChange}></uui-select>
           ` : ""}
-          <div class="report-controls">
-            <uui-select
-              class="range-select"
-              label="Date range"
-              .options=${this.#selectOptions([
-                { value: "7", name: "Last 7 days" }, { value: "30", name: "Last 30 days" },
-                { value: "90", name: "Last 90 days" }, { value: "365", name: "Last 12 months" },
-                { value: "custom", name: "Custom range" },
-              ], String(this._preset))}
-              @change=${this.#onPresetChange}></uui-select>
-            ${this._preset === "custom" ? html`
-              <div class="date-actions">
-                <div class="date-control">
-                  <uui-label for="analytics-from">From</uui-label>
-                  <uui-input id="analytics-from" label="From" type="date" .value=${this._range.from} @change=${(event: Event) => this.#onCustomDate("from", event)}></uui-input>
-                </div>
-                <div class="date-control">
-                  <uui-label for="analytics-to">To</uui-label>
-                  <uui-input id="analytics-to" label="To" type="date" .value=${this._range.to} @change=${(event: Event) => this.#onCustomDate("to", event)}></uui-input>
-                </div>
-                <uui-button look="primary" label="Apply custom date range" @click=${this.#applyCustomRange}>Apply dates</uui-button>
-              </div>
-            ` : html`
-              <uui-button look="primary" label="Refresh analytics" @click=${this.#loadReports}>Refresh</uui-button>
-            `}
-          </div>
+          <vercel-analytics-date-range-picker
+            .preset=${this._preset}
+            .range=${this._range}
+            @analytics-date-range-change=${this.#onDateRangeChange}></vercel-analytics-date-range-picker>
         </div>
       </header>
       <div class="warnings">
@@ -833,7 +799,7 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
   static styles = [UmbTextStyles, css`
     :host { display: block; }
     main { container-type: inline-size; padding: var(--uui-size-layout-1); max-width: 110rem; margin-inline: auto; }
-    header { align-items: end; display: flex; flex-wrap: wrap; gap: var(--uui-size-space-5); justify-content: space-between; margin-bottom: var(--uui-size-layout-1); }
+    header { align-items: center; display: flex; flex-wrap: wrap; gap: var(--uui-size-space-4); justify-content: space-between; margin-bottom: var(--uui-size-space-2); min-block-size: 2.5rem; }
     .hint { color: var(--uui-color-text-alt); }
     .site-context { align-items: center; display: flex; min-block-size: 2.5rem; min-inline-size: 0; }
     .site-link, .site-name { align-items: center; color: var(--uui-color-text); display: inline-flex; font-weight: 700; gap: var(--uui-size-space-2); min-inline-size: 0; text-decoration: none; }
@@ -841,12 +807,8 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
     .site-link:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 3px; }
     .site-context uui-icon { color: var(--uui-color-text-alt); flex: 0 0 auto; }
     .external-indicator { color: var(--uui-color-text-alt); font-size: 0.875em; }
-    .controls { align-items: end; display: flex; flex-wrap: wrap; gap: var(--uui-size-space-4); justify-content: flex-end; margin-inline-start: auto; }
-    .report-controls, .date-actions { align-items: end; display: flex; gap: var(--uui-size-space-4); }
-    .date-control { display: grid; gap: var(--uui-size-space-2); }
-    .date-control uui-input { min-inline-size: 11rem; }
+    .controls { align-items: center; display: flex; flex-wrap: wrap; gap: var(--uui-size-space-3); justify-content: flex-end; margin-inline-start: auto; min-inline-size: 0; }
     .project-select { min-inline-size: 10rem; }
-    .range-select { min-inline-size: 12rem; }
     .metric-tabs { border-bottom: 1px solid var(--uui-color-border); display: flex; flex-wrap: nowrap; }
     .metric-tab { appearance: none; background: transparent; border: 0; border-bottom: 3px solid transparent; color: var(--uui-color-text); cursor: pointer; flex: 0 0 auto; font: inherit; inline-size: max-content; min-inline-size: 18rem; padding: var(--uui-size-space-5); text-align: left; }
     .metric-tab + .metric-tab { border-inline-start: 1px solid var(--uui-color-border); }
@@ -890,7 +852,6 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
     .filter-badge:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
     .filter-badge uui-icon { color: var(--uui-color-text-alt); }
     @container (max-width: 62rem) {
-      .controls { align-items: flex-end; flex: 1 1 100%; flex-direction: column; gap: var(--uui-size-space-4); }
       .project-select { inline-size: min(100%, 28rem); max-inline-size: 100%; }
       .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .breakdown-card, .wide { grid-column: auto; }
@@ -903,13 +864,16 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
       .comparison { font-size: 0.875rem; padding: var(--uui-size-space-1) var(--uui-size-space-2); }
     }
     @container (max-width: 40rem) {
-      .controls { align-items: stretch; }
-      .report-controls, .date-actions { align-items: stretch; flex-direction: column; }
-      .report-controls > *, .date-actions > *, .date-control uui-input { box-sizing: border-box; inline-size: 100%; max-inline-size: none; }
       .metric-tab { box-sizing: border-box; padding: var(--uui-size-space-3); }
       .metric-tab strong { font-size: clamp(1.25rem, 5cqi, 1.75rem); }
       .eyebrow { font-size: 0.875rem; }
       .comparison { font-size: 0.75rem; }
+    }
+    @container (max-width: 32rem) {
+      header { align-items: stretch; }
+      .site-context { flex: 1 1 100%; }
+      .controls { align-items: stretch; inline-size: 100%; margin-inline-start: 0; }
+      .project-select, vercel-analytics-date-range-picker { box-sizing: border-box; flex: 1 1 100%; inline-size: 100%; max-inline-size: none; }
     }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; } }
   `];
