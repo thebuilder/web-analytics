@@ -906,7 +906,7 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
   #renderUtmBreakdown() {
     if (this._utmCapability === "unavailable") return "";
     const selected = UTM_TABS.find(({ dimension }) => dimension === this._utmDimension) ?? UTM_TABS[0];
-    return this.#renderBreakdown(selected.dimension, selected.headline, false, true, "utm");
+    return this.#renderBreakdown(selected.dimension, selected.headline, true, true, "utm");
   }
 
   #renderEvents() {
