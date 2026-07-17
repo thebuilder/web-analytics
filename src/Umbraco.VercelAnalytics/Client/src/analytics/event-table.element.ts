@@ -4,6 +4,8 @@ import type { AnalyticsEventRow } from "../api/types.gen.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
 import { visibleEventRows } from "./event-rows.js";
 
+const EVENTS_SETUP_URL = "https://vercel.com/docs/analytics/custom-events";
+
 @customElement("vercel-analytics-event-table")
 export class VercelAnalyticsEventTableElement extends UmbElementMixin(LitElement) {
   @property({ type: Boolean }) loading = false;
@@ -21,6 +23,7 @@ export class VercelAnalyticsEventTableElement extends UmbElementMixin(LitElement
 
   render() {
     const rows = visibleEventRows(this.rows);
+    const empty = !this.loading && rows.length === 0;
     const maximum = Math.max(...rows.map((row) => row.count), 1);
     return html`
       ${this.loading ? html`<span class="visually-hidden" role="status">Loading events</span>` : ""}
@@ -60,11 +63,19 @@ export class VercelAnalyticsEventTableElement extends UmbElementMixin(LitElement
               </tr>
             `;})}</tbody>
       </table>
+      ${empty ? html`
+        <div class="empty">
+          <span class="empty-icon"><uui-icon name="icon-lightning" aria-hidden="true"></uui-icon></span>
+          <strong>No events</strong>
+          <p>Track custom events to understand which actions visitors take.</p>
+          <a href=${EVENTS_SETUP_URL} target="_blank" rel="noopener noreferrer">Set up event tracking <uui-icon name="icon-out" aria-hidden="true"></uui-icon></a>
+        </div>
+      ` : ""}
     `;
   }
 
   static styles = css`
-    :host { display: block; overflow-x: auto; }
+    :host { block-size: 100%; display: flex; flex-direction: column; overflow-x: auto; }
     table { --bar-inset: var(--uui-size-space-3); border-collapse: collapse; min-inline-size: 30rem; table-layout: fixed; width: 100%; }
     caption { clip: rect(0 0 0 0); height: 1px; overflow: hidden; position: absolute; width: 1px; }
     th, td { box-sizing: border-box; padding: var(--uui-size-space-3) var(--uui-size-space-5); text-align: left; }
@@ -86,6 +97,11 @@ export class VercelAnalyticsEventTableElement extends UmbElementMixin(LitElement
     .skeleton-line, .skeleton-number { background: var(--uui-color-surface-alt); block-size: 1lh; border-radius: var(--uui-border-radius); display: block; }
     .skeleton-line { width: 70%; }
     .skeleton-number { margin-inline-start: auto; width: 3.5rem; }
+    .empty { align-items: center; display: flex; flex: 1; flex-direction: column; gap: var(--uui-size-space-3); justify-content: center; min-block-size: 16rem; padding: var(--uui-size-layout-1); text-align: center; }
+    .empty-icon { align-items: center; border: 1px solid var(--uui-color-border); border-radius: 50%; color: var(--uui-color-text-alt); display: inline-flex; font-size: 1.5rem; height: 3rem; justify-content: center; width: 3rem; }
+    .empty p { color: var(--uui-color-text-alt); margin: 0; max-width: 34rem; }
+    .empty a { align-items: center; color: var(--uui-color-interactive-emphasis); display: inline-flex; gap: var(--uui-size-space-1); }
+    .empty a:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
     .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
     @media (hover: none) { .filter-action { opacity: 1; } }
   `;

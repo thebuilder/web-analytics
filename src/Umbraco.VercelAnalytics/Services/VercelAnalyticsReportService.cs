@@ -67,6 +67,25 @@ public sealed class VercelAnalyticsReportService(
         });
     }
 
+    public async Task<AnalyticsFlagsReport?> GetFlagsAsync(
+        AnalyticsQuery query,
+        string? flagKey,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var snapshot = registry.Capture();
+        var connection = snapshot.Get(query.Connection);
+        if (connection is null || !connection.IsConfigured) return null;
+        var normalizedFlagKey = string.IsNullOrWhiteSpace(flagKey) ? null : flagKey.Trim();
+        var flagKeyCacheKey = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(normalizedFlagKey ?? string.Empty));
+        var cacheKey = $"vercel-analytics:{snapshot.Revision}:flags:{flagKeyCacheKey}:{limit}:{Normalize(query)}";
+        return await GetOrCreateAsync(cacheKey, snapshot.Settings.CacheDuration, async () =>
+        {
+            var rows = await client.GetFlagsAsync(connection, query, normalizedFlagKey, limit, cancellationToken);
+            return new AnalyticsFlagsReport(normalizedFlagKey, rows);
+        });
+    }
+
     public async Task<AnalyticsEventDetails?> GetEventDetailsAsync(
         AnalyticsQuery query,
         string eventName,

@@ -11,11 +11,14 @@ describe("dashboardCards", () => {
     const cards = dashboardCards(false, "available");
     expect(cards.find((card) => card.kind === "tabbed-breakdown" && card.id === "audience")).toBeDefined();
     expect(cards.find((card) => card.kind === "tabbed-breakdown" && card.id === "utm")).toBeDefined();
+    expect(requestedDimensions(cards)).toEqual(expect.arrayContaining([
+      "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent",
+    ]));
   });
 
   it("removes the UTM card when the capability is unavailable", () => {
     expect(requestedDimensions(dashboardCards(false, "unavailable")))
-      .not.toEqual(expect.arrayContaining(["UtmSource", "UtmMedium", "UtmCampaign"]));
+      .not.toEqual(expect.arrayContaining(["UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent"]));
   });
 
   it("selects the active option from a tabbed card", () => {

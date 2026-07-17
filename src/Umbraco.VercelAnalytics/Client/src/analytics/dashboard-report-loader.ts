@@ -1,4 +1,4 @@
-import type { AnalyticsBreakdown, AnalyticsDimension, AnalyticsEventsReport, AnalyticsSummary } from "../api/types.gen.js";
+import type { AnalyticsBreakdown, AnalyticsDimension, AnalyticsEventsReport, AnalyticsFlagsReport, AnalyticsSummary } from "../api/types.gen.js";
 import { dashboardApi, type DashboardApi } from "./dashboard-api.js";
 import { reportErrorMessage } from "./report-error.js";
 import { settleRequest, type SettledRequestResult } from "./request-coordinator.js";
@@ -8,10 +8,11 @@ type SummaryOptions = NonNullable<Parameters<DashboardApi["summary"]>[0]>;
 export type DashboardReportQuery = NonNullable<SummaryOptions["query"]>;
 type LoadedReport<T> = { status: "success"; data: T } | { status: "error"; error: string };
 type SdkResult<T> = { data?: T; error?: unknown; response: Response };
-type ReportApi = Pick<DashboardApi, "summary" | "events" | "breakdown">;
+type ReportApi = Pick<DashboardApi, "summary" | "events" | "flags" | "breakdown">;
 export type DashboardReportUpdate =
   | ({ panel: "summary" } & LoadedReport<AnalyticsSummary>)
   | ({ panel: "events" } & LoadedReport<AnalyticsEventsReport>)
+  | ({ panel: "flags" } & LoadedReport<AnalyticsFlagsReport>)
   | ({ panel: "breakdown"; dimension: AnalyticsDimension } & LoadedReport<AnalyticsBreakdown>);
 export type DashboardReportEvidence = { baselineSucceeded: boolean; utmSucceeded: boolean; utmStatuses: number[] };
 
@@ -36,6 +37,9 @@ export async function loadDashboardReports(
   const events = settleRequest(api.events({ query: { ...eventQuery, limit: 20 }, signal })).then((result) => {
     publish({ panel: "events", ...toLoadedReport<AnalyticsEventsReport>(result) });
   });
+  const flags = settleRequest(api.flags({ query: { ...visitQuery, limit: 10 }, signal })).then((result) => {
+    publish({ panel: "flags", ...toLoadedReport<AnalyticsFlagsReport>(result) });
+  });
   const breakdowns = dimensions.map((dimension) => settleRequest(api.breakdown({
     path: { dimension }, query: { ...visitQuery, limit: 11 }, signal,
   })).then((result) => {
@@ -47,7 +51,7 @@ export async function loadDashboardReports(
     publish({ panel: "breakdown", dimension, ...report });
   }));
 
-  await Promise.all([summary, events, ...breakdowns]);
+  await Promise.all([summary, events, flags, ...breakdowns]);
   return { baselineSucceeded, utmSucceeded, utmStatuses };
 }
 

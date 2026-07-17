@@ -139,6 +139,27 @@ public sealed class VercelAnalyticsClientTests
         Assert.Contains("by=country", handler.Request!.RequestUri!.Query);
     }
 
+    [Theory]
+    [InlineData(AnalyticsDimension.UtmTerm, "utmTerm")]
+    [InlineData(AnalyticsDimension.UtmContent, "utmContent")]
+    public async Task Breakdown_supports_all_utm_dimensions(AnalyticsDimension dimension, string apiDimension)
+    {
+        var handler = new RecordingHandler($$"""{"data":[{"{{apiDimension}}":"value","pageviews":20,"visitors":14}]}""");
+        var client = CreateClient(handler);
+        var connection = CreateConnection();
+
+        var result = await client.GetBreakdownAsync(
+            connection,
+            new AnalyticsQuery(connection.Key, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 2), AnalyticsInterval.Day),
+            dimension,
+            10,
+            null,
+            CancellationToken.None);
+
+        Assert.Equal(new AnalyticsBreakdownRow("value", 20, 14), Assert.Single(result));
+        Assert.Contains($"by={apiDimension}", handler.Request!.RequestUri!.Query);
+    }
+
     [Fact]
     public async Task Breakdown_keeps_unknown_and_others_for_the_presentation_layer_to_classify()
     {
@@ -174,6 +195,56 @@ public sealed class VercelAnalyticsClientTests
             CancellationToken.None);
 
         Assert.Contains("limit=100", handler.Request!.RequestUri!.Query);
+    }
+
+    [Fact]
+    public async Task Flags_group_by_keys_and_keep_unknown_while_removing_others()
+    {
+        var handler = new RecordingHandler(
+            """{"data":[{"flags":"summer-sale","pageviews":20,"visitors":14},{"flags":"Unknown","pageviews":3,"visitors":2},{"flags":"Others","pageviews":10,"visitors":8}]}""");
+        var client = CreateClient(handler);
+        var connection = CreateConnection();
+
+        var result = await client.GetFlagsAsync(
+            connection,
+            new AnalyticsQuery(connection.Key, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 2), AnalyticsInterval.Day),
+            null,
+            10,
+            CancellationToken.None);
+
+        Assert.Equal(["summer-sale", "Unknown"], result.Select(row => row.Value));
+        Assert.Equal(new AnalyticsFlagRow("summer-sale", 20, 14), result[0]);
+        Assert.Contains("by=flags", handler.Request!.RequestUri!.Query);
+        Assert.Contains("limit=10", handler.Request.RequestUri.Query);
+    }
+
+    [Fact]
+    public async Task Flag_values_quote_dynamic_keys_and_parse_the_returned_value()
+    {
+        var handler = new RecordingHandler(
+            """{"data":[{"flags/my-flag":"true","pageviews":841,"visitors":184}]}""");
+        var client = CreateClient(handler);
+        var connection = CreateConnection();
+
+        var result = await client.GetFlagsAsync(
+            connection,
+            new AnalyticsQuery(connection.Key, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 2), AnalyticsInterval.Day),
+            "my-flag",
+            100,
+            CancellationToken.None);
+
+        Assert.Equal(new AnalyticsFlagRow("true", 841, 184), Assert.Single(result));
+        Assert.Contains("by=flags%2F%27my-flag%27", handler.Request!.RequestUri!.Query);
+        Assert.Contains("limit=100", handler.Request.RequestUri.Query);
+    }
+
+    [Theory]
+    [InlineData("beta_banner", "flags/beta_banner")]
+    [InlineData("my-flag", "flags/'my-flag'")]
+    [InlineData("editor's-flag", "flags/'editor''s-flag'")]
+    public void Flag_dimensions_only_quote_keys_that_require_it(string key, string expected)
+    {
+        Assert.Equal(expected, VercelAnalyticsClient.ToFlagDimension(key));
     }
 
     [Fact]

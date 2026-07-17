@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { BreakdownData, BreakdownErrors, BreakdownResponses, ConnectionsData, ConnectionsErrors, ConnectionsResponses, DocumentRoutesData, DocumentRoutesErrors, DocumentRoutesResponses, EventDetailsData, EventDetailsErrors, EventDetailsResponses, EventPropertyValuesData, EventPropertyValuesErrors, EventPropertyValuesResponses, EventsData, EventsErrors, EventsResponses, SaveSettingsData, SaveSettingsErrors, SaveSettingsResponses, SettingsData, SettingsErrors, SettingsResponses, SummaryData, SummaryErrors, SummaryResponses, TestConnectionData, TestConnectionErrors, TestConnectionResponses } from './types.gen';
+import type { BreakdownData, BreakdownErrors, BreakdownResponses, ConnectionsData, ConnectionsErrors, ConnectionsResponses, DocumentRoutesData, DocumentRoutesErrors, DocumentRoutesResponses, EventDetailsData, EventDetailsErrors, EventDetailsResponses, EventPropertyValuesData, EventPropertyValuesErrors, EventPropertyValuesResponses, EventsData, EventsErrors, EventsResponses, FlagsData, FlagsErrors, FlagsResponses, SaveSettingsData, SaveSettingsErrors, SaveSettingsResponses, SettingsData, SettingsErrors, SettingsResponses, SummaryData, SummaryErrors, SummaryResponses, TestConnectionData, TestConnectionErrors, TestConnectionResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -67,6 +67,19 @@ export class UmbracoVercelAnalyticsService {
                 }
             ],
             url: '/umbraco/management/api/v1/vercel-analytics/reports/events',
+            ...options
+        });
+    }
+
+    public static flags<ThrowOnError extends boolean = false>(options?: Options<FlagsData, ThrowOnError>) {
+        return (options?.client ?? client).get<FlagsResponses, FlagsErrors, ThrowOnError>({
+            security: [
+                {
+                    scheme: 'bearer',
+                    type: 'http'
+                }
+            ],
+            url: '/umbraco/management/api/v1/vercel-analytics/reports/flags',
             ...options
         });
     }

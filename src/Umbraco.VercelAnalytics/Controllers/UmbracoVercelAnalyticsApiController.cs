@@ -146,6 +146,31 @@ public sealed class UmbracoVercelAnalyticsApiController(
         return report is null ? NotFoundProblem("The selected analytics connection does not exist.") : Ok(report);
     }
 
+    [HttpGet("reports/flags")]
+    [ProducesResponseType<AnalyticsFlagsReport>(StatusCodes.Status200OK)]
+    [ApiConventionMethod(typeof(AnalyticsApiConventions), nameof(AnalyticsApiConventions.Report))]
+    public async Task<ActionResult<AnalyticsFlagsReport>> Flags(
+        [FromQuery] Guid connection,
+        [FromQuery] DateTimeOffset from,
+        [FromQuery] DateTimeOffset to,
+        [FromQuery] AnalyticsInterval interval,
+        [FromQuery] string? flagKey = null,
+        [FromQuery] int limit = 10,
+        [FromQuery] Guid? documentId = null,
+        [FromQuery] string? culture = null,
+        [FromQuery] string? path = null,
+        [FromQuery] string[]? filter = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (flagKey?.Length > 255) return ValidationProblem("Flag key must be 255 characters or fewer.");
+        if (limit is < 1 or > 100) return ValidationProblem("Limit must be between 1 and 100.");
+        var scope = await AuthorizeAndBuildQueryAsync(
+            connection, from, to, interval, documentId, culture, path, filter, ReportScope.Visits, cancellationToken);
+        if (scope.Error is not null) return scope.Error;
+        var report = await reportService.GetFlagsAsync(scope.Query!, flagKey, limit, cancellationToken);
+        return report is null ? NotFoundProblem("The selected analytics connection does not exist.") : Ok(report);
+    }
+
     [HttpGet("reports/events/details")]
     [ProducesResponseType<AnalyticsEventDetails>(StatusCodes.Status200OK)]
     [ApiConventionMethod(typeof(AnalyticsApiConventions), nameof(AnalyticsApiConventions.Report))]

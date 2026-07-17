@@ -104,6 +104,8 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
           .cards=${this.#controller.cards()}
           .breakdowns=${state.breakdowns}
           .events=${state.events}
+          .flags=${state.flags}
+          .selectedFlag=${state.selectedFlag}
           .filters=${state.filters}
           .metric=${state.metric}
           .audienceDimension=${state.audienceDimension}
@@ -112,6 +114,8 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
           @view-breakdown=${(event: CustomEvent<{ dimension: AnalyticsDimension; headline: string }>) => this.#controller.openBreakdown(event.detail.dimension, event.detail.headline)}
           @view-events=${() => this.#controller.openEvents()}
           @select-event=${(event: CustomEvent<{ eventName: string }>) => this.#controller.selectEvent(event.detail.eventName)}
+          @select-flag=${(event: CustomEvent<{ flagKey: string }>) => this.#controller.selectFlag(event.detail.flagKey)}
+          @clear-selected-flag=${() => this.#controller.clearSelectedFlag()}
           @retry-reports=${() => this.#controller.loadReports()}
           @audience-change=${(event: CustomEvent<{ dimension: AudienceDimension }>) => this.#controller.setAudienceDimension(event.detail.dimension)}
           @utm-change=${(event: CustomEvent<{ dimension: UtmDimension }>) => this.#controller.setUtmDimension(event.detail.dimension)}></vercel-analytics-breakdown-grid>

@@ -6,6 +6,7 @@ const sdk = vi.hoisted(() => ({
   documentRoutes: vi.fn(),
   summary: vi.fn(),
   events: vi.fn(),
+  flags: vi.fn(),
   breakdown: vi.fn(),
   eventDetails: vi.fn(),
   eventPropertyValues: vi.fn(),
@@ -14,6 +15,7 @@ vi.mock("../api/sdk.gen.js", () => ({ UmbracoVercelAnalyticsService: sdk }));
 vi.mock("@umbraco-cms/backoffice/element-api", () => ({
   UmbElementMixin: <T extends CustomElementConstructor>(base: T) => class extends base {
     readonly localize = {
+      lang: () => this.lang || "en-US",
       number: (value: string | number, options?: Intl.NumberFormatOptions) => new Intl.NumberFormat(this.lang || "en-US", options).format(Number(value)),
     };
   },
@@ -27,6 +29,7 @@ import type { VercelAnalyticsSummaryElement } from "./analytics-summary.element.
 import type { VercelAnalyticsBreakdownGridElement } from "./analytics-breakdown-grid.element.js";
 import type { VercelAnalyticsBreakdownTableElement } from "./breakdown-table.element.js";
 import type { VercelAnalyticsDashboardElement } from "./analytics-dashboard.element.js";
+import type { VercelAnalyticsFlagCardElement } from "./flag-card.element.js";
 import "./analytics-summary.element.js";
 import "./analytics-breakdown-grid.element.js";
 import "./analytics-dashboard.element.js";
@@ -40,6 +43,7 @@ beforeEach(() => {
   sdk.documentRoutes.mockResolvedValue(apiOk([]));
   sdk.summary.mockResolvedValue(apiOk({ totals: { visitors: 12, pageViews: 34 }, points: [] }));
   sdk.events.mockResolvedValue(apiOk({ rows: [] }));
+  sdk.flags.mockResolvedValue(apiOk({ rows: [] }));
   sdk.breakdown.mockResolvedValue(apiOk({ rows: [] }));
 });
 
@@ -147,6 +151,90 @@ describe("analytics presentation components", () => {
     const cards = [...element.shadowRoot?.querySelectorAll("uui-box") ?? []];
     expect(cards[0]?.querySelector<HTMLElement & { headline: string }>("vercel-analytics-breakdown-table")?.headline).toBe("Referrers");
     expect(cards[1]?.querySelector("vercel-analytics-event-table")).not.toBeNull();
+  });
+
+  it("merges valid UTM reports into the referrers card with five parameter tabs", async () => {
+    const element = document.createElement("vercel-analytics-breakdown-grid") as VercelAnalyticsBreakdownGridElement;
+    element.cards = dashboardCards(false, "available");
+    element.breakdowns = {
+      ReferrerHostname: successState({ dimension: "ReferrerHostname", rows: [{ value: "google.com", visitors: 8, pageViews: 10 }] }),
+      UtmSource: successState({ dimension: "UtmSource", rows: [{ value: "newsletter", visitors: 5, pageViews: 6 }] }),
+      UtmMedium: successState({ dimension: "UtmMedium", rows: [] }),
+      UtmCampaign: successState({ dimension: "UtmCampaign", rows: [] }),
+      UtmTerm: successState({ dimension: "UtmTerm", rows: [] }),
+      UtmContent: successState({ dimension: "UtmContent", rows: [] }),
+    };
+    element.events = successState({ rows: [] });
+    const onChange = vi.fn();
+    element.addEventListener("utm-change", onChange);
+    document.body.append(element);
+    await element.updateComplete;
+
+    const topTabs = [...element.shadowRoot?.querySelectorAll<HTMLButtonElement>(".acquisition-tabs [role=tab]") ?? []];
+    expect(topTabs.map((tab) => tab.textContent?.trim())).toEqual(["Referrers", "UTM Parameters"]);
+    topTabs[1]?.click();
+    await element.updateComplete;
+
+    const parameterTabs = [...element.shadowRoot?.querySelectorAll<HTMLButtonElement>(".utm-tabs [role=tab]") ?? []];
+    expect(parameterTabs.map((tab) => tab.textContent?.trim())).toEqual(["Source", "Medium", "Campaign", "Term", "Content"]);
+    parameterTabs[4]?.click();
+    expect((onChange.mock.calls[0][0] as CustomEvent).detail).toEqual({ dimension: "UtmContent" });
+    expect(element.shadowRoot?.querySelectorAll("vercel-analytics-breakdown-table").length).toBe(5);
+  });
+
+  it("keeps the UTM tab hidden until a UTM report is valid", async () => {
+    const element = document.createElement("vercel-analytics-breakdown-grid") as VercelAnalyticsBreakdownGridElement;
+    element.cards = dashboardCards(false, "unknown");
+    element.breakdowns = {
+      ReferrerHostname: successState({ dimension: "ReferrerHostname", rows: [] }),
+    };
+    element.events = successState({ rows: [] });
+    document.body.append(element);
+    await element.updateComplete;
+
+    expect(element.shadowRoot?.querySelector(".acquisition-tabs")?.textContent?.trim()).toBe("Referrers");
+    expect(element.shadowRoot?.querySelector(".utm-tabs")).toBeNull();
+  });
+
+  it("shows event setup guidance when no custom events have been tracked", async () => {
+    const element = document.createElement("vercel-analytics-event-table") as HTMLElement & {
+      rows: unknown[];
+      updateComplete: Promise<unknown>;
+    };
+    element.rows = [];
+    document.body.append(element);
+    await element.updateComplete;
+
+    const setupLink = element.shadowRoot?.querySelector<HTMLAnchorElement>(".empty a");
+    expect(element.shadowRoot?.querySelector(".empty strong")?.textContent).toBe("No events");
+    expect(element.shadowRoot?.querySelector(".empty-icon uui-icon")?.getAttribute("name")).toBe("icon-lightning");
+    expect(setupLink?.href).toBe("https://vercel.com/docs/analytics/custom-events");
+    expect(setupLink?.rel).toBe("noopener noreferrer");
+  });
+
+  it("drills from flag keys into their values and provides setup guidance when empty", async () => {
+    const element = document.createElement("vercel-analytics-flag-card") as VercelAnalyticsFlagCardElement;
+    element.report = successState({ rows: [{ value: "summer-sale", visitors: 184, pageViews: 841 }] });
+    const onSelect = vi.fn();
+    element.addEventListener("select-flag", onSelect);
+    document.body.append(element);
+    await element.updateComplete;
+
+    element.shadowRoot?.querySelector<HTMLButtonElement>(".select")?.click();
+    expect((onSelect.mock.calls[0][0] as CustomEvent).detail).toEqual({ flagKey: "summer-sale" });
+
+    element.selected = successState({ flagKey: "summer-sale", rows: [{ value: "true", visitors: 53, pageViews: 200 }] });
+    await element.updateComplete;
+    expect(element.shadowRoot?.querySelector(".selected-flag")?.textContent).toContain("summer-sale");
+    expect(element.shadowRoot?.querySelector(".row .value")?.textContent).toBe("true");
+
+    element.selected = undefined;
+    element.report = successState({ rows: [] });
+    await element.updateComplete;
+    const setupLink = element.shadowRoot?.querySelector<HTMLAnchorElement>(".empty a");
+    expect(element.shadowRoot?.querySelector<HTMLElement>(".empty-icon uui-icon")?.getAttribute("name")).toBe("icon-flag");
+    expect(setupLink?.href).toBe("https://vercel.com/docs/flags/observability/web-analytics");
+    expect(setupLink?.rel).toBe("noopener noreferrer");
   });
 
   it("wires a summary interaction through the mounted dashboard controller", async () => {

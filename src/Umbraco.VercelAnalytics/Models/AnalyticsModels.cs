@@ -30,6 +30,8 @@ public enum AnalyticsDimension
     UtmSource,
     UtmMedium,
     UtmCampaign,
+    UtmTerm,
+    UtmContent,
     EventName
 }
 
@@ -83,6 +85,10 @@ public sealed record AnalyticsEventTotals(long Count, long Visitors);
 public sealed record AnalyticsEventRow(string EventName, long Count, long Visitors);
 
 public sealed record AnalyticsEventsReport(IReadOnlyList<AnalyticsEventRow> Rows);
+
+public sealed record AnalyticsFlagRow(string Value, long PageViews, long Visitors);
+
+public sealed record AnalyticsFlagsReport(string? FlagKey, IReadOnlyList<AnalyticsFlagRow> Rows);
 
 public sealed record AnalyticsEventPropertyValue(string Value, long Count, long Visitors);
 

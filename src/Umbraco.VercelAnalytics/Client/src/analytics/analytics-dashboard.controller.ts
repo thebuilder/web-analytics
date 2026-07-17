@@ -7,6 +7,7 @@ import type {
   AnalyticsEventProperty,
   AnalyticsEventRow,
   AnalyticsEventsReport,
+  AnalyticsFlagsReport,
   AnalyticsSummary,
 } from "../api/types.gen.js";
 import { dashboardApi, type DashboardApi } from "./dashboard-api.js";
@@ -54,6 +55,8 @@ export type DashboardState = {
   summary: AsyncState<AnalyticsSummary>;
   breakdowns: Partial<Record<AnalyticsDimension, AsyncState<AnalyticsBreakdown>>>;
   events: AsyncState<AnalyticsEventsReport>;
+  flags: AsyncState<AnalyticsFlagsReport>;
+  selectedFlag?: AsyncState<AnalyticsFlagsReport>;
   metric: DashboardMetric;
   audienceDimension: AudienceDimension;
   utmDimension: UtmDimension;
@@ -89,6 +92,7 @@ export class AnalyticsDashboardController {
     summary: loadingState(),
     breakdowns: {},
     events: loadingState(),
+    flags: loadingState(),
     metric: "visitors",
     audienceDimension: "DeviceType",
     utmDimension: "UtmSource",
@@ -104,6 +108,7 @@ export class AnalyticsDashboardController {
   readonly #expandedRequest = new DebouncedRequest();
   readonly #eventSearchRequest = new DebouncedRequest();
   readonly #eventDetailsRequest = new RequestCoordinator();
+  readonly #flagRequest = new RequestCoordinator();
   readonly #eventPropertyRequest = new DebouncedRequest();
   readonly #utmCapabilityByConnection = new Map<string, UtmCapability>();
   #documentId?: string;
@@ -137,6 +142,7 @@ export class AnalyticsDashboardController {
     this.#expandedRequest.cancel();
     this.#eventSearchRequest.cancel();
     this.#eventDetailsRequest.cancel();
+    this.#flagRequest.cancel();
     this.#eventPropertyRequest.cancel();
     this.#set({
       route: undefined,
@@ -144,6 +150,8 @@ export class AnalyticsDashboardController {
       summary: loadingState(),
       breakdowns: {},
       events: loadingState(),
+      flags: loadingState(),
+      selectedFlag: undefined,
       utmCapability: "unknown",
       expandedBreakdown: undefined,
       expandedEvents: undefined,
@@ -158,6 +166,7 @@ export class AnalyticsDashboardController {
     this.#expandedRequest.cancel();
     this.#eventSearchRequest.cancel();
     this.#eventDetailsRequest.cancel();
+    this.#flagRequest.cancel();
     this.#eventPropertyRequest.cancel();
   }
 
@@ -184,6 +193,7 @@ export class AnalyticsDashboardController {
       utmCapability,
       summary: loadingState(this.state.summary),
       events: loadingState(this.state.events),
+      flags: loadingState(this.state.flags),
       breakdowns: Object.fromEntries(dimensions.map((dimension) => [dimension, loadingState(this.state.breakdowns[dimension])])),
     });
     const visitQuery = this.#reportQuery(connection, this.#visitFilterQuery());
@@ -297,6 +307,24 @@ export class AnalyticsDashboardController {
 
   closeEvents(): void { this.#eventSearchRequest.cancel(); this.#set({ expandedEvents: undefined }); }
 
+  async selectFlag(flagKey: string): Promise<void> {
+    const connection = this.state.connection;
+    if (!connection) return;
+    const previous = this.state.selectedFlag;
+    this.#set({ selectedFlag: loadingState(previous) });
+    const result = await this.#flagRequest.run((signal) => this.#api.flags({
+      query: { ...this.#reportQuery(connection, this.#visitFilterQuery()), flagKey, limit: 100 }, signal,
+    }));
+    if (result.status === "cancelled" || result.status === "stale") return;
+    if (result.status === "error") { this.#set({ selectedFlag: errorState(reportErrorMessage(result.error), previous) }); return; }
+    const { data, error, response } = result.value;
+    this.#set({ selectedFlag: error || !data
+      ? errorState(apiErrorMessage(error, response.status), previous)
+      : successState(data) });
+  }
+
+  clearSelectedFlag(): void { this.#flagRequest.cancel(); this.#set({ selectedFlag: undefined }); }
+
   async selectEvent(eventName: string): Promise<void> { this.closeEvents(); await this.#loadEventDetails(eventName); }
 
   toggleEventPropertyFilter(property: string, value: string): void {
@@ -367,6 +395,8 @@ export class AnalyticsDashboardController {
       this.#set({ summary: update.status === "error" ? errorState(update.error, this.state.summary) : successState(update.data) });
     } else if (update.panel === "events") {
       this.#set({ events: update.status === "error" ? errorState(update.error, this.state.events) : successState(update.data) });
+    } else if (update.panel === "flags") {
+      this.#set({ flags: update.status === "error" ? errorState(update.error, this.state.flags) : successState(update.data) });
     } else {
       const previous = this.state.breakdowns[update.dimension];
       this.#set({ breakdowns: { ...this.state.breakdowns, [update.dimension]: update.status === "error"
@@ -379,6 +409,7 @@ export class AnalyticsDashboardController {
     this.#set({
       summary: errorState(message, this.state.summary),
       events: errorState(message, this.state.events),
+      flags: errorState(message, this.state.flags),
       breakdowns: Object.fromEntries(dimensions.map((dimension) => [dimension, errorState(message, this.state.breakdowns[dimension])])),
     });
   }
@@ -496,8 +527,9 @@ export class AnalyticsDashboardController {
     this.#expandedRequest.cancel();
     this.#eventSearchRequest.cancel();
     this.#eventDetailsRequest.cancel();
+    this.#flagRequest.cancel();
     this.#eventPropertyRequest.cancel();
-    this.#set({ expandedBreakdown: undefined, expandedEvents: undefined, selectedEvent: undefined });
+    this.#set({ expandedBreakdown: undefined, expandedEvents: undefined, selectedEvent: undefined, selectedFlag: undefined });
   }
 }
 

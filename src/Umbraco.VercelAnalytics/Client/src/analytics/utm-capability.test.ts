@@ -20,6 +20,8 @@ describe("UTM capability detection", () => {
 
   it("recognizes only UTM breakdown dimensions", () => {
     expect(isUtmDimension("UtmCampaign")).toBe(true);
+    expect(isUtmDimension("UtmTerm")).toBe(true);
+    expect(isUtmDimension("UtmContent")).toBe(true);
     expect(isUtmDimension("Country")).toBe(false);
   });
 });

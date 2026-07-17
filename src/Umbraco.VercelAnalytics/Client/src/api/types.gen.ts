@@ -47,7 +47,7 @@ export type AnalyticsConnectionsResponse = {
     connections: Array<AnalyticsConnectionSummary>;
 };
 
-export type AnalyticsDimension = 'RequestPath' | 'Route' | 'ReferrerHostname' | 'Country' | 'DeviceType' | 'BrowserName' | 'OsName' | 'UtmSource' | 'UtmMedium' | 'UtmCampaign' | 'EventName';
+export type AnalyticsDimension = 'RequestPath' | 'Route' | 'ReferrerHostname' | 'Country' | 'DeviceType' | 'BrowserName' | 'OsName' | 'UtmSource' | 'UtmMedium' | 'UtmCampaign' | 'UtmTerm' | 'UtmContent' | 'EventName';
 
 export type AnalyticsDocumentRoute = {
     connection: string;
@@ -89,6 +89,17 @@ export type AnalyticsEventTotals = {
 
 export type AnalyticsEventsReport = {
     rows: Array<AnalyticsEventRow>;
+};
+
+export type AnalyticsFlagRow = {
+    value: string;
+    pageViews: number;
+    visitors: number;
+};
+
+export type AnalyticsFlagsReport = {
+    flagKey?: string | null;
+    rows: Array<AnalyticsFlagRow>;
 };
 
 export type AnalyticsInterval = 'Hour' | 'Day' | 'Week' | 'Month';
@@ -287,6 +298,48 @@ export type EventsResponses = {
 };
 
 export type EventsResponse = EventsResponses[keyof EventsResponses];
+
+export type FlagsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        connection?: string;
+        from?: string;
+        to?: string;
+        interval?: AnalyticsInterval;
+        flagKey?: string;
+        limit?: number;
+        documentId?: string;
+        culture?: string;
+        path?: string;
+        filter?: Array<string>;
+    };
+    url: '/umbraco/management/api/v1/vercel-analytics/reports/flags';
+};
+
+export type FlagsErrors = {
+    /**
+     * The resource is protected and requires an authentication token
+     */
+    401: unknown;
+    400: AnalyticsProblemDetails;
+    402: AnalyticsProblemDetails;
+    404: AnalyticsProblemDetails;
+    502: AnalyticsProblemDetails;
+    503: AnalyticsProblemDetails;
+    504: AnalyticsProblemDetails;
+};
+
+export type FlagsError = FlagsErrors[keyof FlagsErrors];
+
+export type FlagsResponses = {
+    /**
+     * OK
+     */
+    200: AnalyticsFlagsReport;
+};
+
+export type FlagsResponse = FlagsResponses[keyof FlagsResponses];
 
 export type EventDetailsData = {
     body?: never;

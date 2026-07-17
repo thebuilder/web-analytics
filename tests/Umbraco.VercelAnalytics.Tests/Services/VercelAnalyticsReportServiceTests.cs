@@ -317,6 +317,12 @@ public sealed class VercelAnalyticsReportServiceTests
             return Task.FromResult<IReadOnlyList<AnalyticsEventRow>>([]);
         }
 
+        public Task<IReadOnlyList<AnalyticsFlagRow>> GetFlagsAsync(VercelAnalyticsConnection connection, AnalyticsQuery query, string? flagKey, int limit, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<IReadOnlyList<AnalyticsFlagRow>>([]);
+        }
+
         public Task<IReadOnlyList<string>> GetEventPropertyNamesAsync(VercelAnalyticsConnection connection, AnalyticsQuery query, string eventName, AnalyticsEventDataFilter? eventDataFilter, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();

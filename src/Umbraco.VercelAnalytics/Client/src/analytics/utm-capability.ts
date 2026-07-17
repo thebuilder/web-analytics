@@ -6,6 +6,8 @@ const UTM_DIMENSIONS: ReadonlySet<AnalyticsDimension> = new Set([
   "UtmSource",
   "UtmMedium",
   "UtmCampaign",
+  "UtmTerm",
+  "UtmContent",
 ]);
 
 export function isUtmDimension(dimension: AnalyticsDimension): boolean {

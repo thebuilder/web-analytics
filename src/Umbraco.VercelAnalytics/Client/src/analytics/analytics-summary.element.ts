@@ -123,15 +123,17 @@ export class VercelAnalyticsSummaryElement extends UmbElementMixin(LitElement) {
 
   static styles = [UmbTextStyles, css`
     .history, .summary-error { --uui-box-default-padding: 0; margin-bottom: var(--uui-size-layout-1); overflow: hidden; }
-    .metric-tabs { border-bottom: 1px solid var(--uui-color-border); display: flex; flex-wrap: nowrap; }
-    .metric-tab { --metric-font-size: clamp(2rem, 3cqi, 3rem); appearance: none; background: transparent; border: 0; border-bottom: 3px solid transparent; color: var(--uui-color-text); cursor: pointer; flex: 0 0 auto; font: inherit; inline-size: max-content; min-inline-size: 18rem; padding: var(--uui-size-space-5); text-align: left; }
-    .metric-tab + .metric-tab { border-inline-start: 1px solid var(--uui-color-border); }
-    .metric-tab[aria-selected="true"] { border-bottom-color: var(--uui-color-selected); }
-    .metric-tab:hover { background: color-mix(in srgb, var(--uui-color-interactive) 7%, var(--uui-color-surface)); }
+    .history { --vercel-analytics-chart-color: oklch(51.51% .2399 257.85); }
+    .metric-tabs { background: var(--uui-color-surface-alt); border-bottom: 1px solid var(--uui-color-border); display: flex; flex-wrap: nowrap; }
+    .metric-tab { --metric-font-size: clamp(2rem, 3cqi, 3rem); appearance: none; background: transparent; border: 0; border-bottom: 3px solid transparent; color: var(--uui-color-text-alt); cursor: pointer; flex: 0 0 auto; font: inherit; inline-size: max-content; min-block-size: 7.75rem; min-inline-size: 18rem; padding: var(--uui-size-space-5); text-align: left; transition: background-color 160ms ease-out, color 160ms ease-out; }
+    .metric-tab:last-child { border-inline-end: 1px solid var(--uui-color-border); }
+    .metric-tab[aria-selected="true"] { background: var(--uui-color-surface); border-bottom-color: var(--vercel-analytics-chart-color); color: var(--uui-color-text); }
+    .metric-tab[aria-selected="false"]:hover { background: color-mix(in srgb, var(--uui-color-interactive) 7%, var(--uui-color-surface)); }
+    .metric-tab[aria-selected="false"]:active { background: color-mix(in srgb, var(--uui-color-interactive) 11%, var(--uui-color-surface)); }
     .metric-tab:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: -2px; }
     .metric-value { align-items: center; display: flex; flex-wrap: nowrap; gap: var(--uui-size-space-4); margin-top: var(--uui-size-space-3); }
     .metric-tab strong { font-size: var(--metric-font-size); font-variant-numeric: tabular-nums; line-height: 1.1; white-space: nowrap; }
-    .eyebrow { color: var(--uui-color-text-alt); font-weight: 700; }
+    .eyebrow { color: currentColor; font-weight: 700; }
     .comparison { border-radius: var(--uui-border-radius); flex: 0 0 auto; font-weight: 700; padding: var(--uui-size-space-2) var(--uui-size-space-3); white-space: nowrap; }
     .comparison.increase { background: color-mix(in srgb, var(--uui-color-positive-standalone) 14%, var(--uui-color-surface)); color: var(--uui-color-positive-standalone); }
     .comparison.decrease { background: color-mix(in srgb, var(--uui-color-danger-standalone) 14%, var(--uui-color-surface)); color: var(--uui-color-danger-standalone); }
@@ -141,21 +143,22 @@ export class VercelAnalyticsSummaryElement extends UmbElementMixin(LitElement) {
     .chart-skeleton { block-size: 18rem; display: grid; }
     .chart-skeleton span { border-top: 1px solid var(--uui-color-border); }
     .summary-error { --uui-box-border-width: 1px; --uui-box-border-color: color-mix(in srgb, var(--uui-color-warning-standalone) 35%, var(--uui-color-border)); --uui-box-box-shadow: none; }
-    .summary-error-content { align-items: center; background: color-mix(in srgb, var(--uui-color-warning) 8%, var(--uui-color-surface)); border-inline-start: 3px solid var(--uui-color-warning-standalone); display: flex; flex-wrap: wrap; gap: var(--uui-size-space-5); padding: var(--uui-size-space-5); }
+    .summary-error-content { align-items: center; background: color-mix(in srgb, var(--uui-color-warning) 8%, var(--uui-color-surface)); display: flex; flex-wrap: wrap; gap: var(--uui-size-space-5); padding: var(--uui-size-space-5); }
     .summary-error-content uui-icon { color: var(--uui-color-warning-standalone); font-size: 1.5rem; }
     .summary-error-copy { flex: 1 1 22rem; }
     .summary-error-copy p { color: var(--uui-color-text-alt); margin: var(--uui-size-space-1) 0 0; }
     .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
     @container (max-width: 48rem) {
-      .metric-tab { --metric-font-size: clamp(1.5rem, 4cqi, 2rem); flex: 1 1 50%; min-inline-size: 0; padding: var(--uui-size-space-4); }
+      .metric-tab { --metric-font-size: clamp(1.5rem, 4cqi, 2rem); flex: 1 1 50%; min-block-size: 6.5rem; min-inline-size: 0; padding: var(--uui-size-space-4); }
       .metric-value { gap: var(--uui-size-space-2); }
       .comparison { font-size: 0.875rem; padding: var(--uui-size-space-1) var(--uui-size-space-2); }
     }
     @container (max-width: 40rem) {
-      .metric-tab { --metric-font-size: clamp(1.25rem, 5cqi, 1.75rem); box-sizing: border-box; padding: var(--uui-size-space-3); }
+      .metric-tab { --metric-font-size: clamp(1.25rem, 5cqi, 1.75rem); box-sizing: border-box; min-block-size: 5.5rem; padding: var(--uui-size-space-3); }
       .eyebrow { font-size: 0.875rem; }
       .comparison { font-size: 0.75rem; }
     }
+    @media (prefers-reduced-motion: reduce) { .metric-tab { transition: none; } }
   `];
 }
 

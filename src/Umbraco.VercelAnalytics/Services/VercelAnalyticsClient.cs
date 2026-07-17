@@ -141,6 +141,26 @@ public sealed class VercelAnalyticsClient(HttpClient httpClient) : IVercelAnalyt
             ?? throw new JsonException("Vercel Analytics event response did not contain data.");
     }
 
+    public async Task<IReadOnlyList<AnalyticsFlagRow>> GetFlagsAsync(
+        VercelAnalyticsConnection connection,
+        AnalyticsQuery query,
+        string? flagKey,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var dimension = string.IsNullOrWhiteSpace(flagKey) ? "flags" : ToFlagDimension(flagKey.Trim());
+        var parameters = BuildVisitParameters(connection, query);
+        parameters["by"] = dimension;
+        parameters["limit"] = limit.ToString(CultureInfo.InvariantCulture);
+        using var response = await SendAsync(connection, AggregatePath, parameters, cancellationToken);
+        var envelope = await response.Content.ReadFromJsonAsync<AggregateEnvelope>(cancellationToken);
+        return envelope?.Data
+            .Select(item => ParseFlag(item, dimension, flagKey))
+            .Where(row => row.Value is not "Others")
+            .ToArray()
+            ?? throw new JsonException("Vercel Analytics flags response did not contain data.");
+    }
+
     public async Task<IReadOnlyList<string>> GetEventPropertyNamesAsync(
         VercelAnalyticsConnection connection,
         AnalyticsQuery query,
@@ -262,6 +282,11 @@ public sealed class VercelAnalyticsClient(HttpClient httpClient) : IVercelAnalyt
             ? $"eventData/{propertyName}"
             : $"eventData/'{EscapeODataString(propertyName)}'";
 
+    internal static string ToFlagDimension(string flagKey) =>
+        flagKey.All(character => char.IsAsciiLetterOrDigit(character) || character == '_')
+            ? $"flags/{flagKey}"
+            : $"flags/'{EscapeODataString(flagKey)}'";
+
     private static void AddFilter(IDictionary<string, string?> parameters, string filter) =>
         parameters["filter"] = parameters.TryGetValue("filter", out var existingFilter)
             ? $"{existingFilter} and {filter}"
@@ -297,6 +322,8 @@ public sealed class VercelAnalyticsClient(HttpClient httpClient) : IVercelAnalyt
         AnalyticsDimension.UtmSource => "utmSource",
         AnalyticsDimension.UtmMedium => "utmMedium",
         AnalyticsDimension.UtmCampaign => "utmCampaign",
+        AnalyticsDimension.UtmTerm => "utmTerm",
+        AnalyticsDimension.UtmContent => "utmContent",
         _ => throw new ArgumentOutOfRangeException(nameof(dimension))
     };
 
@@ -314,6 +341,22 @@ public sealed class VercelAnalyticsClient(HttpClient httpClient) : IVercelAnalyt
         element.TryGetProperty("eventName", out var eventName) ? eventName.ToString() : "Unknown",
         GetInt64(element, "count"),
         GetInt64(element, "visitors"));
+
+    private static AnalyticsFlagRow ParseFlag(JsonElement element, string dimension, string? flagKey)
+    {
+        var unquotedDimension = flagKey is null ? dimension : $"flags/{flagKey}";
+        var value = element.TryGetProperty(dimension, out var exactValue)
+            ? exactValue
+            : element.TryGetProperty(unquotedDimension, out var unquotedValue)
+                ? unquotedValue
+                : element.TryGetProperty(flagKey is null ? "flags" : flagKey, out var shortValue)
+                    ? shortValue
+                    : default;
+        return new AnalyticsFlagRow(
+            value.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? "Unknown" : value.ToString(),
+            GetInt64(element, "pageviews"),
+            GetInt64(element, "visitors"));
+    }
 
     private static AnalyticsEventPropertyValue ParseEventPropertyValue(JsonElement element, string propertyName)
     {

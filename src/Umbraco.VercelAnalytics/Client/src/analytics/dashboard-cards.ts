@@ -29,9 +29,11 @@ const AUDIENCE_OPTIONS: ReadonlyArray<DimensionOption<AudienceDimension>> = [
 ];
 
 export const UTM_OPTIONS: ReadonlyArray<DimensionOption<UtmDimension>> = [
-  { dimension: "UtmSource", headline: "UTM sources", label: "Sources" },
-  { dimension: "UtmMedium", headline: "UTM media", label: "Media" },
-  { dimension: "UtmCampaign", headline: "UTM campaigns", label: "Campaigns" },
+  { dimension: "UtmSource", headline: "UTM sources", label: "Source" },
+  { dimension: "UtmMedium", headline: "UTM media", label: "Medium" },
+  { dimension: "UtmCampaign", headline: "UTM campaigns", label: "Campaign" },
+  { dimension: "UtmTerm", headline: "UTM terms", label: "Term" },
+  { dimension: "UtmContent", headline: "UTM content", label: "Content" },
 ];
 
 const SHARED_CARDS: ReadonlyArray<DashboardCard> = [

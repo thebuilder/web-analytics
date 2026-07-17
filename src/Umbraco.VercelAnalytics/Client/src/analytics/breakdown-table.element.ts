@@ -25,6 +25,7 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
   @property() metric: TrafficMetric = "visitors";
   @property({ type: Boolean }) loading = false;
   @property({ type: Boolean }) linkValues = false;
+  @property({ type: Boolean }) hasSubheading = false;
   @property({ type: Number }) skeletonRows = 10;
   @property({ type: Number }) total = 0;
   @property({ attribute: false }) rows: AnalyticsBreakdownRow[] = [];
@@ -36,7 +37,7 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
         <span class="visually-hidden" role="status">Loading ${this.headline}</span>
         <table class="skeleton-table" aria-hidden="true">
           <caption>${this.headline}</caption>
-          <thead><tr><th scope="col"><slot name="heading">${this.headline}</slot></th><th scope="col">${this.#metricLabel()}</th></tr></thead>
+          ${this.#renderHeading()}
           <tbody>${Array.from({ length: this.skeletonRows }, () => html`
             <tr>
               <th scope="row"><span class="skeleton-line"></span></th>
@@ -55,7 +56,7 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
     return html`
       <table>
         <caption>${this.headline}</caption>
-        <thead><tr><th scope="col"><slot name="heading">${this.headline}</slot></th><th scope="col">${this.#metricLabel()}</th></tr></thead>
+        ${this.#renderHeading()}
         <tbody>${rows.map((row, index) => {
           const href = this.dimension === "ReferrerHostname"
             ? referrerExternalHref(row.value)
@@ -124,6 +125,18 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
     return this.metric === "visitors" ? "Visitors" : "Page views";
   }
 
+  #renderHeading() {
+    return html`
+      <thead>
+        <tr>
+          <th scope="col"><slot name="heading">${this.headline}</slot></th>
+          <th scope="col" rowspan=${this.hasSubheading ? 2 : 1}>${this.#metricLabel()}</th>
+        </tr>
+        ${this.hasSubheading ? html`<tr class="subheading-row"><th scope="col"><slot name="subheading"></slot></th></tr>` : ""}
+      </thead>
+    `;
+  }
+
   static styles = css`
     :host { display: block; overflow-x: clip; overflow-y: visible; }
     table {
@@ -137,6 +150,7 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
     caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     thead th { border-bottom: 1px solid var(--uui-color-border); font-weight: 700; }
     thead th:nth-child(2) { color: var(--uui-color-text-alt); text-align: right; width: var(--metric-column-width); }
+    .subheading-row th { background: color-mix(in srgb, var(--uui-color-surface-alt) 35%, var(--uui-color-surface)); padding-block: 0; }
     th, td { box-sizing: border-box; padding: var(--uui-size-space-3) var(--uui-size-space-5); text-align: left; }
     td { font-variant-numeric: tabular-nums; position: relative; text-align: right; z-index: 1; }
     tbody tr:hover, tbody tr:focus-within { position: relative; z-index: 2; }

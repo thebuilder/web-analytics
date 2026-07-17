@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const sdk = vi.hoisted(() => ({ summary: vi.fn(), events: vi.fn(), breakdown: vi.fn() }));
+const sdk = vi.hoisted(() => ({ summary: vi.fn(), events: vi.fn(), flags: vi.fn(), breakdown: vi.fn() }));
 vi.mock("../api/sdk.gen.js", () => ({ UmbracoVercelAnalyticsService: sdk }));
 
 import { loadDashboardReports, type DashboardReportQuery, type DashboardReportUpdate } from "./dashboard-report-loader.js";
@@ -13,12 +13,13 @@ describe("loadDashboardReports", () => {
   it("publishes a terminal update for every rejected request", async () => {
     sdk.summary.mockRejectedValue(new Error("offline"));
     sdk.events.mockRejectedValue(new Error("offline"));
+    sdk.flags.mockRejectedValue(new Error("offline"));
     sdk.breakdown.mockRejectedValue(new Error("offline"));
     const updates: DashboardReportUpdate[] = [];
 
     const evidence = await loadDashboardReports(query, query, ["Country", "DeviceType"], new AbortController().signal, (update) => updates.push(update));
 
-    expect(updates).toHaveLength(4);
+    expect(updates).toHaveLength(5);
     expect(updates.every((update) => update.status === "error")).toBe(true);
     expect(evidence.baselineSucceeded).toBe(false);
   });
@@ -27,6 +28,7 @@ describe("loadDashboardReports", () => {
     const slow = deferred<ReturnType<typeof ok>>();
     sdk.summary.mockResolvedValue(ok({ totals: { visitors: 1, pageViews: 2 }, points: [] }));
     sdk.events.mockResolvedValue(ok({ rows: [] }));
+    sdk.flags.mockResolvedValue(ok({ rows: [] }));
     sdk.breakdown.mockImplementation(({ path }: { path: { dimension: string } }) => path.dimension === "UtmSource" ? slow.promise : Promise.resolve(ok({ rows: [] })));
     const updates: DashboardReportUpdate[] = [];
 
@@ -42,6 +44,7 @@ describe("loadDashboardReports", () => {
   it("preserves partial success and separate visit/event filters", async () => {
     sdk.summary.mockResolvedValue(ok({ totals: { visitors: 1, pageViews: 2 }, points: [] }));
     sdk.events.mockResolvedValue(ok({ rows: [] }));
+    sdk.flags.mockResolvedValue(ok({ rows: [] }));
     sdk.breakdown.mockResolvedValueOnce(ok({ rows: [{ value: "DK", visitors: 1, pageViews: 2 }] })).mockRejectedValueOnce(new Error("browser unavailable"));
     const visitQuery = { ...query, filter: ["Country:DK"] };
     const eventQuery = { ...query, filter: ["Country:DK", "EventName:Signup"] };
@@ -59,6 +62,7 @@ describe("loadDashboardReports", () => {
   it("preserves stable upstream problem codes when adding HTTP status", async () => {
     sdk.summary.mockResolvedValue(problem({ code: "invalid_credentials" }, 502));
     sdk.events.mockResolvedValue(ok({ rows: [] }));
+    sdk.flags.mockResolvedValue(ok({ rows: [] }));
     sdk.breakdown.mockResolvedValue(ok({ rows: [] }));
     const updates: DashboardReportUpdate[] = [];
 
@@ -70,6 +74,7 @@ describe("loadDashboardReports", () => {
   it("treats a successful response without data as an explicit error", async () => {
     sdk.summary.mockResolvedValue(ok(undefined));
     sdk.events.mockResolvedValue(ok({ rows: [] }));
+    sdk.flags.mockResolvedValue(ok({ rows: [] }));
     sdk.breakdown.mockResolvedValue(ok({ rows: [] }));
     const updates: DashboardReportUpdate[] = [];
 

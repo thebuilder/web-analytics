@@ -169,6 +169,7 @@ function dashboardApi() {
     documentRoutes: vi.fn<DashboardApi["documentRoutes"]>(async () => ok([])),
     summary: vi.fn<DashboardApi["summary"]>(async () => ok({ totals: { visitors: 10, pageViews: 20 }, points: [] })),
     events: vi.fn<DashboardApi["events"]>(async () => ok({ rows: [] })),
+    flags: vi.fn<DashboardApi["flags"]>(async () => ok({ rows: [] })),
     breakdown: vi.fn<DashboardApi["breakdown"]>(async ({ path }) => ok({ dimension: path.dimension, rows: [] })),
     eventDetails: vi.fn<DashboardApi["eventDetails"]>(async () => ok({ eventName: "Event", totals: { count: 0, visitors: 0 }, properties: [] })),
     eventPropertyValues: vi.fn<DashboardApi["eventPropertyValues"]>(async () => ok({ name: "property", values: [] })),

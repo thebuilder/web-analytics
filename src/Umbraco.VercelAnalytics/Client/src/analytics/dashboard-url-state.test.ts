@@ -55,4 +55,9 @@ describe("analytics dashboard URL state", () => {
   it("defaults invalid UTM tabs to source", () => {
     expect(parseDashboardUrlState(new URLSearchParams("utm=Nope")).utm).toBe("UtmSource");
   });
+
+  it("restores term and content UTM tabs", () => {
+    expect(parseDashboardUrlState(new URLSearchParams("utm=UtmTerm")).utm).toBe("UtmTerm");
+    expect(parseDashboardUrlState(new URLSearchParams("utm=UtmContent")).utm).toBe("UtmContent");
+  });
 });

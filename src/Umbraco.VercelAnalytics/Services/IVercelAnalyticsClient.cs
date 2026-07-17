@@ -46,6 +46,13 @@ public interface IVercelAnalyticsClient
         string? search,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<AnalyticsFlagRow>> GetFlagsAsync(
+        VercelAnalyticsConnection connection,
+        AnalyticsQuery query,
+        string? flagKey,
+        int limit,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<string>> GetEventPropertyNamesAsync(
         VercelAnalyticsConnection connection,
         AnalyticsQuery query,

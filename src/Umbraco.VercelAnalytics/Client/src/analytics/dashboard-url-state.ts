@@ -4,7 +4,7 @@ import { normalizeCustomRange, type AnalyticsDateRange, type DatePreset } from "
 export type AnalyticsFilter = { dimension: AnalyticsDimension; value: string };
 export type DashboardMetric = "visitors" | "pageViews";
 export type AudienceDimension = "DeviceType" | "BrowserName";
-export type UtmDimension = "UtmSource" | "UtmMedium" | "UtmCampaign";
+export type UtmDimension = "UtmSource" | "UtmMedium" | "UtmCampaign" | "UtmTerm" | "UtmContent";
 
 export type DashboardUrlState = {
   connection?: string;
@@ -18,7 +18,7 @@ export type DashboardUrlState = {
 
 const DIMENSIONS = new Set<AnalyticsDimension>([
   "RequestPath", "Route", "ReferrerHostname", "Country", "DeviceType",
-  "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "EventName",
+  "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName",
 ]);
 const PRESETS = new Set([1, 7, 30, 90, 365]);
 
@@ -54,11 +54,15 @@ export function parseDashboardUrlState(params: URLSearchParams): DashboardUrlSta
     range,
     metric: params.get("metric") === "pageViews" ? "pageViews" : "visitors",
     audience: params.get("audience") === "BrowserName" ? "BrowserName" : "DeviceType",
-    utm: params.get("utm") === "UtmMedium"
-      ? "UtmMedium"
-      : params.get("utm") === "UtmCampaign" ? "UtmCampaign" : "UtmSource",
+    utm: parseUtmDimension(params.get("utm")),
     filters,
   };
+}
+
+function parseUtmDimension(value: string | null): UtmDimension {
+  return value === "UtmMedium" || value === "UtmCampaign" || value === "UtmTerm" || value === "UtmContent"
+    ? value
+    : "UtmSource";
 }
 
 export function writeDashboardUrlState(url: URL, state: Required<Pick<DashboardUrlState, "preset" | "range" | "metric" | "audience" | "utm" | "filters">> & { connection?: string }): URL {

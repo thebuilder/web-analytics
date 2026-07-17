@@ -46,9 +46,10 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
     this.#chart?.destroy();
 
     const style = getComputedStyle(this);
-    const color = style.getPropertyValue("--uui-color-interactive").trim() || "#3544b1";
-    const fillColor = style.getPropertyValue("--vercel-analytics-chart-fill").trim() || "rgba(0, 112, 243, 0.14)";
+    const color = style.getPropertyValue("--vercel-analytics-chart-color").trim() || "oklch(51.51% .2399 257.85)";
+    const fillColor = style.getPropertyValue("--vercel-analytics-chart-fill").trim() || "oklch(51.51% .2399 257.85 / 0.12)";
     const guideColor = style.getPropertyValue("--uui-color-text").trim() || "#1b264f";
+    const mutedColor = style.getPropertyValue("--uui-color-text-alt").trim() || "#5c5c5c";
     const surfaceColor = style.getPropertyValue("--uui-color-surface").trim() || "#ffffff";
     const borderColor = style.getPropertyValue("--uui-color-border").trim() || "#d8d7d9";
     const label = this.#metricLabel();
@@ -77,14 +78,16 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
         ctx.restore();
       },
     };
+    const locale = this.localize.lang() || undefined;
     this.#chart = new Chart(canvas, {
       type: "line",
       data: {
-        labels: this.points.map((point) => formatAnalyticsDate(point.timestamp, this.interval, undefined, this.timeZone)),
+        labels: this.points.map((point) => formatAnalyticsDate(point.timestamp, this.interval, locale, this.timeZone)),
         datasets: [{
           label,
           data: this.points.map((point) => point[this.metric] ?? 0),
           borderColor: color,
+          borderWidth: 2,
           backgroundColor: fillColor,
           fill: true,
           pointRadius: 0,
@@ -115,10 +118,12 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
               label: (context) => `${label}  ${this.localize.number(context.parsed.y ?? 0)}`,
               title: (items) => {
                 const point = this.points[items[0]?.dataIndex ?? -1];
-                return point ? formatAnalyticsTooltipDate(point.timestamp, this.interval, undefined, this.timeZone) : "";
+                return point ? formatAnalyticsTooltipDate(point.timestamp, this.interval, locale, this.timeZone) : "";
               },
             },
-            cornerRadius: 8,
+            cornerRadius: 3,
+            caretPadding: 8,
+            caretSize: 6,
             padding: 12,
             titleColor: guideColor,
             enabled: true,
@@ -126,17 +131,22 @@ export class VercelAnalyticsHistoryChartElement extends UmbElementMixin(LitEleme
         },
         scales: {
           x: {
+            border: { display: false },
             grid: { display: false },
-            ticks: { autoSkip: true, maxTicksLimit: 7, maxRotation: 0 },
+            ticks: { autoSkip: true, color: mutedColor, maxTicksLimit: 7, maxRotation: 0, padding: 8 },
           },
           y: {
             beginAtZero: true,
+            border: { display: false },
+            grid: { color: borderColor },
             ticks: {
               callback: (value) => formatChartAxisValue(
                 Number(value),
                 (number, options) => this.localize.number(number, options),
               ),
+              color: mutedColor,
               maxTicksLimit: 5,
+              padding: 8,
             },
           },
         },
