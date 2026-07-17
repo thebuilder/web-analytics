@@ -66,6 +66,31 @@ public sealed class MockVercelAnalyticsClientTests
     }
 
     [Fact]
+    public async Task Demo_totals_increase_slightly_over_the_previous_period()
+    {
+        var client = new MockVercelAnalyticsClient();
+        var connection = CreateRegistry(MockAnalyticsScenario.Complete, true).Get(MockKey)!;
+        var current = new AnalyticsQuery(
+            MockKey,
+            new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero),
+            AnalyticsInterval.Day);
+        var previous = current with
+        {
+            From = current.From - (current.To - current.From),
+            To = current.From
+        };
+
+        var currentTotals = await client.CountAsync(connection, current, CancellationToken.None);
+        var previousTotals = await client.CountAsync(connection, previous, CancellationToken.None);
+        var visitorGrowth = (double)currentTotals.Visitors / previousTotals.Visitors;
+        var pageViewGrowth = (double)currentTotals.PageViews / previousTotals.PageViews;
+
+        Assert.InRange(visitorGrowth, 1.01d, 1.04d);
+        Assert.InRange(pageViewGrowth, 1.01d, 1.04d);
+    }
+
+    [Fact]
     public async Task Router_serves_mock_reports_without_contacting_Vercel()
     {
         var handler = new RejectingHttpMessageHandler();

@@ -5,6 +5,10 @@ namespace Umbraco.VercelAnalytics.Services;
 
 public sealed class MockVercelAnalyticsClient : IVercelAnalyticsClient
 {
+    private const double DemoDailyGrowthRate = 0.0008d;
+    private const double DemoGrowthWindowDays = 1825d;
+    private static readonly DateTimeOffset DemoGrowthBaseline = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
     private static readonly IReadOnlyDictionary<AnalyticsDimension, AnalyticsBreakdownRow[]> Breakdowns =
         new Dictionary<AnalyticsDimension, AnalyticsBreakdownRow[]>
         {
@@ -46,14 +50,14 @@ public sealed class MockVercelAnalyticsClient : IVercelAnalyticsClient
     public Task<AnalyticsTotals> CountAsync(VercelAnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var scale = QueryScale(query);
+        var scale = QueryScale(connection, query);
         return Task.FromResult(new AnalyticsTotals(Scale(29430, scale), Scale(17260, scale)));
     }
 
     public Task<long> GetPageViewTotalAsync(VercelAnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(Scale(29430, QueryScale(query)));
+        return Task.FromResult(Scale(29430, QueryScale(connection, query)));
     }
 
     public Task<IReadOnlyList<AnalyticsPoint>> GetTrendAsync(
@@ -63,7 +67,7 @@ public sealed class MockVercelAnalyticsClient : IVercelAnalyticsClient
     {
         cancellationToken.ThrowIfCancellationRequested();
         var timestamps = Timestamps(query).ToArray();
-        var scale = QueryScale(query);
+        var scale = QueryScale(connection, query);
         var points = timestamps.Select((timestamp, index) =>
         {
             var progress = timestamps.Length <= 1 ? 0d : index / (timestamps.Length - 1d);
@@ -203,11 +207,23 @@ public sealed class MockVercelAnalyticsClient : IVercelAnalyticsClient
         return filtered.Take(Math.Max(0, limit)).ToArray();
     }
 
-    private static double QueryScale(AnalyticsQuery query)
+    private static double QueryScale(VercelAnalyticsConnection connection, AnalyticsQuery query)
     {
         var scale = string.IsNullOrWhiteSpace(query.RequestPath) ? 1d : 0.36d;
         var rangeScale = Math.Clamp((query.To - query.From).TotalDays / 30d, 0.03d, 24d);
-        return scale * rangeScale * Math.Pow(0.62d, query.Filters?.Count ?? 0);
+        var growthScale = Scenario(connection) is MockAnalyticsScenario.Complete
+            ? DemoGrowthScale(query.To)
+            : 1d;
+        return scale * rangeScale * Math.Pow(0.62d, query.Filters?.Count ?? 0) * growthScale;
+    }
+
+    private static double DemoGrowthScale(DateTimeOffset periodEnd)
+    {
+        var daysFromBaseline = Math.Clamp(
+            (periodEnd - DemoGrowthBaseline).TotalDays,
+            -DemoGrowthWindowDays,
+            DemoGrowthWindowDays);
+        return Math.Exp(daysFromBaseline * DemoDailyGrowthRate);
     }
 
     private static long Scale(long value, double scale) => Math.Max(0, (long)Math.Round(value * scale));
