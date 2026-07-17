@@ -17,6 +17,15 @@ public enum AnalyticsInterval
     Month
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter<MockAnalyticsScenario>))]
+public enum MockAnalyticsScenario
+{
+    Complete,
+    Utm,
+    Flags,
+    Events
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<AnalyticsDimension>))]
 public enum AnalyticsDimension
 {
@@ -126,6 +135,7 @@ public sealed record AnalyticsDocumentRoute(
 public sealed record AnalyticsSettingsResponse(
     bool Enabled,
     bool HasAccessToken,
+    bool CanCreateMockConnections,
     int DefaultRangeDays,
     string CacheDuration,
     IReadOnlyList<AnalyticsConnectionSettingsResponse> Connections);
@@ -139,7 +149,8 @@ public sealed record AnalyticsConnectionSettingsResponse(
     bool EnableAllDocumentTypes,
     IReadOnlyList<string> EnabledDocumentTypeKeys,
     bool HasAccessToken,
-    bool HasAccessTokenOverride);
+    bool HasAccessTokenOverride,
+    MockAnalyticsScenario? MockScenario);
 
 public sealed record UpdateAnalyticsSettingsRequest(
     bool Enabled,
@@ -152,6 +163,7 @@ public sealed record UpdateAnalyticsConnectionRequest(
     string DisplayName,
     string ProjectId,
     string? Team,
+    MockAnalyticsScenario? MockScenario,
     IReadOnlyList<string> DocumentRootKeys,
     bool EnableAllDocumentTypes,
     IReadOnlyList<string> EnabledDocumentTypeKeys);

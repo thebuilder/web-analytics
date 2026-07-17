@@ -343,7 +343,6 @@ public sealed class UmbracoVercelAnalyticsApiController(
     {
         var warnings = new List<string>();
         if (!connection.IsConfigured) warnings.Add("No server-side access token is configured for this connection.");
-        if (!connection.HasMappings) warnings.Add("Global reports only: add a document root to enable document analytics.");
         return warnings;
     }
 }

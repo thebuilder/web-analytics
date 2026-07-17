@@ -23,6 +23,7 @@ beforeEach(() => {
   sdk.settings.mockResolvedValue(apiOk({
     enabled: true,
     hasAccessToken: false,
+    canCreateMockConnections: false,
     defaultRangeDays: 30,
     cacheDuration: "00:05:00",
     connections: [],
@@ -90,6 +91,7 @@ describe("analytics settings onboarding", () => {
     sdk.settings.mockResolvedValue(apiOk({
       enabled: true,
       hasAccessToken: true,
+      canCreateMockConnections: false,
       defaultRangeDays: 30,
       cacheDuration: "00:05:00",
       connections: [],
@@ -106,6 +108,36 @@ describe("analytics settings onboarding", () => {
     expect(editor.connection.hasAccessToken).toBe(true);
     expect(editor.connection.hasAccessTokenOverride).toBe(false);
     expect(editor.shadowRoot?.querySelector(".summary-state uui-tag")?.textContent?.trim()).toBe("Shared token");
+  });
+
+  it("adds development mock scenarios as deterministic connections", async () => {
+    sdk.settings.mockResolvedValue(apiOk({
+      enabled: true,
+      hasAccessToken: false,
+      canCreateMockConnections: true,
+      defaultRangeDays: 30,
+      cacheDuration: "00:05:00",
+      connections: [],
+    }));
+    const dashboard = document.createElement("vercel-analytics-settings-dashboard") as VercelAnalyticsSettingsDashboardElement;
+    document.body.append(dashboard);
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector(".mock-settings")).not.toBeNull());
+
+    const buttons = dashboard.shadowRoot?.querySelectorAll<HTMLElement>(".mock-scenario uui-button");
+    expect(buttons).toHaveLength(4);
+    buttons?.[1].click();
+    await dashboard.updateComplete;
+
+    const editor = dashboard.shadowRoot?.querySelector("vercel-analytics-connection-editor") as VercelAnalyticsConnectionEditorElement;
+    expect(editor.connection).toMatchObject({
+      displayName: "Mock · UTM campaigns",
+      projectId: "",
+      hasAccessToken: false,
+      mockScenario: "Utm",
+    });
+    expect(editor.shadowRoot?.querySelector(".summary-state uui-tag")?.textContent?.trim()).toBe("Development mock");
+    expect(editor.shadowRoot?.querySelector(".token-section")).toBeNull();
+    expect(buttons?.[1].hasAttribute("disabled")).toBe(true);
   });
 });
 

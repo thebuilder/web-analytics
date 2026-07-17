@@ -18,6 +18,11 @@ import "./connection-editor.element.js";
 import type { ConnectionActionStatus, VercelAnalyticsConnectionEditorElement } from "./connection-editor.element.js";
 import { createSettingsUpdate, validateConnection, validateEditableSettings } from "./settings-model.js";
 import { announceAnalyticsAvailability } from "../section/analytics-availability.js";
+import { MOCK_SCENARIOS, type MockScenarioDefinition } from "./mock-scenarios.js";
+
+type NewConnection =
+  | { kind: "vercel"; hasAccessToken: boolean }
+  | { kind: "mock"; scenario: MockScenarioDefinition };
 
 @customElement("vercel-analytics-settings-dashboard")
 export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(LitElement) {
@@ -66,18 +71,28 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
   }
 
   #addConnection(): void {
+    this.#appendConnection({ kind: "vercel", hasAccessToken: this._settings?.hasAccessToken ?? false });
+  }
+
+  #addMockConnection(scenario: MockScenarioDefinition): void {
+    this.#appendConnection({ kind: "mock", scenario });
+  }
+
+  #appendConnection(details: NewConnection): void {
     if (!this._settings) return;
+    const isMock = details.kind === "mock";
     const key = crypto.randomUUID();
     const connection: AnalyticsConnectionSettingsResponse = {
       key,
-      displayName: "",
+      displayName: isMock ? `Mock · ${details.scenario.name}` : "",
       projectId: "",
       team: null,
       documentRootKeys: [],
       enableAllDocumentTypes: false,
       enabledDocumentTypeKeys: [],
-      hasAccessToken: this._settings.hasAccessToken,
+      hasAccessToken: isMock ? false : details.hasAccessToken,
       hasAccessTokenOverride: false,
+      mockScenario: isMock ? details.scenario.id : null,
     };
     const connections = [...this._settings.connections, connection];
     this.#patch({ connections });
@@ -168,6 +183,7 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
     `;
 
     const hasConnections = this._settings.connections.length > 0;
+    const mockConnectionsEnabled = this._settings.canCreateMockConnections;
 
     return html`
       <form @submit=${this.#save} novalidate>
@@ -239,6 +255,28 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
           </div>
         </uui-box>
 
+        ${this._settings.canCreateMockConnections ? html`
+          <uui-box headline="Development data" class="mock-settings">
+            <p class="mock-intro">Create deterministic local connections to verify dashboard states without calling Vercel. Mock connections are only active while the server runs in Development.</p>
+            <div class="mock-scenarios">
+              ${MOCK_SCENARIOS.map((scenario) => {
+                const added = this._settings?.connections.some((connection) => connection.mockScenario === scenario.id) ?? false;
+                return html`
+                  <div class="mock-scenario">
+                    <span><strong>${scenario.name}</strong><small>${scenario.description}</small></span>
+                    <uui-button
+                      type="button"
+                      look="secondary"
+                      label=${added ? `${scenario.name} mock connection added` : `Add ${scenario.name} mock connection`}
+                      ?disabled=${added}
+                      @click=${() => this.#addMockConnection(scenario)}>${added ? "Added" : "Add mock"}</uui-button>
+                  </div>
+                `;
+              })}
+            </div>
+          </uui-box>
+        ` : ""}
+
         <section aria-labelledby="connections-heading">
           <div class="section-heading">
             <div><h2 id="connections-heading">Connections</h2><p>Add each Vercel project that editors should be able to view.</p></div>
@@ -252,6 +290,7 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
                 .connection=${connection}
                 .errors=${this._showValidation ? validateConnection(connection) : {}}
                 .status=${this._connectionStatuses[connection.key]}
+                ?mockConnectionsEnabled=${mockConnectionsEnabled}
                 ?dirty=${this._dirty}
                 ?testing=${this._testingKey === connection.key}
                 @connection-change=${(event: CustomEvent<AnalyticsConnectionSettingsResponse>) => this.#updateConnection(index, event.detail)}
@@ -302,6 +341,12 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
     .status.success { background: color-mix(in srgb, var(--uui-color-positive) 8%, var(--uui-color-surface)); border-color: color-mix(in srgb, var(--uui-color-positive) 35%, var(--uui-color-border)); }
     .status.error { background: color-mix(in srgb, var(--uui-color-danger) 7%, var(--uui-color-surface)); border-color: color-mix(in srgb, var(--uui-color-danger) 35%, var(--uui-color-border)); }
     .general { container-type: inline-size; margin-block: var(--uui-size-space-6) var(--uui-size-layout-2); }
+    .mock-settings { margin-block-end: var(--uui-size-layout-2); }
+    .mock-intro { color: var(--uui-color-text-alt); margin: 0 0 var(--uui-size-space-5); max-inline-size: 72ch; text-wrap: pretty; }
+    .mock-scenarios { display: grid; gap: var(--uui-size-space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mock-scenario { align-items: center; border: 1px solid var(--uui-color-border); display: flex; gap: var(--uui-size-space-4); justify-content: space-between; min-inline-size: 0; padding: var(--uui-size-space-4); }
+    .mock-scenario > span { display: grid; gap: var(--uui-size-space-1); min-inline-size: 0; }
+    .mock-scenario small { color: var(--uui-color-text-alt); text-wrap: pretty; }
     .general-grid { align-items: start; display: grid; gap: var(--uui-size-space-5) var(--uui-size-space-6); grid-template-columns: minmax(14rem, 1.35fr) minmax(10rem, 0.7fr) minmax(14rem, 1fr); }
     .general-grid > uui-form-layout-item { margin-block: 0; }
     .field-with-help { display: grid; gap: var(--uui-size-space-1); }
@@ -347,6 +392,7 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
     }
     @media (max-width: 800px) {
       header, .section-heading { align-items: stretch; flex-direction: column; }
+      .mock-scenarios { grid-template-columns: 1fr; }
       .save-bar { top: var(--uui-size-space-2); }
       .connection-empty-state { align-items: start; grid-template-columns: auto minmax(0, 1fr); }
       .connection-empty-state uui-button { grid-column: 1 / -1; justify-self: start; }

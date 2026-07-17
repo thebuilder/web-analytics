@@ -50,6 +50,7 @@ public sealed class UmbracoVercelAnalyticsSettingsApiController(
                 DisplayName = connection.DisplayName,
                 ProjectId = connection.ProjectId,
                 Team = connection.Team,
+                MockScenario = connection.MockScenario,
                 DocumentRootKeys = connection.DocumentRootKeys.ToArray(),
                 EnableAllDocumentTypes = connection.EnableAllDocumentTypes,
                 EnabledDocumentTypeKeys = connection.EnabledDocumentTypeKeys.ToArray()
@@ -81,7 +82,7 @@ public sealed class UmbracoVercelAnalyticsSettingsApiController(
                 connection,
                 new AnalyticsQuery(key, now.AddDays(-1), now, AnalyticsInterval.Hour),
                 cancellationToken);
-            return Ok(new AnalyticsConnectionTestResult(true, "Vercel accepted the token and project configuration."));
+            return Ok(new AnalyticsConnectionTestResult(true, "The analytics connection is ready."));
         }
         catch (VercelAnalyticsApiException exception)
         {
@@ -119,9 +120,11 @@ public sealed class UmbracoVercelAnalyticsSettingsApiController(
         var responseTasks = settings.Connections.Select(async connection =>
         {
             var registered = connections.GetValueOrDefault(connection.Key);
-            var displayName = registered is null
-                ? connection.ProjectId
-                : await projectNames.GetDisplayNameAsync(registered, cancellationToken);
+            var displayName = connection.IsMock
+                ? connection.DisplayName
+                : registered is null
+                    ? connection.ProjectId
+                    : await projectNames.GetDisplayNameAsync(registered, cancellationToken);
             return new AnalyticsConnectionSettingsResponse(
                 connection.Key,
                 displayName,
@@ -131,12 +134,14 @@ public sealed class UmbracoVercelAnalyticsSettingsApiController(
                 connection.EnableAllDocumentTypes,
                 connection.EnabledDocumentTypeKeys,
                 registered?.HasAccessToken is true,
-                !string.IsNullOrWhiteSpace(serverConfiguration.ConnectionAccessTokens.GetValueOrDefault(connection.Key.ToString())));
+                !string.IsNullOrWhiteSpace(serverConfiguration.ConnectionAccessTokens.GetValueOrDefault(connection.Key.ToString())),
+                connection.MockScenario);
         });
         var responseConnections = await Task.WhenAll(responseTasks);
         return new AnalyticsSettingsResponse(
             settings.Enabled,
             !string.IsNullOrWhiteSpace(serverConfiguration.AccessToken),
+            registry.MockConnectionsEnabled,
             settings.DefaultRangeDays,
             settings.CacheDuration.ToString("c"),
             responseConnections);

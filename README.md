@@ -198,6 +198,8 @@ The available reporting window and some dimensions depend on the Vercel plan and
 
 ## Development
 
+When the example host runs with `ASPNETCORE_ENVIRONMENT=Development`, **Settings → Vercel Analytics** includes development data presets for a complete dashboard, UTM campaigns, feature flags, and custom events. Add and save a mock connection like any other connection, then select it in the Analytics dashboard. Mock reports are deterministic, require no access token, and never call Vercel. Persisted mock connections become inactive when the host is not running in Development.
+
 The client uses pnpm 11. From `src/Umbraco.VercelAnalytics/Client`:
 
 ```sh

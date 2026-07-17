@@ -12,6 +12,7 @@ import type { UUIInputElement, UUIToggleElement } from "@umbraco-cms/backoffice/
 import type { AnalyticsConnectionSettingsResponse } from "../api/types.gen.js";
 import type { ConnectionValidationErrors } from "./settings-model.js";
 import { parseTeamReference, teamReference } from "./settings-model.js";
+import { getMockScenario } from "./mock-scenarios.js";
 import "@umbraco-cms/backoffice/document";
 
 export type EditableAnalyticsConnection = AnalyticsConnectionSettingsResponse;
@@ -22,6 +23,7 @@ export class VercelAnalyticsConnectionEditorElement extends UmbElementMixin(LitE
   @property({ attribute: false }) connection!: EditableAnalyticsConnection;
   @property({ attribute: false }) errors: ConnectionValidationErrors = {};
   @property({ attribute: false }) status?: ConnectionActionStatus;
+  @property({ type: Boolean }) mockConnectionsEnabled = false;
   @property({ type: Boolean }) dirty = false;
   @property({ type: Boolean }) testing = false;
   @state() private _tokenCopied = false;
@@ -89,22 +91,36 @@ export class VercelAnalyticsConnectionEditorElement extends UmbElementMixin(LitE
 
   render() {
     const connection = this.connection;
-    const testHint = this.dirty ? "Save changes before testing this connection." : "Test the saved connection.";
-    const tokenStatus = connection.hasAccessTokenOverride
+    const isMock = connection.mockScenario != null;
+    const mockScenario = getMockScenario(connection.mockScenario);
+    const testHint = this.dirty
+      ? "Save changes before testing this connection."
+      : isMock && !this.mockConnectionsEnabled
+        ? "Mock connections are only active in Development."
+        : "Test the saved connection.";
+    const tokenStatus = isMock
+      ? this.mockConnectionsEnabled ? "Development mock" : "Inactive mock"
+      : connection.hasAccessTokenOverride
       ? "Token override"
       : connection.hasAccessToken
         ? "Shared token"
         : "Token missing";
+    const tokenColor = isMock
+      ? this.mockConnectionsEnabled ? "positive" : "warning"
+      : connection.hasAccessToken ? "positive" : "warning";
+    const testDisabled = this.testing
+      || this.dirty
+      || (isMock ? !this.mockConnectionsEnabled : !connection.projectId);
     return html`
       <uui-box class="connection-card">
         <details class="connection-shell">
           <summary class="connection-summary">
             <span class="summary-copy">
               <strong>${connection.displayName || connection.projectId || "New connection"}</strong>
-              <span>${connection.projectId || "Project ID required"} · ${this.#mappingSummary()}</span>
+              <span>${isMock ? "Mock scenario" : connection.projectId || "Project ID required"} · ${this.#mappingSummary()}</span>
             </span>
             <span class="summary-state">
-              <uui-tag color=${connection.hasAccessToken ? "positive" : "warning"}>${tokenStatus}</uui-tag>
+              <uui-tag color=${tokenColor}>${tokenStatus}</uui-tag>
               <uui-icon name="icon-navigation-down" aria-hidden="true"></uui-icon>
             </span>
           </summary>
@@ -113,7 +129,7 @@ export class VercelAnalyticsConnectionEditorElement extends UmbElementMixin(LitE
             <section class="essentials" aria-labelledby=${`${connection.key}-project-heading`}>
               <div class=${`essentials-header${this.status ? " has-status" : ""}`}>
                 <div class="essentials-heading">
-                  <h3 id=${`${connection.key}-project-heading`}>Project</h3>
+                  <h3 id=${`${connection.key}-project-heading`}>${isMock ? "Mock data" : "Project"}</h3>
                 </div>
                 <div class="action-status" role=${this.status?.type === "error" ? "alert" : "status"} aria-live="polite">
                   ${this.status ? html`<span class=${this.status.type}><uui-icon name=${this.status.type === "success" ? "icon-check" : this.status.type === "error" ? "icon-alert" : "icon-info"}></uui-icon>${this.status.message}</span>` : ""}
@@ -124,18 +140,22 @@ export class VercelAnalyticsConnectionEditorElement extends UmbElementMixin(LitE
                     label=${testHint}
                     title=${testHint}
                     .state=${this.testing ? "waiting" : undefined}
-                    ?disabled=${this.testing || this.dirty || !connection.projectId}
+                    ?disabled=${testDisabled}
                     @click=${() => this.#dispatch("test-connection")}>Test connection</uui-button>
                   <uui-button look="secondary" color="danger" label="Remove connection" @click=${() => this.#dispatch("remove-connection")}>Remove</uui-button>
                 </div>
               </div>
-              <div class="fields two-columns">
-                ${this.#field("Vercel project ID", "projectId", connection.projectId, undefined, this.errors.projectId)}
-                ${this.#teamReferenceField(teamReference(connection), this.errors.team)}
-              </div>
+              ${isMock ? html`
+                <p class="section-intro mock-description">${mockScenario?.description ?? "Deterministic analytics data."} This connection never contacts Vercel.</p>
+              ` : html`
+                <div class="fields two-columns">
+                  ${this.#field("Vercel project ID", "projectId", connection.projectId, undefined, this.errors.projectId)}
+                  ${this.#teamReferenceField(teamReference(connection), this.errors.team)}
+                </div>
+              `}
             </section>
 
-            <details class="config-section token-section">
+            ${isMock ? "" : html`<details class="config-section token-section">
               <summary><span>Token override</span><small>${connection.hasAccessTokenOverride ? "Configured on the server" : connection.hasAccessToken ? "Using shared token" : "Optional"}</small></summary>
               <div class="config-content token-content">
                 <p>
@@ -146,7 +166,7 @@ export class VercelAnalyticsConnectionEditorElement extends UmbElementMixin(LitE
                 </p>
                 <div class="token-key"><code>VercelAnalytics__ConnectionAccessTokens__${connection.key}</code><uui-button compact look="secondary" label="Copy access token setting name" @click=${this.#copyTokenKey}>${this._tokenCopied ? "Copied" : "Copy"}</uui-button></div>
               </div>
-            </details>
+            </details>`}
 
             <details class="config-section">
               <summary><span>Page analytics</span><small>${this.#mappingSummary()}</small></summary>

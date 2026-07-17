@@ -11,6 +11,7 @@ import {
 const settings = (): AnalyticsSettingsResponse => ({
   enabled: true,
   hasAccessToken: false,
+  canCreateMockConnections: false,
   defaultRangeDays: 30,
   cacheDuration: "00:05:00",
   connections: [{
@@ -23,10 +24,29 @@ const settings = (): AnalyticsSettingsResponse => ({
     enabledDocumentTypeKeys: [],
     hasAccessToken: false,
     hasAccessTokenOverride: false,
+    mockScenario: null,
   }],
 });
 
 describe("analytics settings model", () => {
+  it("requires a project ID for Vercel connections", () => {
+    const connection = settings().connections[0];
+    connection.projectId = "";
+
+    expect(validateConnection(connection)).toEqual({
+      projectId: "Enter the Vercel project ID.",
+    });
+  });
+
+  it("accepts typed mock scenarios without a project ID", () => {
+    const model = settings();
+    model.connections[0].projectId = "";
+    model.connections[0].mockScenario = "Complete";
+
+    expect(validateConnection(model.connections[0])).toEqual({});
+    expect(createSettingsUpdate(model).connections[0].mockScenario).toBe("Complete");
+  });
+
   it("allows global-only connections without mappings", () => {
     expect(validateEditableSettings(settings())).toBeUndefined();
   });

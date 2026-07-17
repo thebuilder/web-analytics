@@ -2,7 +2,9 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Umbraco.Cms.Core.Services;
+using Umbraco.VercelAnalytics.Models;
 
 namespace Umbraco.VercelAnalytics.Configuration;
 
@@ -26,6 +28,11 @@ public sealed class VercelAnalyticsConnectionSettings
     public string ProjectId { get; set; } = string.Empty;
 
     public string? Team { get; set; }
+
+    public MockAnalyticsScenario? MockScenario { get; set; }
+
+    [JsonIgnore]
+    public bool IsMock => MockScenario is not null;
 
     public string[] DocumentRootKeys { get; set; } = [];
 
@@ -107,8 +114,9 @@ public sealed class VercelAnalyticsSettingsStore
         {
             Key = connection.Key == Guid.Empty ? Guid.NewGuid() : connection.Key,
             DisplayName = connection.DisplayName.Trim(),
-            ProjectId = connection.ProjectId.Trim(),
-            Team = NullIfWhiteSpace(connection.Team),
+            ProjectId = connection.IsMock ? string.Empty : connection.ProjectId.Trim(),
+            Team = connection.IsMock ? null : NullIfWhiteSpace(connection.Team),
+            MockScenario = connection.MockScenario,
             DocumentRootKeys = NormalizeGuidValues(connection.DocumentRootKeys),
             EnableAllDocumentTypes = connection.EnableAllDocumentTypes,
             EnabledDocumentTypeKeys = NormalizeGuidValues(connection.EnabledDocumentTypeKeys),
@@ -147,6 +155,7 @@ internal static class VercelAnalyticsSettingsMapper
             DisplayName = connection.DisplayName,
             ProjectId = connection.ProjectId,
             Team = connection.Team,
+            MockScenario = connection.MockScenario,
             DocumentRootKeys = connection.DocumentRootKeys,
             EnableAllDocumentTypes = connection.EnableAllDocumentTypes,
             EnabledDocumentTypeKeys = connection.EnabledDocumentTypeKeys,

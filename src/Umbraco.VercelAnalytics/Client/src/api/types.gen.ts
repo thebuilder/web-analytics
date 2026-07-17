@@ -25,6 +25,7 @@ export type AnalyticsConnectionSettingsResponse = {
     enabledDocumentTypeKeys: Array<string>;
     hasAccessToken: boolean;
     hasAccessTokenOverride: boolean;
+    mockScenario?: MockAnalyticsScenario | null;
 };
 
 export type AnalyticsConnectionSummary = {
@@ -104,6 +105,8 @@ export type AnalyticsFlagsReport = {
 
 export type AnalyticsInterval = 'Hour' | 'Day' | 'Week' | 'Month';
 
+export type MockAnalyticsScenario = 'Complete' | 'Utm' | 'Flags' | 'Events';
+
 export type AnalyticsPoint = {
     timestamp: string;
     pageViews: number;
@@ -122,6 +125,7 @@ export type AnalyticsProblemDetails = {
 export type AnalyticsSettingsResponse = {
     enabled: boolean;
     hasAccessToken: boolean;
+    canCreateMockConnections: boolean;
     defaultRangeDays: number;
     cacheDuration: string;
     connections: Array<AnalyticsConnectionSettingsResponse>;
@@ -151,6 +155,7 @@ export type UpdateAnalyticsConnectionRequest = {
     displayName: string;
     projectId: string;
     team?: string | null;
+    mockScenario?: MockAnalyticsScenario | null;
     documentRootKeys: Array<string>;
     enableAllDocumentTypes: boolean;
     enabledDocumentTypeKeys: Array<string>;

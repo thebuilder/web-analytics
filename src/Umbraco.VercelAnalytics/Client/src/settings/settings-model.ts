@@ -16,7 +16,7 @@ export function parseTeamReference(value: string): Pick<AnalyticsConnectionSetti
 
 export function validateConnection(connection: AnalyticsConnectionSettingsResponse): ConnectionValidationErrors {
   const errors: ConnectionValidationErrors = {};
-  if (!connection.projectId.trim()) errors.projectId = "Enter the Vercel project ID.";
+  if (connection.mockScenario == null && !connection.projectId.trim()) errors.projectId = "Enter the Vercel project ID.";
   return errors;
 }
 
@@ -40,6 +40,7 @@ export function createSettingsUpdate(settings: AnalyticsSettingsResponse): Updat
       displayName: connection.displayName,
       projectId: connection.projectId,
       team: connection.team,
+      mockScenario: connection.mockScenario,
       documentRootKeys: connection.documentRootKeys,
       enableAllDocumentTypes: connection.enableAllDocumentTypes,
       enabledDocumentTypeKeys: connection.enableAllDocumentTypes ? [] : connection.enabledDocumentTypeKeys,

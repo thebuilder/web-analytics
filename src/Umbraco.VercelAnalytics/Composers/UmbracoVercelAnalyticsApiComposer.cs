@@ -27,11 +27,13 @@ namespace Umbraco.VercelAnalytics.Composers
             builder.Services.AddSingleton<VercelAnalyticsSettingsStore>();
             builder.Services.AddSingleton<VercelAnalyticsConnectionRegistry>();
             builder.Services.AddMemoryCache();
-            builder.Services.AddHttpClient<IVercelAnalyticsClient, VercelAnalyticsClient>(client =>
+            builder.Services.AddHttpClient<VercelAnalyticsClient>(client =>
             {
                 client.BaseAddress = new Uri("https://api.vercel.com/");
                 client.Timeout = TimeSpan.FromSeconds(15);
             });
+            builder.Services.AddSingleton<MockVercelAnalyticsClient>();
+            builder.Services.AddTransient<IVercelAnalyticsClient, VercelAnalyticsClientRouter>();
             builder.Services.AddTransient<VercelAnalyticsReportService>();
             builder.Services.AddTransient<IVercelProjectNameService, VercelProjectNameService>();
             builder.Services.AddTransient<IAnalyticsAuthorizationService, AnalyticsAuthorizationService>();

@@ -26,6 +26,7 @@ public sealed class VercelProjectNameService(
 
         var cacheKey = string.Join(':',
             "vercel-project-name",
+            connection.Key,
             connection.ProjectId,
             connection.Team ?? string.Empty);
 

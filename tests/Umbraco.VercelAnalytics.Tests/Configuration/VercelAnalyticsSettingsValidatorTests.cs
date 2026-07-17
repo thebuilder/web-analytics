@@ -1,6 +1,7 @@
 using Umbraco.VercelAnalytics.Configuration;
 using Microsoft.Extensions.Options;
 using Umbraco.Cms.Core.Services;
+using Umbraco.VercelAnalytics.Models;
 
 namespace Umbraco.VercelAnalytics.Tests.Configuration;
 
@@ -51,6 +52,45 @@ public sealed class VercelAnalyticsSettingsValidatorTests
         settings.Connections[0].EnableAllDocumentTypes = true;
 
         Assert.Empty(VercelAnalyticsSettingsValidator.Validate(settings));
+    }
+
+    [Fact]
+    public void Mock_scenarios_do_not_require_Vercel_connection_metadata()
+    {
+        var settings = CreateSettings();
+        settings.Connections[0].ProjectId = string.Empty;
+        settings.Connections[0].MockScenario = MockAnalyticsScenario.Flags;
+
+        Assert.Empty(VercelAnalyticsSettingsValidator.Validate(settings));
+    }
+
+    [Fact]
+    public void Mock_scenarios_reject_Vercel_connection_metadata()
+    {
+        var settings = CreateSettings();
+        settings.Connections[0].MockScenario = MockAnalyticsScenario.Events;
+        settings.Connections[0].Team = "team_example";
+
+        var failures = VercelAnalyticsSettingsValidator.Validate(settings);
+
+        Assert.Contains(failures, failure => failure.Contains("cannot define a Vercel project ID"));
+        Assert.Contains(failures, failure => failure.Contains("cannot define a Vercel team"));
+    }
+
+    [Fact]
+    public void Store_preserves_mock_identity_without_Vercel_metadata()
+    {
+        var store = new VercelAnalyticsSettingsStore(Options.Create(new VercelAnalyticsOptions()));
+        var settings = CreateSettings();
+        settings.Connections[0].MockScenario = MockAnalyticsScenario.Utm;
+        settings.Connections[0].Team = "team_example";
+
+        store.Save(settings);
+        var connection = Assert.Single(store.Get().Connections);
+
+        Assert.Equal(MockAnalyticsScenario.Utm, connection.MockScenario);
+        Assert.Empty(connection.ProjectId);
+        Assert.Null(connection.Team);
     }
 
     [Fact]

@@ -1,3 +1,5 @@
+using Umbraco.VercelAnalytics.Models;
+
 namespace Umbraco.VercelAnalytics.Configuration;
 
 public sealed class VercelAnalyticsOptions
@@ -27,6 +29,8 @@ public sealed class VercelAnalyticsConnectionOptions
     public string ProjectId { get; set; } = string.Empty;
 
     public string? Team { get; set; }
+
+    public MockAnalyticsScenario? MockScenario { get; set; }
 
     public string[] DocumentRootKeys { get; set; } = [];
 

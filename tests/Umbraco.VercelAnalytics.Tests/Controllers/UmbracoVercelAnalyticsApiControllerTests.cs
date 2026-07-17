@@ -89,6 +89,52 @@ public sealed class UmbracoVercelAnalyticsApiControllerTests
     }
 
     [Fact]
+    public async Task Mock_connection_without_token_or_document_mappings_is_ready_without_warnings()
+    {
+        var authorization = new Mock<IAnalyticsAuthorizationService>(MockBehavior.Strict);
+        authorization.Setup(service => service.HasAnalyticsSectionAccess()).Returns(true);
+        var routes = new Mock<IAnalyticsDocumentRouteService>(MockBehavior.Strict);
+        routes.Setup(service => service.GetConnectionBaseUrlAsync(
+                It.IsAny<VercelAnalyticsConnection>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+        var projectNames = new Mock<IVercelProjectNameService>(MockBehavior.Strict);
+        projectNames.Setup(service => service.GetDisplayNameAsync(
+                It.IsAny<VercelAnalyticsConnection>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Mock · Complete dashboard");
+        var options = Options.Create(new VercelAnalyticsOptions());
+        var store = new VercelAnalyticsSettingsStore(options);
+        store.Save(new VercelAnalyticsSettings
+        {
+            Enabled = true,
+            Connections =
+            [
+                new()
+                {
+                    Key = MainKey,
+                    DisplayName = "Mock · Complete dashboard",
+                    MockScenario = MockAnalyticsScenario.Complete
+                }
+            ]
+        });
+        var registry = new VercelAnalyticsConnectionRegistry(store, options, mockConnectionsEnabled: true);
+        var controller = new UmbracoVercelAnalyticsApiController(
+            authorization.Object,
+            registry,
+            null!,
+            routes.Object,
+            projectNames.Object);
+
+        var response = await controller.Connections(CancellationToken.None);
+
+        var payload = Assert.IsType<AnalyticsConnectionsResponse>(Assert.IsType<OkObjectResult>(response.Result).Value);
+        var connection = Assert.Single(payload.Connections);
+        Assert.True(connection.IsConfigured);
+        Assert.Empty(connection.Warnings);
+    }
+
+    [Fact]
     public async Task Document_routes_forbid_users_without_document_browse_permission()
     {
         var documentId = Guid.NewGuid();

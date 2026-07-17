@@ -40,13 +40,18 @@ public static class VercelAnalyticsSettingsValidator
         IDictionary<Guid, Guid> roots,
         bool requireConnectionMetadata)
     {
-        var label = string.IsNullOrWhiteSpace(connection.ProjectId) ? connection.Key.ToString() : connection.ProjectId;
+        var label = connection.MockScenario?.ToString() ??
+            (string.IsNullOrWhiteSpace(connection.ProjectId) ? connection.Key.ToString() : connection.ProjectId);
         if (connection.Key == Guid.Empty)
             failures.Add("Every connection requires a valid key.");
         else if (!keys.Add(connection.Key))
             failures.Add($"Connection key '{connection.Key}' is used more than once.");
-        if (requireConnectionMetadata && string.IsNullOrWhiteSpace(connection.ProjectId))
+        if (requireConnectionMetadata && !connection.IsMock && string.IsNullOrWhiteSpace(connection.ProjectId))
             failures.Add($"Connection '{label}' requires a project ID.");
+        if (connection.IsMock && !string.IsNullOrWhiteSpace(connection.ProjectId))
+            failures.Add($"Mock connection '{label}' cannot define a Vercel project ID.");
+        if (connection.IsMock && !string.IsNullOrWhiteSpace(connection.Team))
+            failures.Add($"Mock connection '{label}' cannot define a Vercel team.");
         foreach (var value in connection.DocumentRootKeys)
         {
             if (!Guid.TryParse(value, out var key))

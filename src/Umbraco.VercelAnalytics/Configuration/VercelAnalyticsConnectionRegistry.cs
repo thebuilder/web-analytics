@@ -1,18 +1,48 @@
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Umbraco.VercelAnalytics.Models;
 
 namespace Umbraco.VercelAnalytics.Configuration;
 
-public sealed class VercelAnalyticsConnectionRegistry(
-    VercelAnalyticsSettingsStore settingsStore,
-    IOptions<VercelAnalyticsOptions> serverOptions)
+public sealed class VercelAnalyticsConnectionRegistry
 {
+    private readonly VercelAnalyticsSettingsStore _settingsStore;
+    private readonly IOptions<VercelAnalyticsOptions> _serverOptions;
+    private readonly bool _mockConnectionsEnabled;
     private readonly Lock _snapshotLock = new();
     private RegistrySnapshot? _snapshot;
 
-    public VercelAnalyticsConnectionRegistry(IOptions<VercelAnalyticsOptions> serverOptions)
-        : this(new VercelAnalyticsSettingsStore(serverOptions), serverOptions)
+    public VercelAnalyticsConnectionRegistry(
+        VercelAnalyticsSettingsStore settingsStore,
+        IOptions<VercelAnalyticsOptions> serverOptions,
+        IHostEnvironment hostEnvironment)
+        : this(settingsStore, serverOptions, hostEnvironment.IsDevelopment())
     {
     }
+
+    public VercelAnalyticsConnectionRegistry(
+        VercelAnalyticsSettingsStore settingsStore,
+        IOptions<VercelAnalyticsOptions> serverOptions)
+        : this(settingsStore, serverOptions, false)
+    {
+    }
+
+    public VercelAnalyticsConnectionRegistry(IOptions<VercelAnalyticsOptions> serverOptions)
+        : this(new VercelAnalyticsSettingsStore(serverOptions), serverOptions, false)
+    {
+    }
+
+    internal VercelAnalyticsConnectionRegistry(
+        VercelAnalyticsSettingsStore settingsStore,
+        IOptions<VercelAnalyticsOptions> serverOptions,
+        bool mockConnectionsEnabled)
+    {
+        _settingsStore = settingsStore;
+        _serverOptions = serverOptions;
+        _mockConnectionsEnabled = mockConnectionsEnabled;
+    }
+
+    public bool MockConnectionsEnabled => _mockConnectionsEnabled;
 
     public VercelAnalyticsSettings Settings => Capture().Settings;
 
@@ -37,7 +67,7 @@ public sealed class VercelAnalyticsConnectionRegistry(
 
     internal RegistrySnapshot Capture()
     {
-        var settingsSnapshot = settingsStore.GetSnapshot();
+        var settingsSnapshot = _settingsStore.GetSnapshot();
         lock (_snapshotLock)
         {
             if (_snapshot?.Revision == settingsSnapshot.Revision)
@@ -52,8 +82,10 @@ public sealed class VercelAnalyticsConnectionRegistry(
 
     private RegistrySnapshot CreateSnapshot(VercelAnalyticsSettingsSnapshot settingsSnapshot)
     {
-        var serverConfiguration = serverOptions.Value;
-        var connections = settingsSnapshot.Settings.Connections.ToDictionary(
+        var serverConfiguration = _serverOptions.Value;
+        var connections = settingsSnapshot.Settings.Connections
+            .Where(connection => !connection.IsMock || _mockConnectionsEnabled)
+            .ToDictionary(
             connection => connection.Key,
             connection => VercelAnalyticsConnection.Create(
                 connection,
@@ -94,13 +126,14 @@ public sealed record VercelAnalyticsConnection(
     IReadOnlyList<Guid> DocumentRootKeys,
     bool EnableAllDocumentTypes,
     IReadOnlySet<Guid> EnabledDocumentTypeKeys,
-    IReadOnlySet<string> EnabledDocumentTypes)
+    IReadOnlySet<string> EnabledDocumentTypes,
+    MockAnalyticsScenario? MockScenario = null)
 {
     public bool HasAccessToken => !string.IsNullOrWhiteSpace(AccessToken);
 
-    public bool IsConfigured => HasAccessToken && !string.IsNullOrWhiteSpace(ProjectId);
+    public bool IsMock => MockScenario is not null;
 
-    public bool HasMappings => DocumentRootKeys.Count > 0;
+    public bool IsConfigured => IsMock || HasAccessToken && !string.IsNullOrWhiteSpace(ProjectId);
 
     public bool IsDocumentTypeEnabled(string documentTypeAlias, Guid documentTypeKey) =>
         EnableAllDocumentTypes || EnabledDocumentTypeKeys.Contains(documentTypeKey) || EnabledDocumentTypes.Contains(documentTypeAlias);
@@ -117,7 +150,8 @@ public sealed record VercelAnalyticsConnection(
             settings.EnableAllDocumentTypes,
             ParseGuidValues(settings.EnabledDocumentTypeKeys).ToHashSet(),
             settings.EnabledDocumentTypes.Select(value => value.Trim()).Where(value => value.Length > 0)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase));
+                .ToHashSet(StringComparer.OrdinalIgnoreCase),
+            settings.MockScenario);
 
     private static string? NullIfWhiteSpace(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
