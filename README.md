@@ -1,6 +1,6 @@
 # Umbraco Vercel Analytics
 
-`Umbraco.VercelAnalytics` displays Vercel Web Analytics in the Umbraco 17 backoffice.
+`Umbraco.VercelAnalytics` displays Vercel Web Analytics in the Umbraco 17 and 18 backoffice.
 
 It provides:
 
@@ -13,7 +13,7 @@ The package reads analytics already collected by Vercel. It does not add Vercel 
 
 ## Requirements
 
-- Umbraco CMS 17.1 or later.
+- Umbraco CMS 17.1 or later, up to (but not including) Umbraco 19.
 - A Vercel project with [Web Analytics enabled and installed](https://vercel.com/docs/analytics/quickstart).
 - A [Vercel access token](https://vercel.com/kb/guide/how-do-i-use-a-vercel-api-access-token) scoped to the personal account or team that owns the project.
 - The Vercel project ID (`prj_...`).
@@ -209,8 +209,4 @@ pnpm test
 pnpm build
 ```
 
-Run the example host before regenerating the OpenAPI client, then pass its Swagger URL to:
-
-```sh
-pnpm generate-client -- <swagger-url>
-```
+The generated API client is checked in with the package source. Umbraco 17 and 18 use different OpenAPI implementations, so regenerating it requires a version-specific development host rather than runtime OpenAPI registration in the distributed package.

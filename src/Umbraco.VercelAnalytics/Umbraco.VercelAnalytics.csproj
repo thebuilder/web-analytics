@@ -4,6 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <StaticWebAssetBasePath>/</StaticWebAssetBasePath>
+    <UmbracoVersion Condition="'$(UmbracoVersion)' == ''">[17.1.0,19.0.0)</UmbracoVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -11,7 +12,7 @@
     <Product>Umbraco.VercelAnalytics</Product>
     <Title>Umbraco.VercelAnalytics</Title>
     <Version>0.1.0</Version>
-    <Description>Vercel Web Analytics reports inside the Umbraco 17 backoffice.</Description>
+    <Description>Vercel Web Analytics reports inside the Umbraco 17 and 18 backoffice.</Description>
     <PackageTags>umbraco;vercel;analytics;backoffice</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -24,10 +25,10 @@
 
 
   <ItemGroup>
-    <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.1.0" />
-    <PackageReference Include="Umbraco.Cms.Web.Common" Version="17.1.0" />
-    <PackageReference Include="Umbraco.Cms.Api.Common" Version="17.1.0" />
-    <PackageReference Include="Umbraco.Cms.Api.Management" Version="17.1.0" />
+    <PackageReference Include="Umbraco.Cms.Web.Website" Version="$(UmbracoVersion)" />
+    <PackageReference Include="Umbraco.Cms.Web.Common" Version="$(UmbracoVersion)" />
+    <PackageReference Include="Umbraco.Cms.Api.Common" Version="$(UmbracoVersion)" />
+    <PackageReference Include="Umbraco.Cms.Api.Management" Version="$(UmbracoVersion)" />
   </ItemGroup>
 
   <ItemGroup>
