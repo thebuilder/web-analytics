@@ -4,11 +4,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <CompressionEnabled>false</CompressionEnabled> <!-- Disable compression. E.g. for umbraco backoffice files. These files should be precompressed by node and not let dotnet handle it -->
+    <UmbracoVersion Condition="'$(UmbracoVersion)' == ''">17.1.0</UmbracoVersion>
+    <DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(UmbracoVersion)', '18.0.0'))">$(DefineConstants);UMBRACO_18_OR_LATER</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Umbraco.Cms" Version="17.1.0" />
-    <PackageReference Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="17.1.0" />
+    <PackageReference Include="Umbraco.Cms" Version="$(UmbracoVersion)" />
+    <PackageReference Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="$(UmbracoVersion)" />
   </ItemGroup>
 
   <ItemGroup>
