@@ -4,6 +4,8 @@
 
 **Web Analytics brings Vercel Web Analytics into the Umbraco backoffice.** View traffic, audience, referrers, pages, campaigns, and custom events without leaving Umbraco.
 
+![Web Analytics overview in the Umbraco backoffice](https://raw.githubusercontent.com/thebuilder/web-analytics/main/docs/screenshots/analytics-overview.png)
+
 ## Features
 
 - Analytics section with totals, traffic history, audience, referrers, pages, routes, campaigns, and custom events.
