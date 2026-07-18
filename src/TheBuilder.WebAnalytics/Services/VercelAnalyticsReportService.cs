@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Caching.Memory;
 using TheBuilder.WebAnalytics.Configuration;
 using TheBuilder.WebAnalytics.Models;
 
@@ -7,7 +6,7 @@ namespace TheBuilder.WebAnalytics.Services;
 public sealed class VercelAnalyticsReportService(
     VercelAnalyticsConnectionRegistry registry,
     IVercelAnalyticsClient client,
-    IMemoryCache cache)
+    AnalyticsReportCache cache)
 {
     public async Task<AnalyticsSummary?> GetSummaryAsync(
         AnalyticsQuery query,
@@ -153,19 +152,8 @@ public sealed class VercelAnalyticsReportService(
     private Task<T> GetOrCreateAsync<T>(
         string cacheKey,
         TimeSpan cacheDuration,
-        Func<Task<T>> factory)
-    {
-        if (cacheDuration <= TimeSpan.Zero)
-        {
-            return factory();
-        }
-
-        return cache.GetOrCreateAsync(cacheKey, entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = cacheDuration;
-            return factory();
-        })!;
-    }
+        Func<Task<T>> factory) =>
+        cache.GetOrCreateAsync(cacheKey, cacheDuration, factory);
 
     private static string Normalize(AnalyticsQuery query)
     {

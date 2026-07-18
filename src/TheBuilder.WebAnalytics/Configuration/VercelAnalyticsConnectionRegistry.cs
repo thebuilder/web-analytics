@@ -126,6 +126,9 @@ public sealed record VercelAnalyticsConnection(
 
     public bool IsConfigured => IsMock || HasAccessToken && !string.IsNullOrWhiteSpace(ProjectId);
 
+    public override string ToString() =>
+        $"{nameof(VercelAnalyticsConnection)} {{ Key = {Key}, DisplayName = {DisplayName}, ProjectId = {ProjectId}, Team = {Team}, AccessToken = [REDACTED] }}";
+
     public bool IsDocumentTypeEnabled(string documentTypeAlias, Guid documentTypeKey) =>
         EnableAllDocumentTypes || EnabledDocumentTypeKeys.Contains(documentTypeKey) || EnabledDocumentTypes.Contains(documentTypeAlias);
 

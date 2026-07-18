@@ -55,6 +55,16 @@ public sealed class VercelAnalyticsProblemFactoryTests
     }
 
     [Fact]
+    public void Maps_report_capacity_failures_to_service_unavailable()
+    {
+        var problem = Assert.IsType<VercelAnalyticsProblemDefinition>(
+            VercelAnalyticsProblemFactory.FromException(new AnalyticsReportCapacityException()));
+
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, problem.Status);
+        Assert.Equal(VercelAnalyticsProblemCodes.ReportCapacity, problem.Code);
+    }
+
+    [Fact]
     public void Returns_a_typed_problem_details_contract()
     {
         var result = VercelAnalyticsProblemFactory.CreateResult(

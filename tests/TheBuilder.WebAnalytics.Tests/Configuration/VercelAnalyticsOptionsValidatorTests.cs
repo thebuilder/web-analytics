@@ -121,6 +121,18 @@ public sealed class VercelAnalyticsOptionsValidatorTests
     }
 
     [Fact]
+    public void Connection_string_representation_redacts_access_token()
+    {
+        var connection = new VercelAnalyticsConnectionRegistry(Options.Create(CreateOptions())).Get(MainKey);
+
+        var representation = connection!.ToString();
+
+        Assert.DoesNotContain("test-token", representation);
+        Assert.Contains("AccessToken = [REDACTED]", representation);
+        Assert.Contains(MainKey.ToString(), representation);
+    }
+
+    [Fact]
     public void Registry_is_unconfigured_when_shared_and_connection_tokens_are_missing()
     {
         var options = CreateOptions();

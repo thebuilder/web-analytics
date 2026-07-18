@@ -16,6 +16,7 @@ internal static class VercelAnalyticsProblemCodes
     public const string InvalidQuery = "invalid_query";
     public const string InvalidUpstreamPayload = "invalid_upstream_payload";
     public const string PlanLimit = "plan_limit";
+    public const string ReportCapacity = "report_capacity";
     public const string UpstreamTimeout = "upstream_timeout";
     public const string UpstreamTransport = "upstream_transport";
     public const string UpstreamUnavailable = "upstream_unavailable";
@@ -43,6 +44,10 @@ internal static class VercelAnalyticsProblemFactory
     public static VercelAnalyticsProblemDefinition? FromException(Exception exception) => exception switch
     {
         VercelAnalyticsApiException apiException => FromVercelStatus(apiException.StatusCode),
+        AnalyticsReportCapacityException => new(
+            StatusCodes.Status503ServiceUnavailable,
+            VercelAnalyticsProblemCodes.ReportCapacity,
+            "The analytics report service is busy. Try again shortly."),
         TaskCanceledException => new(
             StatusCodes.Status504GatewayTimeout,
             VercelAnalyticsProblemCodes.UpstreamTimeout,

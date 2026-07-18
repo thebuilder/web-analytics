@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using TheBuilder.WebAnalytics.Configuration;
 using TheBuilder.WebAnalytics.Models;
@@ -14,7 +13,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Summary_is_cached_by_normalized_query()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
         var query = CreateQuery();
 
@@ -32,7 +31,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Zero_cache_duration_disables_caching()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(
             CreateRegistry(cacheDuration: TimeSpan.Zero),
             client,
@@ -51,7 +50,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Summary_compares_with_the_immediately_preceding_range()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
 
         var summary = await service.GetSummaryAsync(CreateQuery(), CancellationToken.None);
@@ -67,7 +66,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Summary_remains_available_when_the_previous_range_is_unavailable()
     {
         var client = new CountingClient { FailPreviousCount = true };
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
 
         var summary = await service.GetSummaryAsync(CreateQuery(), CancellationToken.None);
@@ -81,7 +80,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Summary_omits_comparison_when_the_previous_range_would_precede_date_minimum()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
         var minimumDate = DateTimeOffset.MinValue;
 
@@ -99,7 +98,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Breakdown_cache_separates_dimensions()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
 
         await service.GetBreakdownAsync(CreateQuery(), AnalyticsDimension.Country, 10, null, CancellationToken.None);
@@ -112,7 +111,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Breakdown_cache_separates_search_terms()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
 
         await service.GetBreakdownAsync(CreateQuery(), AnalyticsDimension.RequestPath, 100, "news", CancellationToken.None);
@@ -125,7 +124,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Summary_cache_separates_filter_values()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
 
         await service.GetSummaryAsync(CreateQuery() with
@@ -146,7 +145,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Events_are_cached_by_search_and_document_scope()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
         var query = CreateQuery() with { RequestPath = "/news" };
 
@@ -161,7 +160,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Event_details_return_property_names_without_eagerly_loading_values()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
 
         var first = await service.GetEventDetailsAsync(CreateQuery(), "Signup", null, CancellationToken.None);
@@ -182,7 +181,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Event_details_cache_and_queries_include_the_event_data_filter()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
         var filter = new AnalyticsEventDataFilter("plan", "Enterprise");
 
@@ -198,7 +197,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Event_property_search_is_server_backed_and_cached_by_search_term()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
 
         var first = await service.GetEventPropertyValuesAsync(CreateQuery(), "Signup", "plan", 100, "enterprise", null, CancellationToken.None);
@@ -216,7 +215,7 @@ public sealed class VercelAnalyticsReportServiceTests
     public async Task Cancellation_is_forwarded_to_the_Vercel_client()
     {
         var client = new CountingClient();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

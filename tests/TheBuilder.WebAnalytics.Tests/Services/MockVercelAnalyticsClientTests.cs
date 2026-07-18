@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using TheBuilder.WebAnalytics.Configuration;
 using TheBuilder.WebAnalytics.Models;
@@ -117,7 +116,7 @@ public sealed class MockVercelAnalyticsClientTests
         var router = new VercelAnalyticsClientRouter(
             new VercelAnalyticsClient(new HttpClient(handler)),
             new MockVercelAnalyticsClient());
-        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(
             CreateRegistry(MockAnalyticsScenario.Complete, true),
             router,
