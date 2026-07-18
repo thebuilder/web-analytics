@@ -29,10 +29,12 @@ import type { VercelAnalyticsSummaryElement } from "./analytics-summary.element.
 import type { VercelAnalyticsBreakdownGridElement } from "./analytics-breakdown-grid.element.js";
 import type { VercelAnalyticsBreakdownTableElement } from "./breakdown-table.element.js";
 import type { VercelAnalyticsDashboardElement } from "./analytics-dashboard.element.js";
+import type { VercelAnalyticsDashboardHeaderElement } from "./analytics-dashboard-header.element.js";
 import type { VercelAnalyticsFlagCardElement } from "./flag-card.element.js";
 import "./analytics-summary.element.js";
 import "./analytics-breakdown-grid.element.js";
 import "./analytics-dashboard.element.js";
+import "./analytics-dashboard-header.element.js";
 
 beforeEach(() => {
   sdk.connections.mockResolvedValue(apiOk({
@@ -54,6 +56,28 @@ afterEach(() => {
 });
 
 describe("analytics presentation components", () => {
+  it("links document analytics to the resolved page URL", async () => {
+    const element = document.createElement("vercel-analytics-dashboard-header") as VercelAnalyticsDashboardHeaderElement;
+    element.documentScoped = true;
+    element.range = dateRangeForPreset(30);
+    element.siteUrl = "https://example.com";
+    element.route = {
+      connection: "11111111-1111-1111-1111-111111111111",
+      culture: "en-US",
+      hostname: "example.com",
+      path: "/products/example",
+      url: "https://example.com/products/example",
+      isCurrent: true,
+      warnings: [],
+    };
+    document.body.append(element);
+    await element.updateComplete;
+
+    const link = element.shadowRoot?.querySelector<HTMLAnchorElement>(".site-link");
+    expect(link?.href).toBe("https://example.com/products/example");
+    expect(link?.textContent).toContain("Open page in a new tab");
+  });
+
   it("directs first-time users to Web Analytics settings", async () => {
     sdk.connections.mockResolvedValue(apiOk({ enabled: true, defaultRangeDays: 30, connections: [] }));
     const element = document.createElement("vercel-analytics-dashboard") as VercelAnalyticsDashboardElement;
@@ -163,6 +187,19 @@ describe("analytics presentation components", () => {
     const cards = [...element.shadowRoot?.querySelectorAll("uui-box") ?? []];
     expect(cards[0]?.querySelector<HTMLElement & { headline: string }>("vercel-analytics-breakdown-table")?.headline).toBe("Referrers");
     expect(cards[1]?.querySelector("vercel-analytics-event-table")).not.toBeNull();
+  });
+
+  it("places flags last on their own row in document analytics", async () => {
+    const element = document.createElement("vercel-analytics-breakdown-grid") as VercelAnalyticsBreakdownGridElement;
+    element.cards = dashboardCards(true, "unavailable");
+    element.events = successState({ rows: [] });
+    document.body.append(element);
+    await element.updateComplete;
+
+    const cards = [...element.shadowRoot?.querySelectorAll("uui-box") ?? []];
+    const flagsCard = cards[cards.length - 1];
+    expect(flagsCard?.querySelector("vercel-analytics-flag-card")).not.toBeNull();
+    expect(flagsCard?.classList.contains("flags-card")).toBe(true);
   });
 
   it("merges valid UTM reports into the referrers card with five parameter tabs", async () => {

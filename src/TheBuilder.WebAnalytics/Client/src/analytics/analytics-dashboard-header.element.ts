@@ -46,15 +46,16 @@ export class VercelAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEl
     const connection = this.#connection();
     const hostname = this.#hostname();
     const siteLabel = hostname ?? connection?.displayName;
+    const linkUrl = this.documentScoped ? this.route?.url ?? this.siteUrl : this.siteUrl;
     return html`
       <header>
         <div class="site-context">
-          ${hostname && this.siteUrl ? html`
-            <a class="site-link" href=${this.siteUrl} target="_blank" rel="noopener noreferrer">
+          ${hostname && linkUrl ? html`
+            <a class="site-link" href=${linkUrl} target="_blank" rel="noopener noreferrer">
               <uui-icon name="icon-globe" aria-hidden="true"></uui-icon>
               <span class="site-link-label">${hostname}</span>
               <uui-icon class="external-indicator" name="icon-out" aria-hidden="true"></uui-icon>
-              <span class="visually-hidden">Open site in a new tab</span>
+              <span class="visually-hidden">Open ${this.documentScoped ? "page" : "site"} in a new tab</span>
             </a>
           ` : siteLabel ? html`
             <span class="site-name"><uui-icon name="icon-globe" aria-hidden="true"></uui-icon><span>${siteLabel}</span></span>
