@@ -235,22 +235,24 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
               </div>
             </uui-form-layout-item>
             <section class="shared-token" aria-labelledby="shared-token-heading">
-              <div class="shared-token-copy">
-                <div class="shared-token-summary">
-                  <strong id="shared-token-heading">Access token</strong>
-                  ${this._settings.hasAccessToken
-                    ? html`<span class="shared-token-status configured" title="Access token configured"><uui-icon name="icon-check" aria-hidden="true"></uui-icon><span class="visually-hidden">Configured</span></span>`
-                    : html`<uui-tag class="shared-token-status" color="warning">Not configured</uui-tag>`}
-                </div>
-                <p class="shared-token-help">Set this server environment variable to a Vercel access token.</p>
+              <div class="shared-token-summary">
+                <strong id="shared-token-heading">Access token</strong>
+                ${this._settings.hasAccessToken
+                  ? html`<span class="shared-token-status configured"><uui-icon name="icon-check" aria-hidden="true"></uui-icon>Configured</span>`
+                  : html`<uui-tag class="shared-token-status" color="warning">Not configured</uui-tag>`}
               </div>
-              <div class="shared-token-actions">
-                <a href="https://vercel.com/account/settings/tokens" target="_blank" rel="noopener noreferrer" aria-label="Create a Vercel access token (opens in a new tab)">Create token<uui-icon name="icon-out" aria-hidden="true"></uui-icon></a>
-                <div class="shared-token-key">
-                  <code>VercelAnalytics__AccessToken</code>
-                  <uui-button compact look="secondary" label="Copy shared access token setting name" @click=${this.#copyTokenKey}>${this._tokenKeyCopied ? "Copied" : "Copy"}</uui-button>
+              ${this._settings.hasAccessToken ? "" : html`
+                <div class="shared-token-setup">
+                  <div class="shared-token-guidance">
+                    <p class="shared-token-help">Set this server environment variable to a Vercel access token.</p>
+                    <a href="https://vercel.com/account/settings/tokens" target="_blank" rel="noopener noreferrer" aria-label="Create a Vercel access token (opens in a new tab)">Create token<uui-icon name="icon-out" aria-hidden="true"></uui-icon></a>
+                  </div>
+                  <div class="shared-token-key">
+                    <code>VercelAnalytics__AccessToken</code>
+                    <uui-button compact look="secondary" label="Copy shared access token setting name" @click=${this.#copyTokenKey}>${this._tokenKeyCopied ? "Copied" : "Copy"}</uui-button>
+                  </div>
                 </div>
-              </div>
+              `}
             </section>
           </div>
         </uui-box>
@@ -353,17 +355,16 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
     .field-with-help { display: grid; gap: var(--uui-size-space-1); }
     .field-help { color: var(--uui-color-text-alt); font-size: var(--uui-type-small-size); }
     .package-status { min-inline-size: 0; }
-    .shared-token { align-items: center; border-top: 1px solid var(--uui-color-border); display: flex; gap: var(--uui-size-space-5); grid-column: 1 / -1; justify-content: space-between; min-inline-size: 0; padding-block-start: var(--uui-size-space-4); }
-    .shared-token-copy { display: grid; gap: var(--uui-size-space-1); min-inline-size: 0; }
-    .shared-token-summary, .shared-token-actions { align-items: center; display: flex; flex-wrap: wrap; }
-    .shared-token-summary { gap: var(--uui-size-space-2); }
+    .shared-token { align-items: start; border-top: 1px solid var(--uui-color-border); display: grid; gap: var(--uui-size-space-3); grid-column: 1 / -1; min-inline-size: 0; padding-block-start: var(--uui-size-space-4); }
+    .shared-token-summary { align-items: center; display: flex; flex-wrap: wrap; gap: var(--uui-size-space-2); }
+    .shared-token-setup { display: grid; gap: var(--uui-size-space-4); max-inline-size: 42rem; min-inline-size: 0; }
+    .shared-token-guidance { display: grid; gap: var(--uui-size-space-2); justify-items: start; }
     .shared-token-help { color: var(--uui-color-text-alt); margin: 0; max-inline-size: 48ch; text-wrap: pretty; }
-    .shared-token-status.configured { align-items: center; color: var(--uui-color-positive); display: inline-flex; font-size: 1.125rem; }
-    .shared-token-actions { gap: var(--uui-size-space-3); justify-content: flex-end; min-inline-size: 0; }
+    .shared-token-status.configured { align-items: center; color: var(--uui-color-positive); display: inline-flex; gap: var(--uui-size-space-1); }
     .shared-token-key { align-items: center; background: var(--uui-color-surface-alt); display: flex; gap: var(--uui-size-space-2); max-inline-size: 100%; padding: var(--uui-size-space-2) var(--uui-size-space-3); }
     .shared-token-key code { min-inline-size: 0; overflow-wrap: anywhere; }
-    .shared-token-actions > a { align-items: center; color: var(--uui-color-interactive); display: inline-flex; gap: var(--uui-size-space-1); white-space: nowrap; }
-    .shared-token-actions > a uui-icon { font-size: 0.875em; }
+    .shared-token-guidance > a { align-items: center; color: var(--uui-color-interactive); display: inline-flex; gap: var(--uui-size-space-1); white-space: nowrap; }
+    .shared-token-guidance > a uui-icon { font-size: 0.875em; }
     .visually-hidden { block-size: 1px; clip: rect(0 0 0 0); clip-path: inset(50%); inline-size: 1px; overflow: hidden; position: absolute; white-space: nowrap; }
     .section-heading { margin-bottom: var(--uui-size-space-4); }
     .connections { display: grid; gap: var(--uui-size-layout-1); }
@@ -387,8 +388,7 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
     @container (max-width: 34rem) {
       .general-grid { grid-template-columns: 1fr; }
       .package-status { grid-column: auto; }
-      .shared-token { align-items: flex-start; flex-direction: column; grid-column: auto; gap: var(--uui-size-space-3); }
-      .shared-token-actions { align-items: flex-start; flex-direction: column; inline-size: 100%; }
+      .shared-token { grid-column: auto; }
       .shared-token-key { justify-content: space-between; }
     }
     @media (max-width: 800px) {

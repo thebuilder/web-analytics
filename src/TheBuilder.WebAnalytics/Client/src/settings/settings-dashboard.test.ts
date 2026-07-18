@@ -83,7 +83,7 @@ describe("analytics settings onboarding", () => {
     expect(dashboard.shadowRoot?.querySelector(".shared-token-help")?.textContent?.trim()).toBe(
       "Set this server environment variable to a Vercel access token.",
     );
-    expect(dashboard.shadowRoot?.querySelector(".shared-token-actions")?.firstElementChild?.tagName).toBe("A");
+    expect(dashboard.shadowRoot?.querySelector(".shared-token-guidance")?.lastElementChild?.tagName).toBe("A");
     expect(dashboard.shadowRoot?.querySelector(".shared-token")?.textContent).not.toContain("Used by all connections");
   });
 
@@ -101,6 +101,10 @@ describe("analytics settings onboarding", () => {
     await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector(".connection-empty-state")).not.toBeNull());
 
     expect(dashboard.shadowRoot?.querySelector(".shared-token-status")?.textContent?.trim()).toBe("Configured");
+    expect(dashboard.shadowRoot?.querySelector(".shared-token-setup")).toBeNull();
+    expect(dashboard.shadowRoot?.querySelector(".shared-token code")).toBeNull();
+    expect(dashboard.shadowRoot?.querySelector('.shared-token a[href*="vercel.com/account/settings/tokens"]')).toBeNull();
+    expect(dashboard.shadowRoot?.querySelector('[label="Copy shared access token setting name"]')).toBeNull();
     dashboard.shadowRoot?.querySelector<HTMLElement>(".connection-empty-state uui-button")?.click();
     await dashboard.updateComplete;
 

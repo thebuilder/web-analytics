@@ -63,7 +63,7 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
             </button>
           `)}
         </div>
-        <uui-button class="clear-filters" look="secondary" compact label="Clear all analytics filters" @click=${this.#controller.clearFilters}>Clear all</uui-button>
+        <uui-button class="clear-filters" look="secondary" compact label="Clear all analytics filters" @click=${() => this.#controller.clearFilters()}>Clear all</uui-button>
       </section>
     `;
   }
@@ -77,6 +77,19 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
     const state = this.#controller.state;
     if (state.configurationError) return html`
       <main><umb-empty-state headline="Analytics is not available"><p>${state.configurationError}</p></umb-empty-state></main>
+    `;
+    if (state.setupRequired) return html`
+      <main>
+        <umb-empty-state headline="Connect Web Analytics">
+          <p>Add a Vercel project connection before viewing analytics.</p>
+          <uui-button
+            href="/umbraco/section/settings/dashboard/vercel-analytics"
+            look="primary"
+            label="Open Web Analytics settings">
+            Open settings
+          </uui-button>
+        </umb-empty-state>
+      </main>
     `;
     const expanded = state.expandedBreakdown;
     const expandedEvents = state.expandedEvents;

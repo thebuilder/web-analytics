@@ -198,7 +198,7 @@ The available reporting window and some dimensions depend on the Vercel plan and
 
 ## Development
 
-When the example host runs with `ASPNETCORE_ENVIRONMENT=Development`, **Settings → Web Analytics** includes development data presets for a full demo, UTM campaigns, feature flags, and custom events. Add and save a mock connection like any other connection, then select it in the Analytics dashboard. Mock reports are deterministic, require no access token, and never call Vercel. Persisted mock connections become inactive when the host is not running in Development.
+The example app opts into development data through `VercelAnalytics:EnableMockConnections` in its development settings. **Settings → Web Analytics** then includes presets for a full demo, UTM campaigns, feature flags, and custom events. Add and save a mock connection like any other connection, then select it in the Analytics dashboard. Mock reports are deterministic, require no access token, and never call Vercel. The package keeps mock connections disabled by default, including when it is consumed by another project running in Development.
 
 The client uses pnpm 11. From `src/TheBuilder.WebAnalytics/Client`:
 

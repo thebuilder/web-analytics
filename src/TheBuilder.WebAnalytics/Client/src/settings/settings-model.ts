@@ -21,7 +21,6 @@ export function validateConnection(connection: AnalyticsConnectionSettingsRespon
 }
 
 export function validateEditableSettings(settings: AnalyticsSettingsResponse): string | undefined {
-  if (settings.enabled && settings.connections.length === 0) return "Add a connection before enabling analytics.";
   for (const connection of settings.connections) {
     const errors = validateConnection(connection);
     if (errors.projectId) return `Complete the required fields for “${connection.displayName || connection.projectId || "New connection"}”.`;

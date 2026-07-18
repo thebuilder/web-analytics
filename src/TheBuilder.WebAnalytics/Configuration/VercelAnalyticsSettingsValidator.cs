@@ -15,9 +15,6 @@ public static class VercelAnalyticsSettingsValidator
             failures.Add("Default range must be between 1 and 730 days.");
         if (settings.CacheDuration < TimeSpan.Zero || settings.CacheDuration > TimeSpan.FromHours(1))
             failures.Add("Cache duration must be between zero and one hour.");
-        if (validateEnabledState && settings.Enabled && settings.Connections.Count == 0)
-            failures.Add("Add at least one connection before enabling analytics.");
-
         var keys = new HashSet<Guid>();
         var roots = new Dictionary<Guid, Guid>();
         foreach (var connection in settings.Connections)

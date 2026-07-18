@@ -51,6 +51,14 @@ describe("analytics settings model", () => {
     expect(validateEditableSettings(settings())).toBeUndefined();
   });
 
+  it("allows analytics to stay enabled without connections", () => {
+    const model = settings();
+    model.connections = [];
+
+    expect(validateEditableSettings(model)).toBeUndefined();
+    expect(createSettingsUpdate(model)).toMatchObject({ enabled: true, connections: [] });
+  });
+
   it("returns field-level errors for missing connection essentials", () => {
     const model = settings();
     model.connections[0].projectId = "";

@@ -6,7 +6,9 @@ public sealed class VercelAnalyticsOptions
 {
     public const string SectionName = "VercelAnalytics";
 
-    public bool Enabled { get; set; }
+    public bool Enabled { get; set; } = true;
+
+    public bool EnableMockConnections { get; set; }
 
     public string AccessToken { get; set; } = string.Empty;
 

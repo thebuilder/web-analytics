@@ -35,8 +35,11 @@ export class VercelAnalyticsFlagCardElement extends UmbElementMixin(LitElement) 
     return html`
       <div class="header">
         <div class="title">
-          <strong>Flags</strong>
-          ${selectedKey ? html`<button class="selected-flag" type="button" aria-label=${`Show all flags instead of ${selectedKey}`} @click=${this.#clear}><span class="selected-label">${selectedKey}</span><span aria-hidden="true">×</span></button>` : ""}
+          ${selectedKey ? html`
+            <button class="flag-back" type="button" aria-label=${`Show all flags instead of ${selectedKey}`} @click=${this.#clear}>
+              <uui-icon name="icon-navigation-left" aria-hidden="true"></uui-icon><span class="selected-label">${selectedKey}</span>
+            </button>
+          ` : html`<strong>Flags</strong>`}
         </div>
         <span>Visitors</span><span>Total</span>
       </div>
@@ -72,13 +75,14 @@ export class VercelAnalyticsFlagCardElement extends UmbElementMixin(LitElement) 
 
   static styles = [UmbTextStyles, css`
     :host { block-size: 100%; display: flex; flex-direction: column; min-block-size: 22rem; }
-    .header { align-items: center; border-bottom: 1px solid var(--uui-color-border); display: grid; gap: var(--uui-size-space-4); grid-template-columns: minmax(0, 1fr) 8rem 8rem; padding: var(--uui-size-space-3) var(--uui-size-space-5); }
+    .header { align-items: center; block-size: 2.5rem; border-bottom: 1px solid var(--uui-color-border); box-sizing: border-box; display: grid; gap: var(--uui-size-space-4); grid-template-columns: minmax(0, 1fr) 8rem 8rem; padding-inline: var(--uui-size-space-5); }
     .header > span { font-weight: 700; text-align: right; }
-    .title { align-items: center; display: flex; gap: var(--uui-size-space-3); min-width: 0; }
-    .selected-flag { align-items: center; appearance: none; background: var(--uui-color-surface-alt); border: 0; border-radius: 999px; color: var(--uui-color-text); cursor: pointer; display: inline-flex; font: inherit; gap: var(--uui-size-space-2); max-width: 100%; overflow: hidden; padding: var(--uui-size-space-1) var(--uui-size-space-3); text-overflow: ellipsis; white-space: nowrap; }
-    .selected-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-    .selected-flag:hover { background: color-mix(in srgb, var(--uui-color-selected) 10%, var(--uui-color-surface)); }
-    .selected-flag:focus-visible, .select:focus-visible, a:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
+    .title { align-items: center; display: flex; gap: var(--uui-size-space-2); min-width: 0; }
+    .flag-back { align-items: center; appearance: none; background: transparent; block-size: 2rem; border: 0; color: var(--uui-color-text); cursor: pointer; display: inline-flex; font: inherit; font-weight: 700; gap: var(--uui-size-space-2); margin-inline-start: calc(-1 * var(--uui-size-space-2)); max-inline-size: 100%; min-inline-size: 0; padding: 0; }
+    .flag-back uui-icon { flex: 0 0 auto; font-size: 1.25rem; }
+    .flag-back:hover .selected-label { text-decoration: underline; text-underline-offset: .18em; }
+    .selected-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .flag-back:focus-visible, .select:focus-visible, a:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
     .rows { padding: 0; }
     .row { align-items: center; display: grid; gap: var(--uui-size-space-4); grid-template-columns: minmax(0, 1fr) 8rem 8rem; min-block-size: 3rem; padding: 0 var(--uui-size-space-5); position: relative; }
     .row > :not(.bar) { position: relative; z-index: 1; }

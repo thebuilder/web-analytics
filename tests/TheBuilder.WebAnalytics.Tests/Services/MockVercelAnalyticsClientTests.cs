@@ -26,6 +26,26 @@ public sealed class MockVercelAnalyticsClientTests
     }
 
     [Fact]
+    public void Registry_disables_mock_connections_unless_the_package_harness_opts_in()
+    {
+        var options = Options.Create(new VercelAnalyticsOptions
+        {
+            Connections =
+            [
+                new() { Key = MockKey, DisplayName = "Mock analytics", MockScenario = MockAnalyticsScenario.Complete }
+            ]
+        });
+        var disabled = new VercelAnalyticsConnectionRegistry(new VercelAnalyticsSettingsStore(options), options);
+        options.Value.EnableMockConnections = true;
+        var enabled = new VercelAnalyticsConnectionRegistry(new VercelAnalyticsSettingsStore(options), options);
+
+        Assert.False(disabled.MockConnectionsEnabled);
+        Assert.Null(disabled.Get(MockKey));
+        Assert.True(enabled.MockConnectionsEnabled);
+        Assert.NotNull(enabled.Get(MockKey));
+    }
+
+    [Fact]
     public async Task Scenarios_expose_their_targeted_reports()
     {
         var client = new MockVercelAnalyticsClient();

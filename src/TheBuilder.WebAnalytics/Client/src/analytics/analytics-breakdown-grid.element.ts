@@ -229,12 +229,12 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
     .breakdown-footer { align-items: center; background: color-mix(in srgb, var(--uui-color-surface-alt) 18%, var(--uui-color-surface)); border-top: 1px solid var(--uui-color-border); bottom: 0; box-sizing: border-box; display: flex; justify-content: flex-end; left: 0; min-block-size: 3.25rem; padding: var(--uui-size-space-1) var(--uui-size-space-4); position: absolute; right: 0; }
     .hint { color: var(--uui-color-text-alt); }
     .breakdown-hint { margin: 0; padding: var(--uui-size-space-3) var(--uui-size-space-5); }
-    .breakdown-tabs { align-items: stretch; display: flex; margin: calc(-1 * var(--uui-size-space-3)); }
-    .breakdown-tabs button { appearance: none; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--uui-color-text-alt); cursor: pointer; font: inherit; font-weight: 500; padding: calc(var(--uui-size-space-3) - 1px) var(--uui-size-space-3); }
-    .breakdown-tabs button[aria-selected="true"] { border-bottom-color: var(--uui-color-selected); color: var(--uui-color-text); }
+    .breakdown-tabs { align-items: stretch; display: flex; margin: calc(-1 * var(--uui-size-space-3)); min-inline-size: 0; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }
+    .breakdown-tabs button { appearance: none; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--uui-color-text-alt); cursor: pointer; flex: 0 0 auto; font: inherit; font-weight: 500; padding: calc(var(--uui-size-space-3) - 1px) var(--uui-size-space-3); white-space: nowrap; }
+    .breakdown-tabs button[aria-selected="true"] { border-bottom-color: var(--uui-color-selected); color: var(--uui-color-text); font-weight: 700; }
     .breakdown-tabs button:hover { background: var(--uui-color-surface-alt); }
     .breakdown-tabs button:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: -2px; }
-    .utm-tabs { align-items: center; display: flex; gap: var(--uui-size-space-1); min-inline-size: 0; overflow-x: auto; padding: var(--uui-size-space-2) var(--uui-size-space-3); scrollbar-width: thin; }
+    .utm-tabs { align-items: center; display: flex; gap: var(--uui-size-space-1); margin-inline: calc(-1 * var(--uui-size-space-3)); min-inline-size: 0; overflow-x: auto; padding-block: var(--uui-size-space-2); scrollbar-width: thin; }
     .utm-tabs button { appearance: none; background: transparent; border: 0; border-radius: var(--uui-border-radius); color: var(--uui-color-text-alt); cursor: pointer; flex: 0 0 auto; font: inherit; padding: var(--uui-size-space-2) var(--uui-size-space-3); }
     .utm-tabs button[aria-selected="true"] { background: var(--uui-color-surface-alt); color: var(--uui-color-text); font-weight: 600; }
     .utm-tabs button:hover { background: color-mix(in srgb, var(--uui-color-selected) 8%, transparent); color: var(--uui-color-text); }
@@ -243,7 +243,7 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
       .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .breakdown-card, .wide { grid-column: auto; }
     }
-    @container (max-width: 48rem) { .grid { grid-template-columns: 1fr; } }
+    @container (max-width: 56rem) { .grid { grid-template-columns: 1fr; } }
   `];
 }
 

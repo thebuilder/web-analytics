@@ -10,7 +10,7 @@ namespace TheBuilder.WebAnalytics.Configuration;
 
 public sealed class VercelAnalyticsSettings
 {
-    public bool Enabled { get; set; }
+    public bool Enabled { get; set; } = true;
 
     public int DefaultRangeDays { get; set; } = 30;
 

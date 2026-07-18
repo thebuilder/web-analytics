@@ -157,6 +157,17 @@ describe("AnalyticsDashboardController", () => {
     expect(target.currentUrl().searchParams.get("audience")).toBe("BrowserName");
   });
 
+  it("requires setup before loading reports when no connection exists", async () => {
+    const api = dashboardApi();
+    api.connections.mockResolvedValue(ok({ enabled: true, defaultRangeDays: 30, connections: [] }));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+
+    controller.connect();
+
+    await vi.waitFor(() => expect(controller.state.setupRequired).toBe(true));
+    expect(api.summary).not.toHaveBeenCalled();
+  });
+
 });
 
 function dashboardApi() {

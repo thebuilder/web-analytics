@@ -122,10 +122,11 @@ export class VercelAnalyticsSummaryElement extends UmbElementMixin(LitElement) {
   }
 
   static styles = [UmbTextStyles, css`
+    :host { display: block; inline-size: 100%; min-inline-size: 0; }
     .history, .summary-error { --uui-box-default-padding: 0; margin-bottom: var(--uui-size-layout-1); overflow: hidden; }
     .history { --vercel-analytics-chart-color: oklch(51.51% .2399 257.85); }
-    .metric-tabs { background: var(--uui-color-surface-alt); border-bottom: 1px solid var(--uui-color-border); display: flex; flex-wrap: nowrap; }
-    .metric-tab { --metric-font-size: clamp(2rem, 3cqi, 3rem); appearance: none; background: transparent; border: 0; border-bottom: 3px solid transparent; color: var(--uui-color-text-alt); cursor: pointer; flex: 0 0 auto; font: inherit; inline-size: max-content; min-block-size: 7.75rem; min-inline-size: 18rem; padding: var(--uui-size-space-5); text-align: left; transition: background-color 160ms ease-out, color 160ms ease-out; }
+    .metric-tabs { background: var(--uui-color-surface-alt); border-bottom: 1px solid var(--uui-color-border); display: flex; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }
+    .metric-tab { --metric-font-size: clamp(2rem, 3cqi, 3rem); appearance: none; background: transparent; border: 0; border-bottom: 3px solid transparent; color: var(--uui-color-text-alt); cursor: pointer; flex: 0 0 auto; font: inherit; inline-size: max-content; min-block-size: clamp(6.5rem, 10cqi, 7.75rem); min-inline-size: 18rem; padding: clamp(var(--uui-size-space-4), 2cqi, var(--uui-size-space-5)) var(--uui-size-space-5); text-align: left; transition: background-color 160ms ease-out, color 160ms ease-out; }
     .metric-tab:last-child { border-inline-end: 1px solid var(--uui-color-border); }
     .metric-tab[aria-selected="true"] { background: var(--uui-color-surface); border-bottom-color: var(--vercel-analytics-chart-color); color: var(--uui-color-text); }
     .metric-tab[aria-selected="false"]:hover { background: color-mix(in srgb, var(--uui-color-interactive) 7%, var(--uui-color-surface)); }
@@ -149,12 +150,12 @@ export class VercelAnalyticsSummaryElement extends UmbElementMixin(LitElement) {
     .summary-error-copy p { color: var(--uui-color-text-alt); margin: var(--uui-size-space-1) 0 0; }
     .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
     @container (max-width: 48rem) {
-      .metric-tab { --metric-font-size: clamp(1.5rem, 4cqi, 2rem); flex: 1 1 50%; min-block-size: 6.5rem; min-inline-size: 0; padding: var(--uui-size-space-4); }
+      .metric-tab { --metric-font-size: clamp(1.5rem, 4cqi, 2rem); box-sizing: border-box; flex: 0 0 65cqi; min-block-size: 6.5rem; min-inline-size: 14rem; padding: var(--uui-size-space-4); }
       .metric-value { gap: var(--uui-size-space-2); }
       .comparison { font-size: 0.875rem; padding: var(--uui-size-space-1) var(--uui-size-space-2); }
     }
     @container (max-width: 40rem) {
-      .metric-tab { --metric-font-size: clamp(1.25rem, 5cqi, 1.75rem); box-sizing: border-box; min-block-size: 5.5rem; padding: var(--uui-size-space-3); }
+      .metric-tab { --metric-font-size: clamp(1.25rem, 5cqi, 1.75rem); min-block-size: 5.5rem; padding: var(--uui-size-space-3); }
       .eyebrow { font-size: 0.875rem; }
       .comparison { font-size: 0.75rem; }
     }

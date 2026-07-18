@@ -17,6 +17,15 @@ public sealed class VercelAnalyticsSettingsValidatorTests
     }
 
     [Fact]
+    public void Enabled_analytics_does_not_require_a_connection()
+    {
+        var settings = CreateSettings();
+        settings.Connections.Clear();
+
+        Assert.Empty(VercelAnalyticsSettingsValidator.Validate(settings));
+    }
+
+    [Fact]
     public void Duplicate_root_mappings_across_connections_are_rejected()
     {
         var settings = CreateSettings();

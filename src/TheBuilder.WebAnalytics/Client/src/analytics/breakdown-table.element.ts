@@ -130,9 +130,9 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
       <thead>
         <tr>
           <th scope="col"><slot name="heading">${this.headline}</slot></th>
-          <th scope="col" rowspan=${this.hasSubheading ? 2 : 1}>${this.#metricLabel()}</th>
+          <th scope="col">${this.#metricLabel()}</th>
         </tr>
-        ${this.hasSubheading ? html`<tr class="subheading-row"><th scope="col"><slot name="subheading"></slot></th></tr>` : ""}
+        ${this.hasSubheading ? html`<tr class="subheading-row"><th scope="col" colspan="2"><slot name="subheading"></slot></th></tr>` : ""}
       </thead>
     `;
   }
@@ -158,7 +158,7 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
     .metric-number { font-weight: 700; min-inline-size: 0; }
     .filter-action { align-items: center; appearance: none; background: transparent; border: 0; border-radius: var(--uui-border-radius); color: var(--uui-color-text-alt); cursor: pointer; display: inline-flex; font: inherit; justify-content: center; opacity: 0; padding: var(--uui-size-space-2); }
     tbody tr:hover .filter-action, .filter-action:focus-visible, .filter-action[aria-pressed="true"] { opacity: 1; }
-    .filter-action:hover, .filter-action[aria-pressed="true"] { background: var(--uui-color-surface-alt); color: var(--uui-color-interactive-emphasis); }
+    .filter-action:hover, .filter-action[aria-pressed="true"] { background: color-mix(in srgb, var(--uui-color-interactive) 15%, var(--uui-color-surface)); color: var(--uui-color-interactive-emphasis); }
     .filter-action:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 1px; }
     tbody th { position: relative; font-weight: 500; min-width: 10rem; }
     .row-value { align-items: center; display: flex; gap: var(--uui-size-space-3); min-inline-size: 0; position: relative; z-index: 1; }

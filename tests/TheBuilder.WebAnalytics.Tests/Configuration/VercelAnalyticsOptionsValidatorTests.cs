@@ -12,7 +12,14 @@ public sealed class VercelAnalyticsOptionsValidatorTests
     [Fact]
     public void Disabled_configuration_is_valid_without_connections()
     {
-        Assert.True(_sut.Validate(null, new VercelAnalyticsOptions()).Succeeded);
+        Assert.True(_sut.Validate(null, new VercelAnalyticsOptions { Enabled = false }).Succeeded);
+    }
+
+    [Fact]
+    public void Web_analytics_is_enabled_by_default()
+    {
+        Assert.True(new VercelAnalyticsOptions().Enabled);
+        Assert.True(new VercelAnalyticsSettings().Enabled);
     }
 
     [Fact]

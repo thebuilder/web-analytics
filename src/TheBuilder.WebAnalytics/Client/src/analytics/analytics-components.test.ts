@@ -54,6 +54,18 @@ afterEach(() => {
 });
 
 describe("analytics presentation components", () => {
+  it("directs first-time users to Web Analytics settings", async () => {
+    sdk.connections.mockResolvedValue(apiOk({ enabled: true, defaultRangeDays: 30, connections: [] }));
+    const element = document.createElement("vercel-analytics-dashboard") as VercelAnalyticsDashboardElement;
+    document.body.append(element);
+
+    await vi.waitFor(() => expect(element.shadowRoot?.querySelector("umb-empty-state")?.getAttribute("headline")).toBe("Connect Web Analytics"));
+
+    const action = element.shadowRoot?.querySelector("uui-button");
+    expect(action?.getAttribute("href")).toBe("/umbraco/section/settings/dashboard/vercel-analytics");
+    expect(action?.getAttribute("label")).toBe("Open Web Analytics settings");
+  });
+
   it("emits metric changes from the summary tabs", async () => {
     const element = document.createElement("vercel-analytics-summary") as VercelAnalyticsSummaryElement;
     element.range = dateRangeForPreset(30);
@@ -177,6 +189,13 @@ describe("analytics presentation components", () => {
 
     const parameterTabs = [...element.shadowRoot?.querySelectorAll<HTMLButtonElement>(".utm-tabs [role=tab]") ?? []];
     expect(parameterTabs.map((tab) => tab.textContent?.trim())).toEqual(["Source", "Medium", "Campaign", "Term", "Content"]);
+    const acquisitionTable = [...element.shadowRoot?.querySelectorAll("vercel-analytics-breakdown-table") ?? []]
+      .find((table) => table.querySelector(".utm-tabs")) as VercelAnalyticsBreakdownTableElement;
+    await acquisitionTable.updateComplete;
+    const headerRows = acquisitionTable.shadowRoot?.querySelectorAll("thead tr");
+    expect(headerRows?.[0].lastElementChild?.textContent?.trim()).toBe("Visitors");
+    expect(headerRows?.[0].lastElementChild?.hasAttribute("rowspan")).toBe(false);
+    expect(headerRows?.[1].firstElementChild?.getAttribute("colspan")).toBe("2");
     parameterTabs[4]?.click();
     expect((onChange.mock.calls[0][0] as CustomEvent).detail).toEqual({ dimension: "UtmContent" });
     expect(element.shadowRoot?.querySelectorAll("vercel-analytics-breakdown-table").length).toBe(5);
@@ -225,7 +244,8 @@ describe("analytics presentation components", () => {
 
     element.selected = successState({ flagKey: "summer-sale", rows: [{ value: "true", visitors: 53, pageViews: 200 }] });
     await element.updateComplete;
-    expect(element.shadowRoot?.querySelector(".selected-flag")?.textContent).toContain("summer-sale");
+    expect(element.shadowRoot?.querySelector(".flag-back uui-icon")?.getAttribute("name")).toBe("icon-navigation-left");
+    expect(element.shadowRoot?.querySelector(".selected-label")?.textContent).toBe("summer-sale");
     expect(element.shadowRoot?.querySelector(".row .value")?.textContent).toBe("true");
 
     element.selected = undefined;
@@ -251,6 +271,18 @@ describe("analytics presentation components", () => {
     await vi.waitFor(() => expect(new URL(window.location.href).searchParams.get("metric")).toBe("pageViews"));
 
     expect(summary?.metric).toBe("pageViews");
+  });
+
+  it("clears every active filter from the mounted dashboard and URL", async () => {
+    window.history.replaceState({}, "", "/umbraco/section/analytics?filter=RequestPath%3A%2F&filter=Country%3ADK");
+    const dashboard = document.createElement("vercel-analytics-dashboard") as VercelAnalyticsDashboardElement;
+    document.body.append(dashboard);
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelectorAll(".filter-badge")).toHaveLength(2));
+
+    dashboard.shadowRoot?.querySelector<HTMLElement>('[label="Clear all analytics filters"]')?.click();
+
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector(".active-filters")).toBeNull());
+    expect(new URL(window.location.href).searchParams.has("filter")).toBe(false);
   });
 });
 

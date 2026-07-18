@@ -62,6 +62,7 @@ export type DashboardState = {
   utmDimension: UtmDimension;
   filters: AnalyticsFilter[];
   configurationError?: string;
+  setupRequired?: boolean;
   utmCapability: UtmCapability;
   expandedBreakdown?: ExpandedBreakdown;
   expandedEvents?: AsyncState<AnalyticsEventRow[]>;
@@ -347,7 +348,7 @@ export class AnalyticsDashboardController {
   #set(patch: Partial<DashboardState>): void { this.state = { ...this.state, ...patch }; this.#notify(); }
 
   async #initialize(): Promise<void> {
-    this.#set({ configurationError: undefined });
+    this.#set({ configurationError: undefined, setupRequired: false });
     if (this.#documentId) {
       const documentId = this.#documentId;
       const result = await this.#initializationRequest.run((signal) => this.#api.documentRoutes({
@@ -369,6 +370,10 @@ export class AnalyticsDashboardController {
       const { data, error } = result.value;
       if (error || !data?.enabled) {
         this.#set({ configurationError: "Vercel Analytics is disabled or unavailable. Ask an administrator to configure a connection.", summary: idleState() });
+        return;
+      }
+      if (data.connections.length === 0) {
+        this.#set({ setupRequired: true, summary: idleState() });
         return;
       }
       let { preset, range } = this.state;

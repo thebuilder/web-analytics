@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using TheBuilder.WebAnalytics.Models;
 
@@ -14,16 +13,8 @@ public sealed class VercelAnalyticsConnectionRegistry
 
     public VercelAnalyticsConnectionRegistry(
         VercelAnalyticsSettingsStore settingsStore,
-        IOptions<VercelAnalyticsOptions> serverOptions,
-        IHostEnvironment hostEnvironment)
-        : this(settingsStore, serverOptions, hostEnvironment.IsDevelopment())
-    {
-    }
-
-    public VercelAnalyticsConnectionRegistry(
-        VercelAnalyticsSettingsStore settingsStore,
         IOptions<VercelAnalyticsOptions> serverOptions)
-        : this(settingsStore, serverOptions, false)
+        : this(settingsStore, serverOptions, serverOptions.Value.EnableMockConnections)
     {
     }
 
