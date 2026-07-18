@@ -211,10 +211,10 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
       <section class="grid" aria-label="Traffic breakdowns">
         ${cardsBeforeEvents.map(renderCard)}
         ${this.#renderEvents()}
-        <uui-box class="breakdown-card wide flags-card">
+        ${cardsAfterEvents.map(renderCard)}
+        <uui-box class="breakdown-card flags-card">
           <vercel-analytics-flag-card .report=${this.flags} .selected=${this.selectedFlag}></vercel-analytics-flag-card>
         </uui-box>
-        ${cardsAfterEvents.map(renderCard)}
       </section>
     `;
   }
@@ -223,7 +223,7 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
     .grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--uui-size-layout-1); }
     .breakdown-card { --uui-box-default-padding: 0; grid-column: span 2; overflow: hidden; position: relative; }
     .wide { grid-column: span 3; }
-    .flags-card { --uui-box-default-padding: 0; }
+    .flags-card { --uui-box-default-padding: 0; grid-column: 1 / -1; inline-size: 50%; justify-self: center; }
     .breakdown-card-layout { box-sizing: border-box; min-block-size: 100%; padding-bottom: 3.25rem; }
     .empty-card-layout { block-size: 100%; padding-bottom: 0; }
     .breakdown-footer { align-items: center; background: color-mix(in srgb, var(--uui-color-surface-alt) 18%, var(--uui-color-surface)); border-top: 1px solid var(--uui-color-border); bottom: 0; box-sizing: border-box; display: flex; justify-content: flex-end; left: 0; min-block-size: 3.25rem; padding: var(--uui-size-space-1) var(--uui-size-space-4); position: absolute; right: 0; }
@@ -242,8 +242,12 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
     @container (max-width: 62rem) {
       .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .breakdown-card, .wide { grid-column: auto; }
+      .flags-card { inline-size: 100%; }
     }
-    @container (max-width: 56rem) { .grid { grid-template-columns: 1fr; } }
+    @container (max-width: 56rem) {
+      .grid { grid-template-columns: 1fr; }
+      .flags-card { grid-column: 1 / -1; }
+    }
   `];
 }
 
