@@ -18,19 +18,19 @@
   "PackageType": "Integration",
   "Screenshots": [
     {
-      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/main/docs/screenshots/analytics-overview.png",
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/analytics-overview.png",
       "Caption": "Explore visitors, page views, traffic history, popular pages, and referrers from the Analytics section."
     },
     {
-      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/main/docs/screenshots/audience-events-and-flags.png",
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/audience-events-and-flags.png",
       "Caption": "Understand audience devices and locations alongside custom events and feature flags."
     },
     {
-      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/main/docs/screenshots/custom-event-details.png",
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/custom-event-details.png",
       "Caption": "Drill into custom event properties and compare visitors with total events."
     },
     {
-      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/main/docs/screenshots/settings.png",
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/settings.png",
       "Caption": "Configure access, caching, project connections, and document analytics mappings in Umbraco."
     }
   ],

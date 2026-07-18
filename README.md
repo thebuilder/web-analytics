@@ -2,7 +2,7 @@
 
 `TheBuilder.WebAnalytics` displays [Vercel Web Analytics](https://vercel.com/docs/analytics) in the Umbraco backoffice.
 
-![Web Analytics overview in the Umbraco backoffice](https://raw.githubusercontent.com/thebuilder/web-analytics/main/docs/screenshots/analytics-overview.png)
+![Web Analytics overview in the Umbraco backoffice](https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/analytics-overview.png)
 
 It provides:
 
