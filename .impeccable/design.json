@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-07-16T19:48:26Z",
-  "title": "Design System: Umbraco Vercel Analytics",
+  "title": "Design System: Web Analytics",
   "extensions": {
     "colorMeta": {
       "backoffice-ink": {
@@ -172,7 +172,7 @@
   ],
   "narrative": {
     "northStar": "The Editorial Instrument",
-    "overview": "Umbraco Vercel Analytics is a precise but approachable instrument inside the editorial workspace. It should reveal the traffic signal an editor needs, then get out of the way. The visual language is friendly and conversational, but its structure is disciplined: familiar Umbraco controls, clear hierarchy, compact reporting, and feedback close to the action that caused it. The extension belongs to the backoffice rather than merely living inside it. It inherits Umbraco UI Library semantics, Lato typography, spacing, focus treatment, and surface hierarchy. Custom analytics patterns may borrow the clarity of Vercel Analytics, but they must be translated into Umbraco's interaction language. The system explicitly rejects the density, configuration burden, and specialist terminology of an overly dense enterprise analytics platform. It is not Google Analytics, and it must never feel like a separate third-party dashboard embedded in Umbraco.",
+    "overview": "Web Analytics is a precise but approachable instrument inside the editorial workspace. It should reveal the traffic signal an editor needs, then get out of the way. The visual language is friendly and conversational, but its structure is disciplined: familiar Umbraco controls, clear hierarchy, compact reporting, and feedback close to the action that caused it. The extension belongs to the backoffice rather than merely living inside it. It inherits Umbraco UI Library semantics, Lato typography, spacing, focus treatment, and surface hierarchy. Custom analytics patterns may borrow the clarity of Vercel Analytics, but they must be translated into Umbraco's interaction language. The system explicitly rejects the density, configuration burden, and specialist terminology of an overly dense enterprise analytics platform. It is not Google Analytics, and it must never feel like a separate third-party dashboard embedded in Umbraco.",
     "keyCharacteristics": [
       "Native to Umbraco and visually continuous with the backoffice.",
       "Compact, calm, and focused on decisions rather than exhaustive data.",

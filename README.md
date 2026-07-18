@@ -1,6 +1,6 @@
-# Umbraco Vercel Analytics
+# Web Analytics
 
-`Umbraco.VercelAnalytics` displays Vercel Web Analytics in the Umbraco 17 and 18 backoffice.
+`TheBuilder.WebAnalytics` displays Vercel Web Analytics in the Umbraco 17 and 18 backoffice.
 
 It provides:
 
@@ -23,7 +23,7 @@ The package reads analytics already collected by Vercel. It does not add Vercel 
 Add the package to the Umbraco web project:
 
 ```sh
-dotnet add path/to/Your.Umbraco.Web.csproj package Umbraco.VercelAnalytics
+dotnet add path/to/Your.Umbraco.Web.csproj package TheBuilder.WebAnalytics
 ```
 
 The package registers its services and backoffice extensions automatically. No changes to `Program.cs` are required.
@@ -75,7 +75,7 @@ The shared token is used by every connection. If a project must use a different 
 
 ### 3. Configure the connection in Umbraco
 
-Sign in as an administrator and open **Settings → Vercel Analytics**.
+Sign in as an administrator and open **Settings → Web Analytics**.
 
 1. Select **Add connection**.
 2. Enter the Vercel project ID. The project name is loaded from Vercel.
@@ -106,7 +106,7 @@ On the first successful package startup, the Analytics section is added to the b
 
 To give other users access, add the **Analytics** section to their Umbraco user group. Global reports require Analytics-section access. Document reports additionally require Content-section access and document read permission.
 
-Only administrators can open or update **Settings → Vercel Analytics**.
+Only administrators can open or update **Settings → Web Analytics**.
 
 ## Configuration-only setup
 
@@ -176,7 +176,7 @@ The default cache duration is five minutes. Each Umbraco instance maintains its 
 
 After deployment:
 
-1. Open **Settings → Vercel Analytics** and confirm the shared access token says **Configured on the server**.
+1. Open **Settings → Web Analytics** and confirm the shared access token says **Configured on the server**.
 2. Select **Save settings**, then **Test connection**.
 3. Open the global **Analytics** section and confirm totals and history load.
 4. If document analytics is enabled, open a mapped published document and select its **Analytics** workspace view.
@@ -198,9 +198,9 @@ The available reporting window and some dimensions depend on the Vercel plan and
 
 ## Development
 
-When the example host runs with `ASPNETCORE_ENVIRONMENT=Development`, **Settings → Vercel Analytics** includes development data presets for a full demo, UTM campaigns, feature flags, and custom events. Add and save a mock connection like any other connection, then select it in the Analytics dashboard. Mock reports are deterministic, require no access token, and never call Vercel. Persisted mock connections become inactive when the host is not running in Development.
+When the example host runs with `ASPNETCORE_ENVIRONMENT=Development`, **Settings → Web Analytics** includes development data presets for a full demo, UTM campaigns, feature flags, and custom events. Add and save a mock connection like any other connection, then select it in the Analytics dashboard. Mock reports are deterministic, require no access token, and never call Vercel. Persisted mock connections become inactive when the host is not running in Development.
 
-The client uses pnpm 11. From `src/Umbraco.VercelAnalytics/Client`:
+The client uses pnpm 11. From `src/TheBuilder.WebAnalytics/Client`:
 
 ```sh
 pnpm install
@@ -216,12 +216,12 @@ Run the example host against the Umbraco version whose document you want to use:
 ```sh
 # Umbraco 17
 dotnet run \
-  --project samples/Umbraco.VercelAnalytics.Example \
+  --project samples/TheBuilder.WebAnalytics.Example \
   -p:UmbracoVersion=17.1.0
 
 # Umbraco 18
 dotnet run \
-  --project samples/Umbraco.VercelAnalytics.Example \
+  --project samples/TheBuilder.WebAnalytics.Example \
   -p:UmbracoVersion=18.0.0
 ```
 
@@ -230,13 +230,13 @@ Use a separate database for each major when switching the example host between v
 Then regenerate the client from the matching development endpoint:
 
 ```sh
-cd src/Umbraco.VercelAnalytics/Client
+cd src/TheBuilder.WebAnalytics/Client
 
 # Umbraco 17
 corepack pnpm generate-client -- \
-  https://localhost:44389/umbraco/swagger/umbracovercelanalytics/swagger.json
+  https://localhost:44389/umbraco/swagger/thebuilderwebanalytics/swagger.json
 
 # Umbraco 18
 corepack pnpm generate-client -- \
-  https://localhost:44389/umbraco/openapi/umbracovercelanalytics.json
+  https://localhost:44389/umbraco/openapi/thebuilderwebanalytics.json
 ```

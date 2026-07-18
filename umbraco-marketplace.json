@@ -1,0 +1,40 @@
+{
+  "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json",
+  "AuthorDetails": {
+    "Name": "Daniel Schmidt",
+    "Description": "Open-source Umbraco package developer focused on useful, editor-friendly backoffice integrations.",
+    "Url": "https://github.com/thebuilder",
+    "ImageUrl": "https://github.com/thebuilder.png",
+    "SyncContributorsFromRepository": true
+  },
+  "Category": "Analytics & Insights",
+  "Title": "Web Analytics",
+  "Description": "View Vercel Web Analytics inside the Umbraco backoffice. Explore traffic, visitors, referrers, pages, routes, campaigns, UTM parameters, and custom events, with route-filtered analytics available directly on published documents.",
+  "DocumentationUrl": "https://github.com/thebuilder/umbraco-vercel-analytics#readme",
+  "IssueTrackerUrl": "https://github.com/thebuilder/umbraco-vercel-analytics/issues",
+  "LicenseTypes": [
+    "Free"
+  ],
+  "PackageType": "Integration",
+  "Tags": [
+    "analytics",
+    "web analytics",
+    "Vercel",
+    "Vercel Web Analytics",
+    "traffic analytics",
+    "website traffic",
+    "visitors",
+    "referrers",
+    "pages",
+    "routes",
+    "campaigns",
+    "UTM",
+    "dashboard",
+    "reporting",
+    "content analytics",
+    "page analytics",
+    "custom events",
+    "multisite",
+    "multi-site"
+  ]
+}

@@ -1,5 +1,5 @@
 ---
-name: Umbraco Vercel Analytics
+name: Web Analytics
 description: A native editorial instrument for clear Vercel traffic insight inside Umbraco.
 colors:
   backoffice-ink: "#060606"
@@ -82,13 +82,13 @@ components:
     padding: "6px 9px"
 ---
 
-# Design System: Umbraco Vercel Analytics
+# Design System: Web Analytics
 
 ## Overview
 
 **Creative North Star: "The Editorial Instrument"**
 
-Umbraco Vercel Analytics is a precise but approachable instrument inside the editorial workspace. It should reveal the traffic signal an editor needs, then get out of the way. The visual language is friendly and conversational, but its structure is disciplined: familiar Umbraco controls, clear hierarchy, compact reporting, and feedback close to the action that caused it.
+Web Analytics is a precise but approachable instrument inside the editorial workspace. It should reveal the traffic signal an editor needs, then get out of the way. The visual language is friendly and conversational, but its structure is disciplined: familiar Umbraco controls, clear hierarchy, compact reporting, and feedback close to the action that caused it.
 
 The extension belongs to the backoffice rather than merely living inside it. It inherits Umbraco UI Library semantics, Lato typography, spacing, focus treatment, and surface hierarchy. Custom analytics patterns may borrow the clarity of Vercel Analytics, but they must be translated into Umbraco's interaction language.
 

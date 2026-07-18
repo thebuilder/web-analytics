@@ -1,0 +1,14 @@
+{
+  "id": "TheBuilder.WebAnalytics",
+  "name": "Web Analytics",
+  "version": "0.1.0",
+  "allowTelemetry": false,
+  "extensions": [
+    {
+      "name": "Web Analytics Bundle",
+      "alias": "TheBuilder.WebAnalytics.Bundle",
+      "type": "bundle",
+      "js": "/App_Plugins/TheBuilder.WebAnalytics/web-analytics.js"
+    }
+  ]
+}

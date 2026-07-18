@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/TheBuilder.WebAnalytics.Example/TheBuilder.WebAnalytics.Example.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/TheBuilder.WebAnalytics/TheBuilder.WebAnalytics.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TheBuilder.WebAnalytics.Tests/TheBuilder.WebAnalytics.Tests.csproj" />
+  </Folder>
+</Solution>

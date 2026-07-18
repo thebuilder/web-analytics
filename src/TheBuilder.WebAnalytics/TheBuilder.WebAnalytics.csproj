@@ -1,0 +1,78 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <StaticWebAssetBasePath>/</StaticWebAssetBasePath>
+    <UmbracoVersion Condition="'$(UmbracoVersion)' == ''">[17.1.0,19.0.0)</UmbracoVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>TheBuilder.WebAnalytics</PackageId>
+    <Product>Web Analytics</Product>
+    <Title>Web Analytics</Title>
+    <Version>0.1.0</Version>
+    <Authors>Daniel Schmidt</Authors>
+    <Description>View Vercel Web Analytics directly inside the Umbraco backoffice.</Description>
+    <PackageTags>umbraco;umbraco-marketplace;analytics;web analytics;vercel;vercel analytics;traffic;visitors;referrers;utm;dashboard;reporting;content analytics;page analytics;custom events;multi-site</PackageTags>
+    <PackageProjectUrl>https://github.com/thebuilder/umbraco-vercel-analytics</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/thebuilder/umbraco-vercel-analytics.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <BackofficeClientDirectory>$(MSBuildProjectDirectory)/Client</BackofficeClientDirectory>
+    <BackofficeAssetsPattern>wwwroot/App_Plugins/TheBuilder.WebAnalytics/**/*</BackofficeAssetsPattern>
+    <BackofficeAssetsDirectory>$(MSBuildProjectDirectory)/wwwroot/App_Plugins/TheBuilder.WebAnalytics</BackofficeAssetsDirectory>
+    <BackofficeManifest>$(BackofficeAssetsDirectory)/umbraco-package.json</BackofficeManifest>
+    <BackofficeEntryPoint>$(BackofficeAssetsDirectory)/web-analytics.js</BackofficeEntryPoint>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="Umbraco.Cms.Web.Website" Version="$(UmbracoVersion)" />
+    <PackageReference Include="Umbraco.Cms.Web.Common" Version="$(UmbracoVersion)" />
+    <PackageReference Include="Umbraco.Cms.Api.Common" Version="$(UmbracoVersion)" />
+    <PackageReference Include="Umbraco.Cms.Api.Management" Version="$(UmbracoVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Dont include the client folder as part of packaging nuget build -->
+    <Content Remove="Client\**" />
+    <!-- Hashed Vite chunks are refreshed immediately before static-web-asset discovery. -->
+    <Content Remove="wwwroot/App_Plugins/TheBuilder.WebAnalytics/**/*" />
+
+    <!-- However make the Umbraco-package.json included for dotnet pack or nuget package and visible to the solution -->
+    <None Include="Client\public\umbraco-package.json" Pack="false" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+    <InternalsVisibleTo Include="TheBuilder.WebAnalytics.Tests" />
+  </ItemGroup>
+
+  <Target Name="BuildBackofficeAssetsForPack"
+          Condition="'$(_IsPacking)' == 'true' and '$(NoBuild)' != 'true'">
+    <Exec Command="corepack pnpm build" WorkingDirectory="$(BackofficeClientDirectory)" />
+  </Target>
+
+  <Target Name="RefreshBackofficeStaticWebAssets"
+          BeforeTargets="ResolveProjectStaticWebAssets"
+          DependsOnTargets="BuildBackofficeAssetsForPack">
+    <ItemGroup>
+      <Content Include="$(BackofficeAssetsPattern)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ValidateBackofficeAssetsForPack"
+          BeforeTargets="IncludeStaticWebAssetsPackItems"
+          Condition="'$(_IsPacking)' == 'true'">
+    <Error Condition="!Exists('$(BackofficeManifest)')"
+           Text="Cannot pack TheBuilder.WebAnalytics because the backoffice manifest is missing. Build the client first." />
+    <Error Condition="!Exists('$(BackofficeEntryPoint)')"
+           Text="Cannot pack TheBuilder.WebAnalytics because the backoffice entry point is missing. Build the client first." />
+  </Target>
+
+</Project>

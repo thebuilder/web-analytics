@@ -14,7 +14,7 @@ The primary users are content editors and marketing staff working in the authent
 
 ## Product Purpose
 
-Umbraco Vercel Analytics brings Vercel Web Analytics into the Umbraco backoffice. It helps editors understand site and page traffic where they already manage content, while administrators retain secure control of project connections and server-side credentials.
+Web Analytics brings Vercel Web Analytics into the Umbraco backoffice. It helps editors understand site and page traffic where they already manage content, while administrators retain secure control of project connections and server-side credentials.
 
 Success means that an editor can open Analytics, understand the important traffic signals quickly, and return to their content work without needing to visit Vercel or a separate analytics suite.
 

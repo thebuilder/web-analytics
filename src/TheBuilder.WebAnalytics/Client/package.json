@@ -1,0 +1,28 @@
+{
+  "name": "thebuilder-web-analytics",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@11.13.0",
+  "scripts": {
+    "watch": "tsc && vite build --watch",
+    "build": "tsc && vite build",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "generate-client": "node scripts/generate-openapi.js"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.85.0",
+    "@umbraco-cms/backoffice": "^17.1.0",
+    "chalk": "^5.6.2",
+    "cross-env": "^10.1.0",
+    "node-fetch": "^3.3.2",
+    "jsdom": "^27.4.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vitest": "^4.1.0"
+  }
+}
