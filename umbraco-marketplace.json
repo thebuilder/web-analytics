@@ -9,7 +9,7 @@
   },
   "Category": "Analytics & Insights",
   "Title": "Web Analytics",
-  "Description": "View Vercel Web Analytics inside the Umbraco backoffice. Explore traffic, visitors, referrers, pages, routes, campaigns, UTM parameters, and custom events, with route-filtered analytics available directly on published documents.",
+  "Description": "Vercel Web Analytics inside the Umbraco backoffice.",
   "DocumentationUrl": "https://github.com/thebuilder/web-analytics#readme",
   "IssueTrackerUrl": "https://github.com/thebuilder/web-analytics/issues",
   "LicenseTypes": [

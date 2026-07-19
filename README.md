@@ -1,21 +1,26 @@
 # Web Analytics
 
-`TheBuilder.WebAnalytics` displays [Vercel Web Analytics](https://vercel.com/docs/analytics) in the Umbraco backoffice.
+[![NuGet version](https://img.shields.io/nuget/v/TheBuilder.WebAnalytics)](https://www.nuget.org/packages/TheBuilder.WebAnalytics)
+[![NuGet downloads](https://img.shields.io/nuget/dt/TheBuilder.WebAnalytics)](https://www.nuget.org/packages/TheBuilder.WebAnalytics)
+[![License](https://img.shields.io/github/license/thebuilder/web-analytics)](https://github.com/thebuilder/web-analytics/blob/main/LICENSE)
+
+Web Analytics brings [Vercel Web Analytics](https://vercel.com/docs/analytics) into Umbraco, giving editors site-wide and page-level insights without leaving the backoffice.
 
 ![Web Analytics overview in the Umbraco backoffice](https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/analytics-overview.png)
 
-It provides:
+## What you get
 
-- A global **Analytics** section for traffic, audience, referrers, pages, routes, UTM data, and custom events.
-- An **Analytics** workspace view on configured, published documents, filtered to the document's route.
+- A dedicated **Analytics** section for visitors, page views, traffic trends, audience, referrers, pages, routes, campaigns, custom events, and feature flags.
+- Page-level analytics on configured, published documents, automatically filtered to the document's route.
+- Date comparisons and drill-down views that turn site-wide trends into useful content context.
 - Multiple Vercel project connections for multi-site Umbraco installations.
-- Server-side Vercel API access so the access token is never sent to the browser.
+- Server-side Vercel API access, keeping access tokens out of the browser and Umbraco content.
 
-The package reads analytics already collected by Vercel. It does not add Vercel tracking to the public website.
+The package reads analytics already collected by Vercel. It does not add or replace the tracking on your website.
 
 ## Requirements
 
-- Umbraco CMS 17.1 or later.
+- Umbraco CMS 17.1–18.x.
 - A Vercel project with [Web Analytics enabled and installed](https://vercel.com/docs/analytics/quickstart).
 - A [Vercel access token](https://vercel.com/kb/guide/how-do-i-use-a-vercel-api-access-token) scoped to the personal account or team that owns the project.
 - The Vercel project ID (`prj_...`).

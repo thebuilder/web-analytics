@@ -44,8 +44,9 @@ jobs:
       fail-fast: false
       matrix:
         umbraco-version:
-          - 17.4.0
-          - 18.0.0
+          - 17.1.0
+          - 17.*
+          - 18.*
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -56,7 +57,41 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Test package
-        run: dotnet test tests/TheBuilder.WebAnalytics.Tests/TheBuilder.WebAnalytics.Tests.csproj -p:UmbracoVersion=${{ matrix.umbraco-version }}
+        run: dotnet test tests/TheBuilder.WebAnalytics.Tests/TheBuilder.WebAnalytics.Tests.csproj '-p:UmbracoVersion=${{ matrix.umbraco-version }}'
 
       - name: Build example
-        run: dotnet build samples/TheBuilder.WebAnalytics.Example/TheBuilder.WebAnalytics.Example.csproj -p:UmbracoVersion=${{ matrix.umbraco-version }}
+        run: dotnet build samples/TheBuilder.WebAnalytics.Example/TheBuilder.WebAnalytics.Example.csproj '-p:UmbracoVersion=${{ matrix.umbraco-version }}'
+
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install backoffice dependencies
+        working-directory: src/TheBuilder.WebAnalytics/Client
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Pack NuGet package
+        run: >-
+          dotnet pack src/TheBuilder.WebAnalytics/TheBuilder.WebAnalytics.csproj
+          --configuration Release
+          --output artifacts
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Validate NuGet archive
+        run: unzip -t artifacts/*.nupkg
