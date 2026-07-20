@@ -4,6 +4,8 @@ namespace TheBuilder.WebAnalytics.Tests.Services;
 
 public sealed class AnalyticsReportCacheTests
 {
+    private static readonly TimeSpan CoordinationTimeout = TimeSpan.FromSeconds(5);
+
     [Fact]
     public async Task Identical_inflight_requests_share_one_factory_and_result()
     {
@@ -143,26 +145,18 @@ public sealed class AnalyticsReportCacheTests
         {
             var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var operationCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             using var firstCancellation = new CancellationTokenSource();
             using var lastCancellation = new CancellationTokenSource();
             var key = $"summary-{iteration}";
 
             var first = cache.GetOrCreateAsync(key, TimeSpan.FromMinutes(1), async operationToken =>
             {
-                try
-                {
-                    started.SetResult();
-                    await release.Task.WaitAsync(operationToken);
-                    return 42;
-                }
-                finally
-                {
-                    operationCompleted.SetResult();
-                }
+                started.SetResult();
+                await release.Task.WaitAsync(operationToken);
+                return 42;
             }, firstCancellation.Token);
 
-            await started.Task;
+            await started.Task.WaitAsync(CoordinationTimeout);
             var last = cache.GetOrCreateAsync(
                 key,
                 TimeSpan.FromMinutes(1),
@@ -170,20 +164,25 @@ public sealed class AnalyticsReportCacheTests
                 lastCancellation.Token);
 
             firstCancellation.Cancel();
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first.WaitAsync(CoordinationTimeout));
 
             var startRace = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var completeOperation = CompleteOperationAsync();
             var cancelLastWaiter = CancelLastWaiterAsync();
 
             startRace.SetResult();
-            await Task.WhenAll(completeOperation, cancelLastWaiter);
+            await Task.WhenAll(completeOperation, cancelLastWaiter).WaitAsync(CoordinationTimeout);
 
-            var exception = await Record.ExceptionAsync(() => last);
+            var exception = await Record.ExceptionAsync(() => last.WaitAsync(CoordinationTimeout));
             Assert.True(
                 exception is null or OperationCanceledException,
                 $"Expected success or caller cancellation, but received {exception?.GetType().Name}: {exception?.Message}");
-            await operationCompleted.Task;
+            // Cross the cache boundary so the concurrency lease is released before the next iteration starts.
+            await cache.GetOrCreateAsync(
+                key,
+                TimeSpan.FromMinutes(1),
+                _ => Task.FromResult(0),
+                CancellationToken.None).WaitAsync(CoordinationTimeout);
 
             async Task CompleteOperationAsync()
             {

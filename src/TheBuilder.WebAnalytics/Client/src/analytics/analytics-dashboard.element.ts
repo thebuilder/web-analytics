@@ -4,6 +4,7 @@ import type { AnalyticsDimension } from "../api/types.gen.js";
 import { countryDisplayName, normalizeCountryCode } from "./country-display.js";
 import type { AnalyticsDateRangeChangeDetail } from "./date-range-picker.element.js";
 import type { AnalyticsFilter, AudienceDimension, DashboardMetric, UtmDimension } from "./dashboard-url-state.js";
+import type { AcquisitionView } from "./dashboard-cards.js";
 import { AnalyticsDashboardController } from "./analytics-dashboard.controller.js";
 import { stateData, type AsyncState } from "./async-state.js";
 import { analyticsDashboardStyles } from "./analytics-dashboard.styles.js";
@@ -122,6 +123,7 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
           .filters=${state.filters}
           .metric=${state.metric}
           .audienceDimension=${state.audienceDimension}
+          .acquisitionView=${state.acquisitionView}
           .utmDimension=${state.utmDimension}
           .baseUrl=${this.#controller.linkBaseUrl()}
           @view-breakdown=${(event: CustomEvent<{ dimension: AnalyticsDimension; headline: string }>) => this.#controller.openBreakdown(event.detail.dimension, event.detail.headline)}
@@ -131,6 +133,7 @@ export class VercelAnalyticsDashboardElement extends UmbElementMixin(LitElement)
           @clear-selected-flag=${() => this.#controller.clearSelectedFlag()}
           @retry-reports=${() => this.#controller.loadReports()}
           @audience-change=${(event: CustomEvent<{ dimension: AudienceDimension }>) => this.#controller.setAudienceDimension(event.detail.dimension)}
+          @acquisition-change=${(event: CustomEvent<{ view: AcquisitionView }>) => this.#controller.setAcquisitionView(event.detail.view)}
           @utm-change=${(event: CustomEvent<{ dimension: UtmDimension }>) => this.#controller.setUtmDimension(event.detail.dimension)}></vercel-analytics-breakdown-grid>
         ${expanded ? html`
           <vercel-analytics-breakdown-dialog

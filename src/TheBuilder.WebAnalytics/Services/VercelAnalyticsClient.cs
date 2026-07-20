@@ -227,10 +227,10 @@ public sealed class VercelAnalyticsClient(
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", connection.AccessToken);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        return await requestGate.RunAsync(async () =>
+        return await requestGate.RunAsync(async operationToken =>
         {
             // ResponseContentRead keeps the lease until the upstream response body is buffered.
-            var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+            var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, operationToken);
             if (!response.IsSuccessStatusCode)
             {
                 var statusCode = response.StatusCode;
@@ -239,7 +239,7 @@ public sealed class VercelAnalyticsClient(
             }
 
             return response;
-        });
+        }, cancellationToken);
     }
 
     private static Dictionary<string, string?> BuildVisitParameters(

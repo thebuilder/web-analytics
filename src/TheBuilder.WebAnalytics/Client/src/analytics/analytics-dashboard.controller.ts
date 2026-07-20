@@ -13,7 +13,7 @@ import type {
 import { dashboardApi, type DashboardApi } from "./dashboard-api.js";
 import { activeDocumentRoute } from "./document-route.js";
 import { countrySearchValue } from "./country-display.js";
-import { dashboardCards, requestedDimensions, type DashboardCard } from "./dashboard-cards.js";
+import { dashboardReportPlan, type AcquisitionView, type DashboardCard, type DashboardReportPlan } from "./dashboard-cards.js";
 import { dateRangeForPreset, type AnalyticsDateRange, type DatePreset } from "./date-range.js";
 import {
   parseDashboardUrlState,
@@ -24,7 +24,7 @@ import {
   type DashboardMetric,
   type UtmDimension,
 } from "./dashboard-url-state.js";
-import { loadDashboardReports, type DashboardReportQuery, type DashboardReportUpdate } from "./dashboard-report-loader.js";
+import { loadDashboardBreakdown, loadDashboardReports, type DashboardReportQuery, type DashboardReportUpdate } from "./dashboard-report-loader.js";
 import { visibleEventRows } from "./event-rows.js";
 import { reportErrorMessage } from "./report-error.js";
 import { DebouncedRequest, RequestCoordinator } from "./request-coordinator.js";
@@ -59,6 +59,7 @@ export type DashboardState = {
   selectedFlag?: AsyncState<AnalyticsFlagsReport>;
   metric: DashboardMetric;
   audienceDimension: AudienceDimension;
+  acquisitionView: AcquisitionView;
   utmDimension: UtmDimension;
   filters: AnalyticsFilter[];
   configurationError?: string;
@@ -96,6 +97,7 @@ export class AnalyticsDashboardController {
     flags: loadingState(),
     metric: "visitors",
     audienceDimension: "DeviceType",
+    acquisitionView: "referrers",
     utmDimension: "UtmSource",
     filters: [],
     utmCapability: "unknown",
@@ -106,6 +108,7 @@ export class AnalyticsDashboardController {
   readonly #environment: DashboardEnvironment;
   readonly #initializationRequest = new RequestCoordinator();
   readonly #reportRequest = new RequestCoordinator();
+  readonly #utmRequest = new RequestCoordinator();
   readonly #expandedRequest = new DebouncedRequest();
   readonly #eventSearchRequest = new DebouncedRequest();
   readonly #eventDetailsRequest = new RequestCoordinator();
@@ -140,6 +143,7 @@ export class AnalyticsDashboardController {
     this.#culture = culture;
     this.#initializationRequest.cancel();
     this.#reportRequest.cancel();
+    this.#utmRequest.cancel();
     this.#expandedRequest.cancel();
     this.#eventSearchRequest.cancel();
     this.#eventDetailsRequest.cancel();
@@ -153,6 +157,7 @@ export class AnalyticsDashboardController {
       events: loadingState(),
       flags: loadingState(),
       selectedFlag: undefined,
+      acquisitionView: "referrers",
       utmCapability: "unknown",
       expandedBreakdown: undefined,
       expandedEvents: undefined,
@@ -164,6 +169,7 @@ export class AnalyticsDashboardController {
   disconnect(): void {
     this.#initializationRequest.cancel();
     this.#reportRequest.cancel();
+    this.#utmRequest.cancel();
     this.#expandedRequest.cancel();
     this.#eventSearchRequest.cancel();
     this.#eventDetailsRequest.cancel();
@@ -172,7 +178,7 @@ export class AnalyticsDashboardController {
   }
 
   cards(): ReadonlyArray<DashboardCard> {
-    return dashboardCards(Boolean(this.#documentId), this.state.utmCapability);
+    return this.#dashboardReportPlan().cards;
   }
 
   linkBaseUrl(): string | undefined {
@@ -188,8 +194,9 @@ export class AnalyticsDashboardController {
     const connection = this.state.connection;
     if (!connection) return;
     this.#closeDialogs();
+    this.#utmRequest.cancel();
     const utmCapability = this.#utmCapabilityByConnection.get(connection) ?? "unknown";
-    const dimensions = requestedDimensions(dashboardCards(Boolean(this.#documentId), utmCapability));
+    const { dimensions } = this.#dashboardReportPlan(utmCapability);
     this.#set({
       utmCapability,
       summary: loadingState(this.state.summary),
@@ -223,12 +230,14 @@ export class AnalyticsDashboardController {
   }
 
   setConnection(connection: string): void {
+    this.#utmRequest.cancel();
     this.#environment.setStoredConnection(connection);
     // A report from one project must never remain visible while another project's
     // request is in flight. Other refreshes retain their previous value, but a
     // connection change crosses the data boundary and starts with empty state.
     this.#set({
       connection,
+      acquisitionView: "referrers",
       summary: loadingState(),
       breakdowns: {},
       events: loadingState(),
@@ -246,7 +255,21 @@ export class AnalyticsDashboardController {
 
   setMetric(metric: DashboardMetric): void { this.#set({ metric }); this.#syncUrlState(); }
   setAudienceDimension(audienceDimension: AudienceDimension): void { this.#set({ audienceDimension }); this.#syncUrlState(); }
-  setUtmDimension(utmDimension: UtmDimension): void { this.#set({ utmDimension }); this.#syncUrlState(); }
+  setAcquisitionView(acquisitionView: AcquisitionView): void {
+    if (acquisitionView === "utm" && this.state.utmCapability !== "available") return;
+    if (acquisitionView === this.state.acquisitionView) return;
+    if (acquisitionView === "referrers") this.#utmRequest.cancel();
+    this.#set({ acquisitionView });
+    if (acquisitionView === "utm") this.#ensureUtmBreakdown(this.state.utmDimension);
+  }
+
+  setUtmDimension(utmDimension: UtmDimension): void {
+    const changed = utmDimension !== this.state.utmDimension;
+    if (changed) this.#utmRequest.cancel();
+    this.#set({ utmDimension });
+    this.#syncUrlState();
+    if (changed && this.state.acquisitionView === "utm") this.#ensureUtmBreakdown(utmDimension);
+  }
 
   toggleFilter(dimension: AnalyticsDimension | undefined, value: string): void {
     if (!dimension || !value) return;
@@ -419,13 +442,50 @@ export class AnalyticsDashboardController {
     }
   }
 
-  #failLoadingReports(message: string, dimensions: AnalyticsDimension[]): void {
+  #failLoadingReports(message: string, dimensions: ReadonlyArray<AnalyticsDimension>): void {
     this.#set({
       summary: errorState(message, this.state.summary),
       events: errorState(message, this.state.events),
       flags: errorState(message, this.state.flags),
       breakdowns: Object.fromEntries(dimensions.map((dimension) => [dimension, errorState(message, this.state.breakdowns[dimension])])),
     });
+  }
+
+  #dashboardReportPlan(utmCapability = this.state.utmCapability): DashboardReportPlan {
+    return dashboardReportPlan(
+      Boolean(this.#documentId),
+      utmCapability,
+      this.state.acquisitionView,
+      this.state.utmDimension,
+    );
+  }
+
+  #ensureUtmBreakdown(dimension: UtmDimension): void {
+    const report = this.state.breakdowns[dimension];
+    if (report?.status === "success") return;
+    void this.#loadUtmBreakdown(dimension);
+  }
+
+  async #loadUtmBreakdown(dimension: UtmDimension): Promise<void> {
+    const connection = this.state.connection;
+    if (!connection || this.state.utmCapability !== "available" || this.state.acquisitionView !== "utm") return;
+    const previous = this.state.breakdowns[dimension];
+    this.#set({ breakdowns: { ...this.state.breakdowns, [dimension]: loadingState(previous) } });
+    const result = await this.#utmRequest.run((signal) => loadDashboardBreakdown(
+      this.#reportQuery(connection, this.#visitFilterQuery()),
+      dimension,
+      signal,
+      this.#api,
+    ));
+    if (result.status === "cancelled" || result.status === "stale"
+      || this.state.connection !== connection
+      || this.state.acquisitionView !== "utm"
+      || this.state.utmDimension !== dimension) return;
+    if (result.status === "error") {
+      this.#set({ breakdowns: { ...this.state.breakdowns, [dimension]: errorState(reportErrorMessage(result.error), previous) } });
+      return;
+    }
+    this.#applyReportUpdate(result.value.update);
   }
 
   async #loadEventDetails(eventName: string, eventProperty?: string, eventValue?: string): Promise<void> {

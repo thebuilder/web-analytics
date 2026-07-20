@@ -17,17 +17,14 @@ public sealed class VercelAnalyticsRequestGate : IDisposable
         _concurrency = new SemaphoreSlim(maximumConcurrentRequests, maximumConcurrentRequests);
     }
 
-    public async Task<T> RunAsync<T>(Func<Task<T>> operation)
+    public async Task<T> RunAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(operation);
-        if (!await _concurrency.WaitAsync(TimeSpan.Zero))
-        {
-            throw new AnalyticsReportCapacityException();
-        }
+        await _concurrency.WaitAsync(cancellationToken);
 
         try
         {
-            return await operation();
+            return await operation(cancellationToken);
         }
         finally
         {
