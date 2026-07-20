@@ -149,7 +149,7 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
     thead th:nth-child(2) { color: var(--uui-color-text-alt); text-align: right; width: var(--metric-column-width); }
     .subheading-row th { background: color-mix(in srgb, var(--uui-color-surface-alt) 35%, var(--uui-color-surface)); padding-block: 0; }
     th, td { box-sizing: border-box; padding: var(--uui-size-space-3) var(--uui-size-space-5); text-align: left; }
-    tbody tr { height: 2rem; }
+    tbody tr { height: 2.5rem; }
     tbody th, tbody td { padding-block: 0; }
     td { font-variant-numeric: tabular-nums; position: relative; text-align: right; z-index: 1; }
     tbody tr:hover, tbody tr:focus-within { position: relative; z-index: 2; }
@@ -217,7 +217,7 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
     a:hover { text-decoration-thickness: 2px; }
     a:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
     .bar {
-      inset-block: var(--uui-size-space-1);
+      inset-block: 0.25rem;
       inset-inline-start: var(--bar-inset);
       inline-size: calc(100% + var(--metric-column-width) - var(--bar-inset) - var(--bar-inset));
       position: absolute;
