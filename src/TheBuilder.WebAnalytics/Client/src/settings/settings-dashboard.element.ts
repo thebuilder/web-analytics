@@ -43,16 +43,21 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
 
   async #load(): Promise<void> {
     this._loading = true;
-    const { data, error } = await WebAnalyticsService.settings();
-    this._loading = false;
-    if (error || !data) {
+    try {
+      const { data, error } = await WebAnalyticsService.settings();
+      if (error || !data) {
+        this._status = { type: "error", message: "Analytics settings could not be loaded. Administrator access is required." };
+        return;
+      }
+      this._settings = data;
+      this._dirty = false;
+      this._showValidation = false;
+      this._status = undefined;
+    } catch {
       this._status = { type: "error", message: "Analytics settings could not be loaded. Administrator access is required." };
-      return;
+    } finally {
+      this._loading = false;
     }
-    this._settings = data;
-    this._dirty = false;
-    this._showValidation = false;
-    this._status = undefined;
   }
 
   #patch(patch: Partial<AnalyticsSettingsResponse>, markDirty = true): void {
@@ -126,14 +131,22 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
     }
     this._testingKey = key;
     this._connectionStatuses = { ...this._connectionStatuses, [key]: { type: "info", message: "Testing the saved connection…" } };
-    const { data, error } = await WebAnalyticsService.testConnection({ path: { key } });
-    this._testingKey = undefined;
-    this._connectionStatuses = {
-      ...this._connectionStatuses,
-      [key]: error || !data
-        ? { type: "error", message: "The connection test could not be completed." }
-        : { type: data.success ? "success" : "error", message: data.message },
-    };
+    try {
+      const { data, error } = await WebAnalyticsService.testConnection({ path: { key } });
+      this._connectionStatuses = {
+        ...this._connectionStatuses,
+        [key]: error || !data
+          ? { type: "error", message: "The connection test could not be completed." }
+          : { type: data.success ? "success" : "error", message: data.message },
+      };
+    } catch {
+      this._connectionStatuses = {
+        ...this._connectionStatuses,
+        [key]: { type: "error", message: "The connection test could not be completed." },
+      };
+    } finally {
+      this._testingKey = undefined;
+    }
   }
 
   async #save(event?: Event): Promise<void> {
@@ -155,18 +168,24 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
     this._saving = true;
     this._status = undefined;
     const body: UpdateAnalyticsSettingsRequest = createSettingsUpdate(this._settings);
-    const { data, error } = await WebAnalyticsService.saveSettings({ body });
-    this._saving = false;
-    if (error || !data) {
+    try {
+      const { data, error } = await WebAnalyticsService.saveSettings({ body });
+      if (error || !data) {
+        this._status = { type: "error", message: "Settings were not saved. Check the connection fields and mapping values." };
+        return false;
+      }
+      this._settings = data;
+      this._dirty = false;
+      this._showValidation = false;
+      announceAnalyticsAvailability(data.enabled);
+      if (successMessage) this._status = { type: "success", message: successMessage };
+      return true;
+    } catch {
       this._status = { type: "error", message: "Settings were not saved. Check the connection fields and mapping values." };
       return false;
+    } finally {
+      this._saving = false;
     }
-    this._settings = data;
-    this._dirty = false;
-    this._showValidation = false;
-    announceAnalyticsAvailability(data.enabled);
-    if (successMessage) this._status = { type: "success", message: successMessage };
-    return true;
   }
 
   #focusFirstInvalid(): void {

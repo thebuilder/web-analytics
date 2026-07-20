@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sdk = vi.hoisted(() => ({
   settings: vi.fn(),
-  updateSettings: vi.fn(),
+  saveSettings: vi.fn(),
   testConnection: vi.fn(),
 }));
 
@@ -14,26 +14,130 @@ vi.mock("@umbraco-cms/backoffice/element-api", () => ({
 vi.mock("@umbraco-cms/backoffice/style", () => ({ UmbTextStyles: [] }));
 vi.mock("@umbraco-cms/backoffice/document", () => ({}));
 
+import type { AnalyticsConnectionSettingsResponse, AnalyticsSettingsResponse } from "../api/types.gen.js";
 import type { VercelAnalyticsSettingsDashboardElement } from "./settings-dashboard.element.js";
 import type { VercelAnalyticsConnectionEditorElement } from "./connection-editor.element.js";
 import "./settings-dashboard.element.js";
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
-  sdk.settings.mockResolvedValue(apiOk({
-    enabled: true,
-    hasAccessToken: false,
-    canCreateMockConnections: false,
-    defaultRangeDays: 30,
-    cacheDuration: "00:05:00",
-    connections: [],
-  }));
+  sdk.settings.mockResolvedValue(apiOk(settings()));
 });
 
 afterEach(() => {
   document.body.replaceChildren();
   vi.clearAllMocks();
 });
+
+describe("analytics settings network recovery", () => {
+  it("shows a retryable empty state when loading settings rejects", async () => {
+    sdk.settings.mockRejectedValueOnce(new Error("Network unavailable"));
+    sdk.settings.mockResolvedValueOnce(apiOk(settings()));
+
+    const dashboard = document.createElement("vercel-analytics-settings-dashboard") as VercelAnalyticsSettingsDashboardElement;
+    document.body.append(dashboard);
+
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector("umb-empty-state")).not.toBeNull());
+    expect(dashboard.shadowRoot?.textContent).toContain("Analytics settings could not be loaded.");
+
+    dashboard.shadowRoot?.querySelector<HTMLElement>('[label="Retry loading settings"]')?.click();
+
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector(".page-heading")).not.toBeNull());
+    expect(sdk.settings).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["an SDK error result", () => sdk.testConnection.mockResolvedValueOnce(apiError())],
+    ["a rejected request", () => sdk.testConnection.mockRejectedValueOnce(new Error("Network unavailable"))],
+  ])("shows a connection-local error and re-enables testing after %s", async (_description, arrangeResponse) => {
+    arrangeResponse();
+    sdk.settings.mockResolvedValueOnce(apiOk(settings({ connections: [connection()] })));
+
+    const dashboard = document.createElement("vercel-analytics-settings-dashboard") as VercelAnalyticsSettingsDashboardElement;
+    document.body.append(dashboard);
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector("vercel-analytics-connection-editor")).not.toBeNull());
+
+    const editor = dashboard.shadowRoot?.querySelector("vercel-analytics-connection-editor") as VercelAnalyticsConnectionEditorElement;
+    editor.dispatchEvent(new CustomEvent("test-connection", { bubbles: true, composed: true }));
+
+    await vi.waitFor(() => expect(editor.shadowRoot?.querySelector(".action-status")?.textContent).toContain("The connection test could not be completed."));
+    expect(editor.testing).toBe(false);
+    expect(editor.shadowRoot?.querySelector<HTMLElement>('[label="Test the saved connection."]')?.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("keeps edits dirty after a rejected save and allows a later save to succeed", async () => {
+    sdk.saveSettings.mockRejectedValueOnce(new Error("Network unavailable"));
+
+    const dashboard = document.createElement("vercel-analytics-settings-dashboard") as VercelAnalyticsSettingsDashboardElement;
+    document.body.append(dashboard);
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector("#default-range")).not.toBeNull());
+
+    const input = dashboard.shadowRoot?.querySelector<HTMLInputElement>("#default-range");
+    input!.value = "31";
+    input!.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    await dashboard.updateComplete;
+
+    const form = dashboard.shadowRoot?.querySelector("form");
+    form?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true, composed: true }));
+
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.textContent).toContain("Settings were not saved."));
+    expect(dashboard.shadowRoot?.querySelector(".save-bar")).not.toBeNull();
+    expect(input!.value).toBe("31");
+    expect(dashboard.shadowRoot?.querySelector<HTMLElement>('[label="Save Web Analytics settings"]')?.hasAttribute("disabled")).toBe(false);
+
+    sdk.saveSettings.mockResolvedValueOnce(apiOk(settings({ defaultRangeDays: 31 })));
+    form?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true, composed: true }));
+
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.textContent).toContain("Web Analytics settings saved."));
+    expect(dashboard.shadowRoot?.querySelector(".save-bar")).toBeNull();
+    expect(sdk.saveSettings).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the same save error for an SDK error result", async () => {
+    sdk.saveSettings.mockResolvedValueOnce(apiError());
+
+    const dashboard = document.createElement("vercel-analytics-settings-dashboard") as VercelAnalyticsSettingsDashboardElement;
+    document.body.append(dashboard);
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector("#default-range")).not.toBeNull());
+
+    const input = dashboard.shadowRoot?.querySelector<HTMLInputElement>("#default-range");
+    input!.value = "31";
+    input!.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    await dashboard.updateComplete;
+    dashboard.shadowRoot?.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true, composed: true }));
+
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.textContent).toContain("Settings were not saved."));
+    expect(dashboard.shadowRoot?.querySelector(".save-bar")).not.toBeNull();
+    expect(input!.value).toBe("31");
+  });
+});
+
+function settings(overrides: Partial<AnalyticsSettingsResponse> = {}): AnalyticsSettingsResponse {
+  return {
+    enabled: true,
+    hasAccessToken: false,
+    canCreateMockConnections: false,
+    defaultRangeDays: 30,
+    cacheDuration: "00:05:00",
+    connections: [],
+    ...overrides,
+  };
+}
+
+function connection(): AnalyticsConnectionSettingsResponse {
+  return {
+    key: "connection-1",
+    displayName: "Example project",
+    projectId: "prj_example",
+    team: null,
+    documentRootKeys: [],
+    enableAllDocumentTypes: false,
+    enabledDocumentTypeKeys: [],
+    hasAccessToken: true,
+    hasAccessTokenOverride: false,
+    mockScenario: null,
+  };
+}
 
 describe("analytics settings onboarding", () => {
   it("guides the first connection without rendering an empty default selector", async () => {
@@ -148,4 +252,8 @@ describe("analytics settings onboarding", () => {
 
 function apiOk<T>(data: T) {
   return { data, error: undefined, request: new Request("https://example.com"), response: new Response(null, { status: 200 }) };
+}
+
+function apiError() {
+  return { data: undefined, error: { message: "Request failed" }, request: new Request("https://example.com"), response: new Response(null, { status: 500 }) };
 }
