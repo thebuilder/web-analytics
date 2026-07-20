@@ -86,7 +86,7 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
                 ${countryCode ? html`<img class="country-flag" src=${countryFlagUrl(countryCode)} alt="" width="20" height="15" loading="lazy" referrerpolicy="no-referrer" @error=${(event: Event) => ((event.currentTarget as HTMLImageElement).style.visibility = "hidden")}>` : ""}
                 ${faviconUrl ? html`<img class="referrer-favicon" src=${faviconUrl} alt="" width="20" height="20" loading="lazy" referrerpolicy="no-referrer" @error=${(event: Event) => ((event.currentTarget as HTMLImageElement).hidden = true)}>` : ""}
                 <span class="row-label" title=${displayValue}>${href
-                  ? html`<a href=${href} target="_blank" rel="noopener noreferrer">${displayValue}<span class="visually-hidden"> (opens in a new tab)</span></a>`
+                  ? html`<a href=${href} target="_blank" rel="noopener noreferrer"><span class="link-label">${displayValue}</span><uui-icon class="external-indicator" name="icon-out" aria-hidden="true"></uui-icon><span class="visually-hidden"> (opens in a new tab)</span></a>`
                   : displayValue}</span>
               </span>
             </th>
@@ -166,8 +166,11 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
     tbody th { position: relative; font-weight: 500; min-width: 10rem; }
     .row-value { align-items: center; display: flex; gap: var(--uui-size-space-3); min-inline-size: 0; position: relative; z-index: 1; }
     .row-label { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .row-label a { color: inherit; text-decoration: none; }
-    .row-label a:hover, .row-label a:focus-visible { text-decoration: underline; text-underline-offset: 0.12em; }
+    .row-label a { align-items: center; color: inherit; display: flex; gap: var(--uui-size-space-1); min-inline-size: 0; text-decoration: none; }
+    .link-label { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row-label a:hover .link-label, .row-label a:focus-visible .link-label { text-decoration: underline; text-underline-offset: 0.12em; }
+    .external-indicator { color: var(--uui-color-text-alt); flex: 0 0 auto; font-size: 0.75rem; opacity: 0; transition: opacity 150ms ease-out; }
+    .row-label a:hover .external-indicator, .row-label a:focus-visible .external-indicator { opacity: 1; }
     .country-flag { border-radius: 2px; flex: 0 0 auto; object-fit: cover; }
     .referrer-favicon { border-radius: var(--uui-border-radius); flex: 0 0 auto; object-fit: contain; }
     .percentage-value { display: inline-block; font-weight: 700; outline: none; position: relative; }
@@ -246,8 +249,8 @@ export class VercelAnalyticsBreakdownTableElement extends UmbElementMixin(LitEle
     .skeleton-table tbody tr:nth-child(3n) .skeleton-line { width: 84%; }
     .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
     .message { color: var(--uui-color-text-alt); padding: var(--uui-size-space-5); }
-    @media (hover: none) { .filter-action { opacity: 1; } }
-    @media (prefers-reduced-motion: reduce) { .percentage-tooltip { transition: none; } }
+    @media (hover: none) { .filter-action { opacity: 1; } .external-indicator { opacity: 0.65; } }
+    @media (prefers-reduced-motion: reduce) { .external-indicator, .percentage-tooltip { transition: none; } }
   `;
 }
 

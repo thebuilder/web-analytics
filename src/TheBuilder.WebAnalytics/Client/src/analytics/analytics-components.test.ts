@@ -188,6 +188,7 @@ describe("analytics presentation components", () => {
     expect(link?.href).toBe("https://google.com/");
     expect(link?.target).toBe("_blank");
     expect(link?.rel).toBe("noopener noreferrer");
+    expect(link?.querySelector("uui-icon")?.getAttribute("name")).toBe("icon-out");
     const favicons = element.shadowRoot?.querySelectorAll<HTMLImageElement>(".referrer-favicon");
     expect(favicons).toHaveLength(1);
     expect(favicons?.[0]?.src).toBe("https://www.google.com/s2/favicons?domain=google.com&sz=32");
