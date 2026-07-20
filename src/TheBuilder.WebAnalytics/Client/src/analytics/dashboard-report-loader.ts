@@ -9,6 +9,7 @@ export type DashboardReportQuery = NonNullable<SummaryOptions["query"]>;
 type LoadedReport<T> = { status: "success"; data: T } | { status: "error"; error: string };
 type SdkResult<T> = { data?: T; error?: unknown; response: Response };
 type ReportApi = Pick<DashboardApi, "summary" | "events" | "flags" | "breakdown">;
+type BreakdownApi = Pick<ReportApi, "breakdown">;
 const maximumConcurrentDashboardReports = 4;
 export type DashboardReportUpdate =
   | ({ panel: "summary" } & LoadedReport<AnalyticsSummary>)
@@ -16,6 +17,10 @@ export type DashboardReportUpdate =
   | ({ panel: "flags" } & LoadedReport<AnalyticsFlagsReport>)
   | ({ panel: "breakdown"; dimension: AnalyticsDimension } & LoadedReport<AnalyticsBreakdown>);
 export type DashboardReportEvidence = { baselineSucceeded: boolean; utmSucceeded: boolean; utmStatuses: number[] };
+export type LoadedDashboardBreakdown = {
+  update: Extract<DashboardReportUpdate, { panel: "breakdown" }>;
+  responseStatus?: number;
+};
 
 export async function loadDashboardReports(
   visitQuery: DashboardReportQuery,
@@ -42,20 +47,33 @@ export async function loadDashboardReports(
     () => settleRequest(api.flags({ query: { ...visitQuery, limit: 10 }, signal })).then((result) => {
       publish({ panel: "flags", ...toLoadedReport<AnalyticsFlagsReport>(result) });
     }),
-    ...dimensions.map((dimension) => () => settleRequest(api.breakdown({
-      path: { dimension }, query: { ...visitQuery, limit: 11 }, signal,
-    })).then((result) => {
-      const report = toLoadedReport<AnalyticsBreakdown>(result);
+    ...dimensions.map((dimension) => async () => {
+      const { update, responseStatus } = await loadDashboardBreakdown(visitQuery, dimension, signal, api);
       if (isUtmDimension(dimension)) {
-        if (report.status === "success") utmSucceeded = true;
-        else if (result.status === "success" && result.value.error) utmStatuses.push(result.value.response.status);
-      } else if (report.status === "success") baselineSucceeded = true;
-      publish({ panel: "breakdown", dimension, ...report });
-    })),
+        if (update.status === "success") utmSucceeded = true;
+        else if (responseStatus !== undefined) utmStatuses.push(responseStatus);
+      } else if (update.status === "success") baselineSucceeded = true;
+      publish(update);
+    }),
   ];
 
   await runWithConcurrency(reports, maximumConcurrentDashboardReports);
   return { baselineSucceeded, utmSucceeded, utmStatuses };
+}
+
+export async function loadDashboardBreakdown(
+  query: DashboardReportQuery,
+  dimension: AnalyticsDimension,
+  signal: AbortSignal,
+  api: BreakdownApi = dashboardApi,
+): Promise<LoadedDashboardBreakdown> {
+  const result = await settleRequest(api.breakdown({
+    path: { dimension }, query: { ...query, limit: 11 }, signal,
+  }));
+  return {
+    update: { panel: "breakdown", dimension, ...toLoadedReport<AnalyticsBreakdown>(result) },
+    responseStatus: result.status === "success" ? result.value.response.status : undefined,
+  };
 }
 
 async function runWithConcurrency(tasks: ReadonlyArray<() => Promise<void>>, maximumConcurrentTasks: number): Promise<void> {

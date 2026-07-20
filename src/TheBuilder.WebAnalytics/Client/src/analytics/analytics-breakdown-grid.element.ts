@@ -1,9 +1,9 @@
-import { LitElement, css, customElement, html, property, state } from "@umbraco-cms/backoffice/external/lit";
+import { LitElement, css, customElement, html, property } from "@umbraco-cms/backoffice/external/lit";
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { AnalyticsBreakdown, AnalyticsDimension, AnalyticsEventsReport, AnalyticsFlagsReport } from "../api/types.gen.js";
 import { breakdownMetricTotal, topBreakdownRows } from "./breakdown-rows.js";
-import { selectedCardDimension, type DashboardCard, UTM_OPTIONS } from "./dashboard-cards.js";
+import { selectedCardDimension, type AcquisitionView, type DashboardCard, UTM_OPTIONS } from "./dashboard-cards.js";
 import type { AnalyticsFilter, AudienceDimension, DashboardMetric, UtmDimension } from "./dashboard-url-state.js";
 import { topEventRows } from "./event-rows.js";
 import "./breakdown-table.element.js";
@@ -21,9 +21,9 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
   @property({ attribute: false }) filters: AnalyticsFilter[] = [];
   @property() metric: DashboardMetric = "visitors";
   @property() audienceDimension: AudienceDimension = "DeviceType";
+  @property() acquisitionView: AcquisitionView = "referrers";
   @property() utmDimension: UtmDimension = "UtmSource";
   @property() baseUrl?: string;
-  @state() private acquisitionView: "referrers" | "utm" = "referrers";
 
   #dispatch(name: string, detail?: unknown): void {
     this.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true, detail }));
@@ -68,7 +68,7 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
           role="tab"
           aria-selected=${selected === "referrers"}
           tabindex=${selected === "referrers" ? 0 : -1}
-          @click=${() => { this.acquisitionView = "referrers"; }}
+          @click=${() => this.#dispatch("acquisition-change", { view: "referrers" })}
           @keydown=${this.#onTabKeydown}>Referrers</button>
         ${utmAvailable ? html`
           <button
@@ -76,7 +76,7 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
             role="tab"
             aria-selected=${selected === "utm"}
             tabindex=${selected === "utm" ? 0 : -1}
-            @click=${() => { this.acquisitionView = "utm"; }}
+            @click=${() => this.#dispatch("acquisition-change", { view: "utm" })}
             @keydown=${this.#onTabKeydown}>UTM Parameters</button>
         ` : ""}
       </div>
@@ -139,10 +139,7 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
   }
 
   #renderAcquisitionCard(referrerCard: DashboardCard, utmCard?: Extract<DashboardCard, { kind: "tabbed-breakdown" }>) {
-    const utmAvailable = Boolean(utmCard?.options.some(({ dimension }) => {
-      const state = this.breakdowns[dimension];
-      return state ? stateData(state) !== undefined : false;
-    }));
+    const utmAvailable = Boolean(utmCard);
     const showingUtm = utmAvailable && this.acquisitionView === "utm" && utmCard;
     const selected = showingUtm
       ? selectedCardDimension(utmCard, this.audienceDimension, this.utmDimension)

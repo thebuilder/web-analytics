@@ -157,6 +157,98 @@ describe("AnalyticsDashboardController", () => {
     expect(target.currentUrl().searchParams.get("audience")).toBe("BrowserName");
   });
 
+  it("uses only UTM Source to detect Plus capability", async () => {
+    const api = dashboardApi();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+
+    controller.connect();
+
+    await vi.waitFor(() => expect(controller.state.utmCapability).toBe("available"));
+    expect(utmDimensionsRequested(api)).toEqual(["UtmSource"]);
+  });
+
+  it("hides UTM after one Source 402 without requesting the other parameters", async () => {
+    const api = dashboardApi();
+    api.breakdown.mockImplementation(async ({ path }) => path.dimension === "UtmSource"
+      ? problem({ code: "plan_limit" }, 402)
+      : ok({ dimension: path.dimension, rows: [] }));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+
+    controller.connect();
+
+    await vi.waitFor(() => expect(controller.state.utmCapability).toBe("unavailable"));
+    expect(utmDimensionsRequested(api)).toEqual(["UtmSource"]);
+    expect(controller.cards().some((card) => card.kind === "tabbed-breakdown" && card.id === "utm")).toBe(false);
+  });
+
+  it("loads a UTM parameter only after the user selects it", async () => {
+    const api = dashboardApi();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.utmCapability).toBe("available"));
+    api.breakdown.mockClear();
+
+    controller.setAcquisitionView("utm");
+    expect(api.breakdown).not.toHaveBeenCalled();
+    controller.setUtmDimension("UtmMedium");
+
+    await vi.waitFor(() => expect(controller.state.breakdowns.UtmMedium?.status).toBe("success"));
+    expect(utmDimensionsRequested(api)).toEqual(["UtmMedium"]);
+  });
+
+  it("does not reload UTM while the acquisition view is folded", async () => {
+    const api = dashboardApi();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.utmCapability).toBe("available"));
+    api.breakdown.mockClear();
+    api.summary.mockClear();
+
+    controller.setDateRange(7, dateRangeForPreset(7));
+
+    await vi.waitFor(() => expect(api.summary).toHaveBeenCalledOnce());
+    expect(utmDimensionsRequested(api)).toEqual([]);
+  });
+
+  it("refreshes only the selected UTM parameter while its view is open", async () => {
+    const api = dashboardApi();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.utmCapability).toBe("available"));
+    controller.setAcquisitionView("utm");
+    controller.setUtmDimension("UtmCampaign");
+    await vi.waitFor(() => expect(controller.state.breakdowns.UtmCampaign?.status).toBe("success"));
+    api.breakdown.mockClear();
+    api.summary.mockClear();
+
+    controller.setDateRange(7, dateRangeForPreset(7));
+
+    await vi.waitFor(() => expect(utmDimensionsRequested(api)).toEqual(["UtmCampaign"]));
+    expect(utmDimensionsRequested(api)).toEqual(["UtmCampaign"]);
+  });
+
+  it("does not commit a stale UTM tab after a newer selection", async () => {
+    const api = dashboardApi();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.utmCapability).toBe("available"));
+    const medium = deferred<ReturnType<typeof ok<{ dimension: "UtmMedium"; rows: never[] }>>>();
+    api.breakdown.mockImplementation(async ({ path }) => path.dimension === "UtmMedium"
+      ? medium.promise
+      : ok({ dimension: path.dimension, rows: [] }));
+    controller.setAcquisitionView("utm");
+
+    controller.setUtmDimension("UtmMedium");
+    await vi.waitFor(() => expect(utmDimensionsRequested(api)).toContain("UtmMedium"));
+    controller.setUtmDimension("UtmCampaign");
+    await vi.waitFor(() => expect(controller.state.breakdowns.UtmCampaign?.status).toBe("success"));
+    medium.resolve(ok({ dimension: "UtmMedium", rows: [] }));
+    await Promise.resolve();
+
+    expect(controller.state.utmDimension).toBe("UtmCampaign");
+    expect(controller.state.breakdowns.UtmMedium?.status).not.toBe("success");
+  });
+
   it("requires setup before loading reports when no connection exists", async () => {
     const api = dashboardApi();
     api.connections.mockResolvedValue(ok({ enabled: true, defaultRangeDays: 30, connections: [] }));
@@ -210,4 +302,14 @@ function deferred<T>() {
 
 function ok<T>(data: T) {
   return { data, error: undefined, request: new Request("https://example.com"), response: new Response(null, { status: 200 }) };
+}
+
+function problem(error: unknown, status: number) {
+  return { data: undefined, error, request: new Request("https://example.com"), response: new Response(null, { status }) };
+}
+
+function utmDimensionsRequested(api: ReturnType<typeof dashboardApi>): string[] {
+  return api.breakdown.mock.calls
+    .map(([options]) => options.path.dimension)
+    .filter((dimension) => dimension.startsWith("Utm"));
 }

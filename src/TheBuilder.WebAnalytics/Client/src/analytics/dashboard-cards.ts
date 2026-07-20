@@ -19,9 +19,16 @@ export type DashboardCard =
       kind: "tabbed-breakdown";
       id: "audience" | "utm";
       options: ReadonlyArray<DimensionOption>;
+      reportLoading: "eager" | "on-demand";
       span: "normal" | "wide";
       planLimited: boolean;
     };
+
+export type AcquisitionView = "referrers" | "utm";
+export type DashboardReportPlan = {
+  cards: ReadonlyArray<DashboardCard>;
+  dimensions: ReadonlyArray<AnalyticsDimension>;
+};
 
 const AUDIENCE_OPTIONS: ReadonlyArray<DimensionOption<AudienceDimension>> = [
   { dimension: "DeviceType", headline: "Devices", label: "Devices" },
@@ -39,7 +46,7 @@ export const UTM_OPTIONS: ReadonlyArray<DimensionOption<UtmDimension>> = [
 const SHARED_CARDS: ReadonlyArray<DashboardCard> = [
   { kind: "breakdown", dimension: "ReferrerHostname", headline: "Referrers", span: "wide" },
   { kind: "breakdown", dimension: "Country", headline: "Countries", span: "normal" },
-  { kind: "tabbed-breakdown", id: "audience", options: AUDIENCE_OPTIONS, span: "normal", planLimited: false },
+  { kind: "tabbed-breakdown", id: "audience", options: AUDIENCE_OPTIONS, reportLoading: "eager", span: "normal", planLimited: false },
   { kind: "breakdown", dimension: "OsName", headline: "Operating systems", span: "normal" },
 ];
 
@@ -47,6 +54,7 @@ const UTM_CARD: DashboardCard = {
   kind: "tabbed-breakdown",
   id: "utm",
   options: UTM_OPTIONS,
+  reportLoading: "on-demand",
   span: "wide",
   planLimited: true,
 };
@@ -56,14 +64,25 @@ export function dashboardCards(documentScoped: boolean, utmCapability: UtmCapabi
     ...(documentScoped ? [] : [{ kind: "breakdown" as const, dimension: "RequestPath" as const, headline: "Pages", span: "wide" as const }]),
     ...SHARED_CARDS,
   ];
-  if (utmCapability !== "unavailable") cards.push(UTM_CARD);
+  if (utmCapability === "available") cards.push(UTM_CARD);
   return cards;
 }
 
-export function requestedDimensions(cards: ReadonlyArray<DashboardCard>): AnalyticsDimension[] {
-  return cards.flatMap((card) => card.kind === "breakdown"
+export function dashboardReportPlan(
+  documentScoped: boolean,
+  utmCapability: UtmCapability,
+  acquisitionView: AcquisitionView,
+  utmDimension: UtmDimension,
+): DashboardReportPlan {
+  const cards = dashboardCards(documentScoped, utmCapability);
+  const dimensions = cards.flatMap((card) => card.kind === "breakdown"
     ? [card.dimension]
-    : card.options.map(({ dimension }) => dimension));
+    : card.reportLoading === "eager" ? card.options.map(({ dimension }) => dimension) : []);
+
+  if (utmCapability === "unknown") dimensions.push("UtmSource");
+  if (utmCapability === "available" && acquisitionView === "utm") dimensions.push(utmDimension);
+
+  return { cards, dimensions };
 }
 
 export function selectedCardDimension(

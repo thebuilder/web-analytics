@@ -220,13 +220,17 @@ describe("analytics presentation components", () => {
     };
     element.events = successState({ rows: [] });
     const onChange = vi.fn();
+    const onAcquisitionChange = vi.fn();
     element.addEventListener("utm-change", onChange);
+    element.addEventListener("acquisition-change", onAcquisitionChange);
     document.body.append(element);
     await element.updateComplete;
 
     const topTabs = [...element.shadowRoot?.querySelectorAll<HTMLButtonElement>(".acquisition-tabs [role=tab]") ?? []];
     expect(topTabs.map((tab) => tab.textContent?.trim())).toEqual(["Referrers", "UTM Parameters"]);
     topTabs[1]?.click();
+    expect((onAcquisitionChange.mock.calls[0][0] as CustomEvent).detail).toEqual({ view: "utm" });
+    element.acquisitionView = "utm";
     await element.updateComplete;
 
     const parameterTabs = [...element.shadowRoot?.querySelectorAll<HTMLButtonElement>(".utm-tabs [role=tab]") ?? []];

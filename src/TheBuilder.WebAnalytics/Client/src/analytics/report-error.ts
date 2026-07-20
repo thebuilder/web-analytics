@@ -20,6 +20,8 @@ export function reportErrorMessage(error: unknown): string {
       return "This query or reporting dimension is not supported by Vercel.";
     case "upstream_timeout":
       return "Vercel Analytics did not respond in time. Try again.";
+    case "report_capacity":
+      return "Analytics is busy. Try again shortly.";
     case "upstream_transport":
     case "invalid_upstream_payload":
     case "upstream_unavailable":
