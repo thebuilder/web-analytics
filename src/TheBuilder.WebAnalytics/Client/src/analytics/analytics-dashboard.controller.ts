@@ -224,7 +224,16 @@ export class AnalyticsDashboardController {
 
   setConnection(connection: string): void {
     this.#environment.setStoredConnection(connection);
-    this.#set({ connection });
+    // A report from one project must never remain visible while another project's
+    // request is in flight. Other refreshes retain their previous value, but a
+    // connection change crosses the data boundary and starts with empty state.
+    this.#set({
+      connection,
+      summary: loadingState(),
+      breakdowns: {},
+      events: loadingState(),
+      flags: loadingState(),
+    });
     this.#syncUrlState();
     void this.loadReports();
   }

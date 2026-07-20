@@ -23,6 +23,37 @@ describe("AnalyticsDashboardController", () => {
     expect(controller.state.connection).toBe("11111111-1111-1111-1111-111111111111");
   });
 
+  it("does not retain reports from the previous connection when the next one fails", async () => {
+    const api = dashboardApi();
+    api.connections.mockResolvedValue(ok({
+      enabled: true,
+      defaultRangeDays: 30,
+      connections: [
+        { key: "11111111-1111-1111-1111-111111111111", displayName: "Demo", isDefault: true, isConfigured: true, baseUrl: "https://demo.example.com", warnings: [] },
+        { key: "22222222-2222-2222-2222-222222222222", displayName: "Unconfigured", isDefault: false, isConfigured: false, baseUrl: undefined, warnings: ["No server-side access token is configured for this connection."] },
+      ],
+    }));
+    const nextEvents = deferred<Awaited<ReturnType<DashboardApi["events"]>>>();
+    api.events
+      .mockResolvedValueOnce(ok({ rows: [{ eventName: "Demo event", visitors: 10, count: 12 }] }))
+      .mockReturnValueOnce(nextEvents.promise);
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.events.status).toBe("success"));
+    controller.setConnection("22222222-2222-2222-2222-222222222222");
+
+    expect(controller.state.events).toEqual({ status: "loading" });
+
+    nextEvents.resolve({
+      data: undefined,
+      error: new Error("No access token"),
+      response: new Response(null, { status: 401 }),
+    });
+    await vi.waitFor(() => expect(controller.state.events.status).toBe("error"));
+    expect("previous" in controller.state.events).toBe(false);
+  });
+
   it("keeps the newest document scope when an older route request finishes last", async () => {
     const first = deferred<ReturnType<typeof ok<AnalyticsDocumentRoute[]>>>();
     const second = deferred<ReturnType<typeof ok<AnalyticsDocumentRoute[]>>>();

@@ -194,9 +194,9 @@ describe("analytics presentation components", () => {
     expect(cards[1]?.querySelector("vercel-analytics-event-table")).not.toBeNull();
   });
 
-  it("places flags last on their own row in document analytics", async () => {
+  it("gives Flags the same wide span as Events in the overview", async () => {
     const element = document.createElement("vercel-analytics-breakdown-grid") as VercelAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(true, "unavailable");
+    element.cards = dashboardCards(false, "unavailable");
     element.events = successState({ rows: [] });
     document.body.append(element);
     await element.updateComplete;
@@ -205,6 +205,21 @@ describe("analytics presentation components", () => {
     const flagsCard = cards[cards.length - 1];
     expect(flagsCard?.querySelector("vercel-analytics-flag-card")).not.toBeNull();
     expect(flagsCard?.classList.contains("flags-card")).toBe(true);
+    expect(flagsCard?.classList.contains("wide")).toBe(true);
+    expect(cards[cards.length - 2]?.querySelector("vercel-analytics-event-table")).not.toBeNull();
+  });
+
+  it("keeps Flags on its own row in document analytics", async () => {
+    const element = document.createElement("vercel-analytics-breakdown-grid") as VercelAnalyticsBreakdownGridElement;
+    element.cards = dashboardCards(true, "unavailable");
+    element.events = successState({ rows: [] });
+    document.body.append(element);
+    await element.updateComplete;
+
+    const cards = [...element.shadowRoot?.querySelectorAll("uui-box") ?? []];
+    const flagsCard = cards[cards.length - 1];
+    expect(flagsCard?.classList.contains("document-flags-card")).toBe(true);
+    expect(flagsCard?.classList.contains("wide")).toBe(false);
   });
 
   it("merges valid UTM reports into the referrers card with five parameter tabs", async () => {
