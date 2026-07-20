@@ -18,6 +18,12 @@ const printConnectionError = (error, message) => {
   error(`Please verify or change the URL in the ${chalk.yellow('package.json')} for the script ${chalk.yellow('generate-openapi')}`);
 };
 
+const printGenerationError = (error, message) => {
+  error(`ERROR: Failed to generate the OpenAPI client: ${chalk.red(message)}`);
+  error('The OpenAPI endpoint passed the initial check, but the TypeScript client generator did not complete.');
+  error('Review the generator error and the client configuration in generate-openapi.js.');
+};
+
 export async function generateOpenApiClient({
   swaggerUrl = getSwaggerUrl(process.argv.slice(2)),
   fetchImplementation = fetch,
@@ -37,16 +43,24 @@ export async function generateOpenApiClient({
   log('Ensure your Umbraco instance is running');
   log(`Fetching OpenAPI definition from ${chalk.yellow(swaggerUrl)}`);
 
+  let response;
   try {
-    const response = await fetchImplementation(swaggerUrl);
-    if (!response.ok) {
-      error(chalk.red(`ERROR: OpenAPI spec returned with a non OK (200) response: ${response.status} ${response.statusText}`));
-      error('The URL to your Umbraco instance may be wrong or the instance is not running');
-      error(`Please verify or change the URL in the ${chalk.yellow('package.json')} for the script ${chalk.yellow('generate-openapi')}`);
-      return false;
-    }
+    response = await fetchImplementation(swaggerUrl);
+  } catch (exception) {
+    const message = exception instanceof Error ? exception.message : String(exception);
+    printConnectionError(error, message);
+    return false;
+  }
 
-    log(`Calling ${chalk.yellow('hey-api')} to generate TypeScript client`);
+  if (!response.ok) {
+    error(chalk.red(`ERROR: OpenAPI spec returned with a non OK (200) response: ${response.status} ${response.statusText}`));
+    error('The URL to your Umbraco instance may be wrong or the instance is not running');
+    error(`Please verify or change the URL in the ${chalk.yellow('package.json')} for the script ${chalk.yellow('generate-openapi')}`);
+    return false;
+  }
+
+  log(`Calling ${chalk.yellow('hey-api')} to generate TypeScript client`);
+  try {
     await createClientImplementation({
       input: swaggerUrl,
       output: 'src/api',
@@ -64,7 +78,7 @@ export async function generateOpenApiClient({
     return true;
   } catch (exception) {
     const message = exception instanceof Error ? exception.message : String(exception);
-    printConnectionError(error, message);
+    printGenerationError(error, message);
     return false;
   }
 }

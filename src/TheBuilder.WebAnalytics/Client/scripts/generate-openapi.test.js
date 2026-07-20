@@ -96,6 +96,9 @@ describe('generate-openapi', () => {
 
     expect(succeeded).toBe(false);
     expect(errors.join('\n')).toContain('generation failed');
+    expect(errors.join('\n')).toContain('ERROR: Failed to generate the OpenAPI client');
+    expect(errors.join('\n')).toContain('client configuration in generate-openapi.js');
+    expect(errors.join('\n')).not.toContain('Failed to connect to the OpenAPI spec');
   });
 
   it('does not report success until the client generator resolves', async () => {
