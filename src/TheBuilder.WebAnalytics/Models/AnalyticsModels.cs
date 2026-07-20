@@ -187,7 +187,6 @@ public sealed record AnalyticsConnectionSettingsResponse(
     string ProjectId,
     string? Team,
     string SiteId,
-    AnalyticsCapabilities Capabilities,
     IReadOnlyList<string> DocumentRootKeys,
     bool EnableAllDocumentTypes,
     IReadOnlyList<string> EnabledDocumentTypeKeys,

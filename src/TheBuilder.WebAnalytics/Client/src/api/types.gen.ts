@@ -22,7 +22,6 @@ export type AnalyticsConnectionSettingsResponse = {
     projectId: string;
     team?: string | null;
     siteId: string;
-    capabilities: AnalyticsCapabilities;
     documentRootKeys: Array<string>;
     enableAllDocumentTypes: boolean;
     enabledDocumentTypeKeys: Array<string>;

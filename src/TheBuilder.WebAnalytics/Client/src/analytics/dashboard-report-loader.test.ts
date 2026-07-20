@@ -95,7 +95,7 @@ describe("loadDashboardReports", () => {
 
     await loadDashboardReports(query, query, ["Country"], new AbortController().signal, (update) => updates.push(update));
 
-    expect(updates.find((update) => update.panel === "summary")).toMatchObject({ status: "error", error: expect.stringContaining("access token") });
+    expect(updates.find((update) => update.panel === "summary")).toMatchObject({ status: "error", error: expect.stringContaining("configured analytics credentials") });
   });
 
   it("treats a successful response without data as an explicit error", async () => {

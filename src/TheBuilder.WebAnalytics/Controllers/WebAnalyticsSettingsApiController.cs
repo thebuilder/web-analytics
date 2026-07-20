@@ -149,7 +149,6 @@ public sealed class WebAnalyticsSettingsApiController(
                 connection.ProjectId,
                 connection.Team,
                 connection.SiteId,
-                registered?.Capabilities ?? providerCatalog.Get(connection.Provider).Capabilities,
                 connection.DocumentRootKeys,
                 connection.EnableAllDocumentTypes,
                 connection.EnabledDocumentTypeKeys,

@@ -31,6 +31,7 @@ import { reportErrorMessage } from "./report-error.js";
 import { DebouncedRequest, RequestCoordinator } from "./request-coordinator.js";
 import { detectUtmCapability, type UtmCapability } from "./utm-capability.js";
 import { errorState, idleState, loadingState, successState, type AsyncState } from "./async-state.js";
+import { normalizeDashboardSelection, supportsDimension, unavailableCapabilities } from "./dashboard-capabilities.js";
 
 type ReportScope = { documentId?: string; culture?: string; path?: string };
 export type ExpandedBreakdown = {
@@ -51,6 +52,7 @@ export type DashboardState = {
   connections: AnalyticsConnectionSummary[];
   connection?: string;
   route?: AnalyticsDocumentRoute;
+  capabilities?: AnalyticsCapabilities;
   range: AnalyticsDateRange;
   preset: DatePreset;
   summary: AsyncState<AnalyticsSummary>;
@@ -239,8 +241,12 @@ export class AnalyticsDashboardController {
     // A report from one project must never remain visible while another project's
     // request is in flight. Other refreshes retain their previous value, but a
     // connection change crosses the data boundary and starts with empty state.
+    const capabilities = this.state.connections.find(({ key }) => key === connection)?.capabilities ?? unavailableCapabilities;
+    const selection = normalizeDashboardSelection(this.state, capabilities);
     this.#set({
       connection,
+      capabilities,
+      ...selection,
       acquisitionView: "referrers",
       summary: loadingState(),
       breakdowns: {},
@@ -268,6 +274,7 @@ export class AnalyticsDashboardController {
   }
 
   setUtmDimension(utmDimension: UtmDimension): void {
+    if (!supportsDimension(this.#capabilities(), utmDimension)) return;
     const changed = utmDimension !== this.state.utmDimension;
     if (changed) this.#utmRequest.cancel();
     this.#set({ utmDimension });
@@ -276,7 +283,7 @@ export class AnalyticsDashboardController {
   }
 
   toggleFilter(dimension: AnalyticsDimension | undefined, value: string): void {
-    if (!dimension || !value) return;
+    if (!dimension || !value || !supportsDimension(this.#capabilities(), dimension)) return;
     const active = this.state.filters.some((filter) => filter.dimension === dimension && filter.value === value);
     const filters = active
       ? this.state.filters.filter((filter) => filter.dimension !== dimension)
@@ -295,6 +302,7 @@ export class AnalyticsDashboardController {
   clearFilters(): void { this.#set({ filters: [] }); this.#syncUrlState(); void this.loadReports(); }
 
   async openBreakdown(dimension: AnalyticsDimension, headline: string, search = "", debounce = false): Promise<void> {
+    if (!supportsDimension(this.#capabilities(), dimension)) return;
     const connection = this.state.connection;
     if (!connection) return;
     const previous = this.state.expandedBreakdown?.dimension === dimension ? this.state.expandedBreakdown.report : undefined;
@@ -404,7 +412,8 @@ export class AnalyticsDashboardController {
         this.#set({ configurationError: "This document is unpublished, unmapped, or its active culture is not configured for analytics.", summary: idleState() });
         return;
       }
-      this.#set({ route, connection: route.connection });
+      const selection = normalizeDashboardSelection(this.state, route.capabilities);
+      this.#set({ route, connection: route.connection, capabilities: route.capabilities, ...selection });
     } else {
       const result = await this.#initializationRequest.run((signal) => this.#api.connections({ signal }));
       if (result.status === "cancelled" || result.status === "stale") return;
@@ -426,9 +435,14 @@ export class AnalyticsDashboardController {
       const stored = this.#environment.getStoredConnection();
       const requested = data.connections.some(({ key }) => key === this.state.connection) ? this.state.connection : undefined;
       const storedValid = data.connections.some(({ key }) => key === stored) ? stored ?? undefined : undefined;
+      const connection = requested ?? storedValid ?? data.connections[0]?.key;
+      const capabilities = data.connections.find(({ key }) => key === connection)?.capabilities ?? unavailableCapabilities;
+      const selection = normalizeDashboardSelection(this.state, capabilities);
       this.#set({
         connections: data.connections,
-        connection: requested ?? storedValid ?? data.connections[0]?.key,
+        connection,
+        capabilities,
+        ...selection,
         preset,
         range,
       });
@@ -482,14 +496,7 @@ export class AnalyticsDashboardController {
   }
 
   #capabilities(): AnalyticsCapabilities {
-    const route = this.state.route;
-    if (route) return route.capabilities;
-    return this.state.connections.find(({ key }) => key === this.state.connection)?.capabilities ?? {
-      dimensions: ["RequestPath", "Route", "ReferrerHostname", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName"],
-      events: true,
-      eventProperties: true,
-      flags: true,
-    };
+    return this.state.capabilities ?? unavailableCapabilities;
   }
 
   #ensureUtmBreakdown(dimension: UtmDimension): void {

@@ -11,7 +11,6 @@ import type { UUIInputElement, UUIToggleElement } from "@umbraco-cms/backoffice/
 import { WebAnalyticsService } from "../api/sdk.gen.js";
 import type {
   AnalyticsConnectionSettingsResponse,
-  AnalyticsCapabilities,
   AnalyticsProvider,
   AnalyticsSettingsResponse,
   UpdateAnalyticsSettingsRequest,
@@ -26,15 +25,6 @@ type NewConnection =
   | { kind: "provider"; provider: AnalyticsProvider; hasAccessToken: boolean }
   | { kind: "mock"; scenario: MockScenarioDefinition };
 
-const capabilities = (provider: AnalyticsProvider): AnalyticsCapabilities => ({
-  dimensions: provider === "Plausible"
-    ? ["RequestPath", "Route", "ReferrerHostname", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "EventName"]
-    : ["RequestPath", "Route", "ReferrerHostname", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName"],
-  events: true,
-  eventProperties: provider === "Vercel",
-  flags: provider === "Vercel",
-});
-
 @customElement("vercel-analytics-settings-dashboard")
 export class WebAnalyticsSettingsDashboardElement extends UmbElementMixin(LitElement) {
   @state() private _settings?: AnalyticsSettingsResponse;
@@ -45,11 +35,17 @@ export class WebAnalyticsSettingsDashboardElement extends UmbElementMixin(LitEle
   @state() private _testingKey?: string;
   @state() private _status?: { type: "success" | "error"; message: string };
   @state() private _connectionStatuses: Record<string, ConnectionActionStatus> = {};
-  @state() private _tokenKeyCopied = false;
+  @state() private _copiedTokenProvider?: AnalyticsProvider;
+  private _copyStatusTimer?: number;
 
   connectedCallback(): void {
     super.connectedCallback();
     void this.#load();
+  }
+
+  disconnectedCallback(): void {
+    window.clearTimeout(this._copyStatusTimer);
+    super.disconnectedCallback();
   }
 
   async #load(): Promise<void> {
@@ -107,7 +103,6 @@ export class WebAnalyticsSettingsDashboardElement extends UmbElementMixin(LitEle
       projectId: "",
       team: null,
       siteId: "",
-      capabilities: capabilities(provider),
       documentRootKeys: [],
       enableAllDocumentTypes: false,
       enabledDocumentTypeKeys: [],
@@ -128,8 +123,9 @@ export class WebAnalyticsSettingsDashboardElement extends UmbElementMixin(LitEle
 
   async #copyTokenKey(provider: AnalyticsProvider): Promise<void> {
     await navigator.clipboard.writeText(`WebAnalytics__Providers__${provider}__AccessToken`);
-    this._tokenKeyCopied = true;
-    window.setTimeout(() => { this._tokenKeyCopied = false; }, 2000);
+    window.clearTimeout(this._copyStatusTimer);
+    this._copiedTokenProvider = provider;
+    this._copyStatusTimer = window.setTimeout(() => { this._copiedTokenProvider = undefined; }, 2000);
   }
 
   #removeConnection(index: number): void {
@@ -282,7 +278,7 @@ export class WebAnalyticsSettingsDashboardElement extends UmbElementMixin(LitEle
                     <p class="shared-token-help">Set this server environment variable to a ${token.provider} access token.</p>
                     <div class="shared-token-key">
                       <code>WebAnalytics__Providers__${token.provider}__AccessToken</code>
-                      <uui-button compact look="secondary" label=${`Copy ${token.provider} access token setting name`} @click=${() => this.#copyTokenKey(token.provider)}>${this._tokenKeyCopied ? "Copied" : "Copy"}</uui-button>
+                      <uui-button compact look="secondary" label=${`Copy ${token.provider} access token setting name`} @click=${() => this.#copyTokenKey(token.provider)}>${this._copiedTokenProvider === token.provider ? "Copied" : "Copy"}</uui-button>
                     </div>
                   </div>
                 `}

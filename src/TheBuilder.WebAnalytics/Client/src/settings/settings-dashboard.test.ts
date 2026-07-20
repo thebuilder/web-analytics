@@ -132,7 +132,6 @@ function connection(): AnalyticsConnectionSettingsResponse {
     projectId: "prj_example",
     team: null,
     siteId: "",
-    capabilities: { dimensions: ["RequestPath"], events: true, eventProperties: true, flags: true },
     documentRootKeys: [],
     enableAllDocumentTypes: false,
     enabledDocumentTypeKeys: [],

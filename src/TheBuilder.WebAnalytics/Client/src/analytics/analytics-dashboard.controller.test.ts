@@ -325,7 +325,7 @@ describe("AnalyticsDashboardController", () => {
         displayName: "Plausible",
         provider: "Plausible",
         capabilities: {
-          dimensions: ["RequestPath", "ReferrerHostname", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "EventName"],
+          dimensions: ["RequestPath", "ReferrerHostname", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName"],
           events: true,
           eventProperties: false,
           flags: false,
@@ -346,6 +346,63 @@ describe("AnalyticsDashboardController", () => {
     expect(api.flags).not.toHaveBeenCalled();
     expect(api.eventDetails).not.toHaveBeenCalled();
     expect(controller.cards().some((card) => card.kind === "tabbed-breakdown" && card.id === "utm")).toBe(true);
+  });
+
+  it("removes unsupported filters when switching providers", async () => {
+    const api = dashboardApi();
+    const plausibleCapabilities: AnalyticsCapabilities = {
+      dimensions: fullCapabilities.dimensions.filter((dimension) => dimension !== "Route"),
+      events: true,
+      eventProperties: false,
+      flags: false,
+    };
+    api.connections.mockResolvedValue(ok({
+      enabled: true,
+      defaultRangeDays: 30,
+      connections: [
+        { key: "11111111-1111-1111-1111-111111111111", displayName: "Vercel", provider: "Vercel", capabilities: fullCapabilities, isDefault: true, isConfigured: true, baseUrl: "https://vercel.example.com", warnings: [] },
+        { key: "22222222-2222-2222-2222-222222222222", displayName: "Plausible", provider: "Plausible", capabilities: plausibleCapabilities, isDefault: false, isConfigured: true, baseUrl: "https://plausible.example.com", warnings: [] },
+      ],
+    }));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    controller.toggleFilter("Route", "/articles/[slug]");
+
+    controller.setConnection("22222222-2222-2222-2222-222222222222");
+
+    expect(controller.state.filters).toEqual([]);
+    await vi.waitFor(() => expect(api.summary).toHaveBeenCalledTimes(3));
+    expect(api.summary.mock.calls[api.summary.mock.calls.length - 1]?.[0]?.query?.filter).toBeUndefined();
+  });
+
+  it("normalizes restored filters after resolving the selected provider", async () => {
+    const api = dashboardApi();
+    api.connections.mockResolvedValue(ok({
+      enabled: true,
+      defaultRangeDays: 30,
+      connections: [{
+        key: "11111111-1111-1111-1111-111111111111",
+        displayName: "Plausible",
+        provider: "Plausible",
+        capabilities: { ...fullCapabilities, dimensions: fullCapabilities.dimensions.filter((dimension) => dimension !== "Route") },
+        isDefault: true,
+        isConfigured: true,
+        baseUrl: "https://example.com",
+        warnings: [],
+      }],
+    }));
+    const controller = new AnalyticsDashboardController(
+      vi.fn(),
+      api,
+      environment("https://cms.example.com/umbraco/section/analytics?connection=11111111-1111-1111-1111-111111111111&filter=Route%3A%2Farticles%2F%5Bslug%5D"),
+    );
+
+    controller.connect();
+
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    expect(controller.state.filters).toEqual([]);
+    expect(api.summary.mock.calls[0]?.[0]?.query?.filter).toBeUndefined();
   });
 
 });
@@ -371,8 +428,8 @@ function route(path: string, culture: string): AnalyticsDocumentRoute {
   return { connection: "11111111-1111-1111-1111-111111111111", provider: "Vercel", capabilities: fullCapabilities, culture, hostname: "example.com", path, url: `https://example.com${path}`, isCurrent: true, warnings: [] };
 }
 
-function environment(): DashboardEnvironment {
-  let url = new URL("https://cms.example.com/umbraco/section/analytics");
+function environment(initialUrl = "https://cms.example.com/umbraco/section/analytics"): DashboardEnvironment {
+  let url = new URL(initialUrl);
   return {
     currentUrl: () => new URL(url),
     replaceUrl: (next) => { url = new URL(next); },

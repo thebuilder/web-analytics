@@ -21,7 +21,6 @@ const settings = (): AnalyticsSettingsResponse => ({
     projectId: "project",
     team: null,
     siteId: "",
-    capabilities: { dimensions: ["RequestPath"], events: true, eventProperties: true, flags: true },
     documentRootKeys: [],
     enableAllDocumentTypes: false,
     enabledDocumentTypeKeys: [],

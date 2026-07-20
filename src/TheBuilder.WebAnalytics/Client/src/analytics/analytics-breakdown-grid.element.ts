@@ -128,7 +128,7 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
             .unavailable=${unavailable}>
             ${card.kind === "tabbed-breakdown" ? this.#renderTabs(card) : ""}
           </vercel-analytics-breakdown-table>
-          ${planLimited && unavailable ? html`<p class="hint breakdown-hint">UTM reporting availability depends on your Vercel plan and reporting window.</p>` : ""}
+          ${planLimited && unavailable ? html`<p class="hint breakdown-hint">UTM reporting availability depends on your analytics plan and reporting window.</p>` : ""}
           <footer class="breakdown-footer">
             ${!loading && !unavailable && rows.length ? html`
               <uui-button look="secondary" label=${`View all ${selected.headline}`} @click=${() => this.#dispatch("view-breakdown", selected)}>View all</uui-button>

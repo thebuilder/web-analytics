@@ -308,9 +308,14 @@ public sealed class WebAnalyticsApiController(
 
         if (documentId is null)
         {
-            return authorizationService.HasAnalyticsSectionAccess()
+            if (!authorizationService.HasAnalyticsSectionAccess()) return (null, Forbid());
+            var selectedConnection = registry.Get(connection);
+            if (selectedConnection is null)
+                return (null, NotFoundProblem("The selected analytics connection does not exist."));
+            var capabilityError = ValidateFilterCapabilities(filters, selectedConnection.Capabilities);
+            return capabilityError is null
                 ? (new AnalyticsQuery(connection, from, to, interval, Filters: filters), null)
-                : (null, Forbid());
+                : (null, capabilityError);
         }
 
         if (!authorizationService.HasContentSectionAccess() ||
@@ -322,9 +327,22 @@ public sealed class WebAnalyticsApiController(
         var selectedRoute = routes.FirstOrDefault(route =>
             route.Connection == connection &&
             string.Equals(route.Path, path, StringComparison.Ordinal));
-        return selectedRoute is null
-            ? (null, ValidationProblem("The selected path is not a published route for this document and connection."))
-            : (new AnalyticsQuery(connection, from, to, interval, selectedRoute.Path, filters), null);
+        if (selectedRoute is null)
+            return (null, ValidationProblem("The selected path is not a published route for this document and connection."));
+        var documentCapabilityError = ValidateFilterCapabilities(filters, selectedRoute.Capabilities);
+        return documentCapabilityError is null
+            ? (new AnalyticsQuery(connection, from, to, interval, selectedRoute.Path, filters), null)
+            : (null, documentCapabilityError);
+    }
+
+    private ActionResult? ValidateFilterCapabilities(
+        IReadOnlyList<AnalyticsFilter> filters,
+        AnalyticsCapabilities capabilities)
+    {
+        var unsupported = filters.FirstOrDefault(filter => !capabilities.Dimensions.Contains(filter.Dimension));
+        return unsupported is null
+            ? null
+            : ValidationProblem($"The selected analytics provider does not support {unsupported.Dimension} filters.");
     }
 
     private ActionResult ValidationProblem(string detail) =>

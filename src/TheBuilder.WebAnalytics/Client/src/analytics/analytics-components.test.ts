@@ -40,7 +40,16 @@ beforeEach(() => {
   sdk.connections.mockResolvedValue(apiOk({
     enabled: true,
     defaultRangeDays: 30,
-    connections: [{ key: "11111111-1111-1111-1111-111111111111", displayName: "Main", isDefault: true, isConfigured: true, baseUrl: "https://example.com", warnings: [] }],
+    connections: [{
+      key: "11111111-1111-1111-1111-111111111111",
+      displayName: "Main",
+      provider: "Vercel",
+      capabilities: { dimensions: ["RequestPath", "Route", "ReferrerHostname", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName"], events: true, eventProperties: true, flags: true },
+      isDefault: true,
+      isConfigured: true,
+      baseUrl: "https://example.com",
+      warnings: [],
+    }],
   }));
   sdk.documentRoutes.mockResolvedValue(apiOk([]));
   sdk.summary.mockResolvedValue(apiOk({ totals: { visitors: 12, pageViews: 34 }, points: [] }));
@@ -304,11 +313,9 @@ describe("analytics presentation components", () => {
     document.body.append(element);
     await element.updateComplete;
 
-    const setupLink = element.shadowRoot?.querySelector<HTMLAnchorElement>(".empty a");
     expect(element.shadowRoot?.querySelector(".empty strong")?.textContent).toBe("No events");
     expect(element.shadowRoot?.querySelector(".empty-icon uui-icon")?.getAttribute("name")).toBe("icon-lightning");
-    expect(setupLink?.href).toBe("https://vercel.com/docs/analytics/custom-events");
-    expect(setupLink?.rel).toBe("noopener noreferrer");
+    expect(element.shadowRoot?.querySelector(".empty a")).toBeNull();
   });
 
   it("drills from flag keys into their values and provides setup guidance when empty", async () => {

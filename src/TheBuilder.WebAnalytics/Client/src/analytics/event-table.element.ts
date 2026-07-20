@@ -4,8 +4,6 @@ import type { AnalyticsEventRow } from "../api/types.gen.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
 import { visibleEventRows } from "./event-rows.js";
 
-const EVENTS_SETUP_URL = "https://vercel.com/docs/analytics/custom-events";
-
 @customElement("vercel-analytics-event-table")
 export class VercelAnalyticsEventTableElement extends UmbElementMixin(LitElement) {
   @property({ type: Boolean }) loading = false;
@@ -71,7 +69,6 @@ export class VercelAnalyticsEventTableElement extends UmbElementMixin(LitElement
           <span class="empty-icon"><uui-icon name="icon-lightning" aria-hidden="true"></uui-icon></span>
           <strong>No events</strong>
           <p>Track custom events to understand which actions visitors take.</p>
-          <a href=${EVENTS_SETUP_URL} target="_blank" rel="noopener noreferrer">Set up event tracking <uui-icon name="icon-out" aria-hidden="true"></uui-icon></a>
         </div>
       ` : ""}
     `;

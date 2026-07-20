@@ -3,7 +3,7 @@ import { reportErrorMessage } from "./report-error.js";
 
 describe("report error guidance", () => {
   it("explains authentication failures without exposing server details", () => {
-    expect(reportErrorMessage({ status: 502, code: "invalid_credentials" })).toContain("access token");
+    expect(reportErrorMessage({ status: 502, code: "invalid_credentials" })).toContain("configured analytics credentials");
   });
 
   it("explains plan and reporting-window failures", () => {

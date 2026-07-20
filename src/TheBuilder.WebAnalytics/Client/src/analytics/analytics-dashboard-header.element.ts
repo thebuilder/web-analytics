@@ -83,7 +83,7 @@ export class VercelAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEl
         </div>
         <div class="controls">
           ${!this.documentScoped && this.connections.length > 1 ? html`
-            <uui-select class="project-select" label="Vercel project" .options=${this.#selectOptions()} @change=${this.#onConnectionChange}></uui-select>
+            <uui-select class="project-select" label="Analytics connection" .options=${this.#selectOptions()} @change=${this.#onConnectionChange}></uui-select>
           ` : ""}
           <vercel-analytics-date-range-picker .preset=${this.preset} .range=${this.range}></vercel-analytics-date-range-picker>
         </div>

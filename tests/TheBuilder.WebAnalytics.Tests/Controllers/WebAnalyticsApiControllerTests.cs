@@ -286,6 +286,34 @@ public sealed class WebAnalyticsApiControllerTests
     }
 
     [Fact]
+    public async Task Summary_rejects_filters_not_supported_by_the_selected_provider()
+    {
+        var authorization = new Mock<IAnalyticsAuthorizationService>(MockBehavior.Strict);
+        authorization.Setup(service => service.HasAnalyticsSectionAccess()).Returns(true);
+        var controller = new WebAnalyticsApiController(
+            authorization.Object,
+            PlausibleRegistry(),
+            null!,
+            null!,
+            null!);
+
+        var response = await controller.Summary(
+            MainKey,
+            UtcDate(2026, 7, 1),
+            UtcDate(2026, 7, 3),
+            AnalyticsInterval.Day,
+            null,
+            null,
+            null,
+            ["Route:/articles/[slug]"],
+            CancellationToken.None);
+
+        AssertInvalidQuery(response.Result);
+        var problem = Assert.IsType<AnalyticsProblemDetails>(Assert.IsType<ObjectResult>(response.Result).Value);
+        Assert.Contains("does not support Route filters", problem.Detail);
+    }
+
+    [Fact]
     public async Task Event_details_rejects_event_name_filter_from_the_shared_query()
     {
         var controller = CreateBoundaryOnlyController();
@@ -338,6 +366,24 @@ public sealed class WebAnalyticsApiControllerTests
                     DocumentRootKeys = [Guid.NewGuid().ToString()],
                     EnableAllDocumentTypes = true
                 }).ToList()
+        }));
+
+    private static AnalyticsConnectionRegistry PlausibleRegistry() =>
+        new(Options.Create(new WebAnalyticsOptions
+        {
+            Enabled = true,
+            Providers = { Plausible = { AccessToken = "secret" } },
+            Connections =
+            [
+                new()
+                {
+                    Key = MainKey,
+                    Provider = AnalyticsProvider.Plausible,
+                    DisplayName = "Plausible",
+                    SiteId = "example.com",
+                    EnableAllDocumentTypes = true
+                }
+            ]
         }));
 
     private static void AssertInvalidQuery(ActionResult? result)
