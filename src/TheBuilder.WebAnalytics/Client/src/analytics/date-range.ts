@@ -134,10 +134,15 @@ export function formatAnalyticsRangeLabel(
   if (Number.isNaN(from.valueOf()) || Number.isNaN(to.valueOf())) return "Custom range";
 
   const fromDate = analyticsDateOnly(range.from, range.timeZone);
-  const toDate = shiftCalendarDate(analyticsDateOnly(range.to, range.timeZone), -1);
-  const selectedTo = toDate ? zonedMidnightToIso(toDate, range.timeZone) : undefined;
-  if (!toDate || !selectedTo) return "Custom range";
-  const toDisplayDate = new Date(selectedTo);
+  const exclusiveCalendarEnd = isZonedMidnight(range.from, range.timeZone)
+    && isZonedMidnight(range.to, range.timeZone);
+  const toDate = exclusiveCalendarEnd
+    ? shiftCalendarDate(analyticsDateOnly(range.to, range.timeZone), -1)
+    : analyticsDateOnly(range.to, range.timeZone);
+  if (!toDate) return "Custom range";
+  const toDisplayDate = exclusiveCalendarEnd
+    ? new Date(zonedMidnightToIso(toDate, range.timeZone) ?? range.to)
+    : to;
   const sameYear = fromDate.slice(0, 4) === toDate.slice(0, 4);
   const sameMonth = sameYear && fromDate.slice(0, 7) === toDate.slice(0, 7);
   const monthDay = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: range.timeZone });
@@ -204,6 +209,12 @@ export function isAnalyticsPeriodInProgress(
 function validIso(value: string): string | undefined {
   const date = new Date(value);
   return value && !Number.isNaN(date.valueOf()) ? date.toISOString() : undefined;
+}
+
+function isZonedMidnight(timestamp: string, timeZone: string): boolean {
+  const dateOnly = analyticsDateOnly(timestamp, timeZone);
+  const midnight = dateOnly ? zonedMidnightToIso(dateOnly, timeZone) : undefined;
+  return midnight !== undefined && Date.parse(midnight) === Date.parse(timestamp);
 }
 
 function zonedMidnightToIso(dateOnly: string, timeZone: string): string | undefined {

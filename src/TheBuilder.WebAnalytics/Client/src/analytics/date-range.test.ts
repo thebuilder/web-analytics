@@ -106,6 +106,14 @@ describe("analytics date ranges", () => {
     expect(formatAnalyticsRangeLabel({ from: "2026-06-17T00:00:00Z", to: "2026-07-17T00:00:00Z", timeZone: "UTC" }, "custom", "en-US")).toBe("Jun 17 – Jul 16");
   });
 
+  it("does not subtract a day from timestamp-based custom range labels", () => {
+    expect(formatAnalyticsRangeLabel({
+      from: "2026-07-09T12:00:00Z",
+      to: "2026-07-17T12:00:00Z",
+      timeZone: "UTC",
+    }, "custom", "en-US")).toBe("Jul 9 – 17");
+  });
+
   it("formats chart dates compactly like the Vercel dashboard", () => {
     expect(formatAnalyticsDate("2026-07-15T00:00:00Z", "Day", "en-US")).toBe("Jul 15");
     expect(formatAnalyticsDate("2026-07-15T14:00:00Z", "Hour", "en-US", "Europe/Copenhagen")).toBe("4:00 PM");
