@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Runtime.ExceptionServices;
 using TheBuilder.WebAnalytics.Configuration;
 using TheBuilder.WebAnalytics.Models;
 
@@ -182,28 +183,31 @@ public sealed class VercelAnalyticsReportService(
             To = query.From
         };
 
+        Task? comparison = null;
+
         try
         {
             var count = client.CountAsync(connection, previousQuery, cancellationToken);
             var pageViews = client.GetPageViewTotalAsync(connection, previousQuery, cancellationToken);
-            await Task.WhenAll(count, pageViews);
+            comparison = Task.WhenAll(count, pageViews);
+            await comparison;
             return new AnalyticsTotals(await pageViews, (await count).Visitors);
         }
-        catch (VercelAnalyticsApiException)
+        catch (Exception failure)
         {
-            return null;
-        }
-        catch (HttpRequestException)
-        {
-            return null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return null;
+            IEnumerable<Exception> failures = comparison?.Exception?.Flatten().InnerExceptions ?? [failure];
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                var unexpected = failures.FirstOrDefault(failure => !IsOptionalComparisonFailure(failure));
+                if (unexpected is null) return null;
+
+                ExceptionDispatchInfo.Capture(unexpected).Throw();
+            }
+
+            throw;
         }
     }
+
+    private static bool IsOptionalComparisonFailure(Exception failure) =>
+        failure is VercelAnalyticsApiException or HttpRequestException or JsonException or OperationCanceledException;
 }

@@ -171,6 +171,36 @@ public sealed class VercelAnalyticsReportServiceTests
     }
 
     [Fact]
+    public async Task Summary_propagates_an_unexpected_previous_page_view_failure_when_count_has_an_optional_failure()
+    {
+        var client = new CountingClient
+        {
+            PreviousCountException = new VercelAnalyticsApiException(System.Net.HttpStatusCode.PaymentRequired),
+            PreviousPageViewTotalException = new InvalidOperationException()
+        };
+        using var cache = new AnalyticsReportCache();
+        var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GetSummaryAsync(CreateQuery(), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Summary_propagates_an_unexpected_previous_count_failure_when_page_views_have_an_optional_failure()
+    {
+        var client = new CountingClient
+        {
+            PreviousCountException = new InvalidOperationException(),
+            PreviousPageViewTotalException = new VercelAnalyticsApiException(System.Net.HttpStatusCode.PaymentRequired)
+        };
+        using var cache = new AnalyticsReportCache();
+        var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GetSummaryAsync(CreateQuery(), CancellationToken.None));
+    }
+
+    [Fact]
     public async Task Summary_omits_comparison_when_the_previous_range_would_precede_date_minimum()
     {
         var client = new CountingClient();
@@ -427,6 +457,7 @@ public sealed class VercelAnalyticsReportServiceTests
         public CancellationToken LastCountCancellationToken { get; private set; }
         public Exception? CurrentCountException { get; init; }
         public Exception? PreviousCountException { get; init; }
+        public Exception? PreviousPageViewTotalException { get; init; }
         public Action? BeforePreviousCountFailure { get; init; }
         public TaskCompletionSource? PreviousCountStarted { get; init; }
         public TaskCompletionSource? PreviousCountRelease { get; init; }
@@ -475,6 +506,10 @@ public sealed class VercelAnalyticsReportServiceTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             PageViewTotalCalls++;
+            if (query.To <= new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero) && PreviousPageViewTotalException is not null)
+            {
+                return Task.FromException<long>(PreviousPageViewTotalException);
+            }
             return Task.FromResult(20L);
         }
 
