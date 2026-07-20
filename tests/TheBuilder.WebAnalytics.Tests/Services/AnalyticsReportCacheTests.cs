@@ -88,30 +88,25 @@ public sealed class AnalyticsReportCacheTests
     }
 
     [Fact]
-    public async Task Cancelling_all_waiters_cancels_the_operation_and_allows_a_retry()
+    public async Task Cancelling_all_waiters_allows_an_immediate_same_key_retry_and_preserves_retry_cancellation()
     {
         using var cache = new AnalyticsReportCache(maximumEntries: 10, maximumConcurrentRequests: 1);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var operationCancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var operationFinished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseCancelledOperation = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var calls = 0;
         using var firstCancellation = new CancellationTokenSource();
         using var secondCancellation = new CancellationTokenSource();
+        using var retryCancellation = new CancellationTokenSource();
 
         Task<int> GetValue(CancellationToken cancellationToken) => cache.GetOrCreateAsync("summary", TimeSpan.FromMinutes(1), async operationToken =>
         {
             Interlocked.Increment(ref calls);
             started.SetResult();
             using var registration = operationToken.Register(operationCancelled.SetResult);
-            try
-            {
-                await Task.Delay(Timeout.InfiniteTimeSpan, operationToken);
-                return 1;
-            }
-            finally
-            {
-                operationFinished.SetResult();
-            }
+            await releaseCancelledOperation.Task;
+            operationToken.ThrowIfCancellationRequested();
+            return 1;
         }, cancellationToken);
 
         var first = GetValue(firstCancellation.Token);
@@ -123,13 +118,19 @@ public sealed class AnalyticsReportCacheTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => second);
         await operationCancelled.Task;
-        await operationFinished.Task;
 
-        Assert.Equal(2, await cache.GetOrCreateAsync("summary", TimeSpan.FromMinutes(1), _ =>
+        var retry = cache.GetOrCreateAsync("summary", TimeSpan.FromMinutes(1), _ =>
         {
             Interlocked.Increment(ref calls);
             return Task.FromResult(2);
-        }, CancellationToken.None));
+        }, CancellationToken.None);
+        var cancelledRetry = cache.GetOrCreateAsync("summary", TimeSpan.FromMinutes(1), _ => Task.FromResult(3), retryCancellation.Token);
+
+        retryCancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelledRetry);
+
+        releaseCancelledOperation.SetResult();
+        Assert.Equal(2, await retry);
         Assert.Equal(2, Volatile.Read(ref calls));
     }
 
@@ -163,25 +164,29 @@ public sealed class AnalyticsReportCacheTests
             firstCancellation.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
 
-            using var completionBarrier = new Barrier(3);
-            var completeOperation = Task.Run(() =>
-            {
-                completionBarrier.SignalAndWait();
-                release.SetResult();
-            });
-            var cancelLastWaiter = Task.Run(() =>
-            {
-                completionBarrier.SignalAndWait();
-                lastCancellation.Cancel();
-            });
+            var startRace = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var completeOperation = CompleteOperationAsync();
+            var cancelLastWaiter = CancelLastWaiterAsync();
 
-            completionBarrier.SignalAndWait();
+            startRace.SetResult();
             await Task.WhenAll(completeOperation, cancelLastWaiter);
 
             var exception = await Record.ExceptionAsync(() => last);
             Assert.True(
                 exception is null or OperationCanceledException,
                 $"Expected success or caller cancellation, but received {exception?.GetType().Name}: {exception?.Message}");
+
+            async Task CompleteOperationAsync()
+            {
+                await startRace.Task;
+                release.SetResult();
+            }
+
+            async Task CancelLastWaiterAsync()
+            {
+                await startRace.Task;
+                lastCancellation.Cancel();
+            }
         }
     }
 

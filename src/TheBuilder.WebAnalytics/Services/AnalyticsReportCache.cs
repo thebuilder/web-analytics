@@ -44,6 +44,7 @@ public sealed class AnalyticsReportCache : IDisposable
         }
 
         InflightOperation operation;
+        InflightOperation? cancellingOperation = null;
         lock (_inflightLock)
         {
             if (_cache.TryGetValue(key, out cached))
@@ -51,11 +52,16 @@ public sealed class AnalyticsReportCache : IDisposable
                 return cached!;
             }
 
-            if (!_inflight.TryGetValue(key, out operation!) || operation.CancellationRequested)
+            if (!_inflight.TryGetValue(key, out operation!))
             {
                 operation = new InflightOperation(typeof(T));
                 operation.Task = new Lazy<Task<object?>>(() => CreateAsync(key, duration, factory, operation));
                 _inflight[key] = operation;
+            }
+
+            if (operation.CancellationRequested)
+            {
+                cancellingOperation = operation;
             }
 
             if (operation.ValueType != typeof(T))
@@ -63,12 +69,30 @@ public sealed class AnalyticsReportCache : IDisposable
                 throw new InvalidOperationException($"The report cache key '{key}' is already in use for {operation.ValueType.Name}.");
             }
 
-            operation.Waiters++;
-            _ = operation.Task!.Value;
+            if (cancellingOperation is null)
+            {
+                operation.Waiters++;
+                _ = operation.Task!.Value;
+            }
+        }
+
+        if (cancellingOperation is not null)
+        {
+            try
+            {
+                await cancellingOperation.Task!.Value.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellingOperation.CancellationRequested)
+            {
+                // A cancelled operation must release its concurrency slot before this retry starts.
+            }
+
+            return await GetOrCreateAsync(key, duration, factory, cancellationToken);
         }
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             return (T)(await operation.Task!.Value.WaitAsync(cancellationToken))!;
         }
         finally
