@@ -301,7 +301,7 @@ export class AnalyticsConnectionEditorElement extends UmbElementMixin(LitElement
     .summary-copy strong { font-size: var(--uui-type-h5-size); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .summary-copy > span { color: var(--uui-color-text-alt); overflow-wrap: anywhere; }
     .provider-mark { align-items: center; background: var(--uui-color-surface-alt); block-size: var(--uui-size-8); color: var(--uui-color-text); display: inline-flex; inline-size: var(--uui-size-8); justify-content: center; }
-    .provider-logo { block-size: var(--uui-size-5); fill: currentColor; inline-size: var(--uui-size-5); }
+    .provider-logo { block-size: var(--uui-size-5); display: block; inline-size: var(--uui-size-5); }
     .provider-mark > uui-icon { font-size: var(--uui-size-5); }
     .summary-state { align-items: end; display: grid; gap: var(--uui-size-space-1); justify-items: end; min-inline-size: 0; }
     .summary-state small { color: var(--uui-color-text-alt); max-inline-size: 24ch; overflow-wrap: anywhere; text-align: end; }

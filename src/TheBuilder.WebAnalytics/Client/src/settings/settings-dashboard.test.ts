@@ -178,6 +178,11 @@ describe("analytics settings onboarding", () => {
     expect(choices).toHaveLength(2);
     expect(choices?.[0].querySelector(".provider-logo.vercel")).not.toBeNull();
     expect(choices?.[1].querySelector(".provider-logo.plausible")).not.toBeNull();
+    const plausibleLogo = choices?.[1].querySelector<HTMLImageElement>(".provider-logo.plausible");
+    expect(plausibleLogo?.getAttribute("src")).toBe("/App_Plugins/TheBuilder.WebAnalytics/icons/providers/plausible.svg");
+    expect(plausibleLogo?.getAttribute("alt")).toBe("");
+    expect(plausibleLogo?.width).toBe(24);
+    expect(plausibleLogo?.height).toBe(24);
     choices?.[0].click();
     await dashboard.updateComplete;
 

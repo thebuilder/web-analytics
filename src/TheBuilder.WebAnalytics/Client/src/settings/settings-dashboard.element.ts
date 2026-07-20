@@ -480,7 +480,7 @@ export class WebAnalyticsSettingsDashboardElement extends UmbElementMixin(LitEle
     .provider-choice:active { background: color-mix(in srgb, var(--uui-color-interactive) 7%, var(--uui-color-surface)); }
     .provider-choice:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: -2px; }
     .provider-mark { align-items: center; background: var(--uui-color-surface-alt); block-size: var(--uui-size-8); color: var(--uui-color-text); display: inline-flex; inline-size: var(--uui-size-8); justify-content: center; }
-    .provider-logo { block-size: var(--uui-size-5); fill: currentColor; inline-size: var(--uui-size-5); }
+    .provider-logo { block-size: var(--uui-size-5); display: block; inline-size: var(--uui-size-5); }
     .provider-choice-copy { display: grid; gap: var(--uui-size-space-1); min-inline-size: 0; }
     .provider-choice-copy strong { font-size: var(--uui-type-h5-size); }
     .provider-choice-copy > span { color: var(--uui-color-text-alt); overflow-wrap: anywhere; }
