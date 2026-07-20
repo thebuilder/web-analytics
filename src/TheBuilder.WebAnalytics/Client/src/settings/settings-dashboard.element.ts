@@ -111,7 +111,7 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
   }
 
   async #copyTokenKey(): Promise<void> {
-    await navigator.clipboard.writeText("VercelAnalytics__AccessToken");
+    await navigator.clipboard.writeText("WebAnalytics__Providers__Vercel__AccessToken");
     this._tokenKeyCopied = true;
     window.setTimeout(() => { this._tokenKeyCopied = false; }, 2000);
   }
@@ -267,7 +267,7 @@ export class VercelAnalyticsSettingsDashboardElement extends UmbElementMixin(Lit
                     <a href="https://vercel.com/account/settings/tokens" target="_blank" rel="noopener noreferrer" aria-label="Create a Vercel access token (opens in a new tab)">Create token<uui-icon name="icon-out" aria-hidden="true"></uui-icon></a>
                   </div>
                   <div class="shared-token-key">
-                    <code>VercelAnalytics__AccessToken</code>
+                    <code>WebAnalytics__Providers__Vercel__AccessToken</code>
                     <uui-button compact look="secondary" label="Copy shared access token setting name" @click=${this.#copyTokenKey}>${this._tokenKeyCopied ? "Copied" : "Copy"}</uui-button>
                   </div>
                 </div>

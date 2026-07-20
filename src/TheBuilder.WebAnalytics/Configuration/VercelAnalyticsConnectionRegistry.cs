@@ -74,6 +74,7 @@ public sealed class VercelAnalyticsConnectionRegistry
     private RegistrySnapshot CreateSnapshot(VercelAnalyticsSettingsSnapshot settingsSnapshot)
     {
         var serverConfiguration = _serverOptions.Value;
+        var vercelConfiguration = serverConfiguration.Providers.Vercel;
         var connections = settingsSnapshot.Settings.Connections
             .Where(connection => !connection.IsMock || _mockConnectionsEnabled)
             .ToDictionary(
@@ -81,7 +82,7 @@ public sealed class VercelAnalyticsConnectionRegistry
             connection => VercelAnalyticsConnection.Create(
                 connection,
                 ResolveAccessToken(
-                    serverConfiguration.AccessToken,
+                    vercelConfiguration.AccessToken,
                     serverConfiguration.ConnectionAccessTokens.GetValueOrDefault(connection.Key.ToString()))));
         var roots = connections.Values
             .SelectMany(connection => connection.DocumentRootKeys.Select(rootKey => (rootKey, connection.Key)))

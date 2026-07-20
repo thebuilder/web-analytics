@@ -55,21 +55,21 @@ For a team-owned project, also copy either the team ID (`team_...`) or team slug
 Configure one shared token for the package:
 
 ```text
-VercelAnalytics__AccessToken
+WebAnalytics__Providers__Vercel__AccessToken
 ```
 
 Examples:
 
 ```sh
 # Local shell or container environment
-export VercelAnalytics__AccessToken="your_token"
+export WebAnalytics__Providers__Vercel__AccessToken="your_token"
 
 # .NET user-secrets
 dotnet user-secrets init \
   --project path/to/Your.Umbraco.Web.csproj
 
 dotnet user-secrets set \
-  "VercelAnalytics:AccessToken" \
+  "WebAnalytics:Providers:Vercel:AccessToken" \
   "your_token" \
   --project path/to/Your.Umbraco.Web.csproj
 ```
@@ -78,7 +78,7 @@ Use the equivalent secret/app-setting facility in Azure App Service, Kubernetes,
 
 Restart every Umbraco application instance after adding or rotating a token. Tokens are loaded from server configuration at application startup.
 
-The shared token is used by every connection. If a project must use a different token, expand **Token override** for that connection and copy the generated environment-variable name. Overrides use `VercelAnalytics__ConnectionAccessTokens__{connection-guid}`.
+The shared token is used by every connection. If a project must use a different token, expand **Token override** for that connection and copy the generated environment-variable name. Overrides use `WebAnalytics__ConnectionAccessTokens__{connection-guid}`.
 
 ### 3. Configure the connection in Umbraco
 
@@ -121,7 +121,7 @@ The backoffice settings screen is the normal configuration path. A deployment ca
 
 ```json
 {
-  "VercelAnalytics": {
+  "WebAnalytics": {
     "Enabled": true,
     "DefaultRangeDays": 30,
     "CacheDuration": "00:05:00",
@@ -147,12 +147,12 @@ The backoffice settings screen is the normal configuration path. A deployment ca
 
 ### Configuration reference
 
-Package settings use the `VercelAnalytics` section.
+Package settings use the `WebAnalytics` section.
 
 | Key | Default | Description |
 | --- | --- | --- |
 | `Enabled` | `false` | Enables the Analytics section and configured document workspace views. |
-| `AccessToken` | Empty | Shared Vercel access token used by every connection. Supply through secret configuration. |
+| `Providers:Vercel:AccessToken` | Empty | Shared Vercel access token used by every connection. Supply through secret configuration. |
 | `DefaultRangeDays` | `30` | Initial report range in days. Valid values are 1–730. |
 | `CacheDuration` | `00:05:00` | Per-instance in-memory cache duration. Valid values are zero to one hour. |
 | `Connections` | `[]` | Vercel project connection definitions. The first connection becomes the initial default. |
@@ -171,7 +171,7 @@ Each entry under `Connections` supports:
 | `EnabledDocumentTypeKeys` | `[]` | Document-type GUIDs that show document analytics when all types are not enabled. |
 | `EnabledDocumentTypes` | `[]` | Document-type aliases used by configuration-only bootstrapping. Prefer stable document-type keys for settings managed in Umbraco. |
 
-Keep tokens out of the JSON file. Supply the shared token through `VercelAnalytics__AccessToken`; only use `VercelAnalytics__ConnectionAccessTokens__{connection-guid}` when one connection requires an override.
+Keep tokens out of the JSON file. Supply the shared token through `WebAnalytics__Providers__Vercel__AccessToken`; only use `WebAnalytics__ConnectionAccessTokens__{connection-guid}` when one connection requires an override.
 
 Before the settings screen has saved anything, Umbraco uses these server options as the initial configuration. After an administrator saves the settings screen, the non-secret settings are stored in Umbraco's database and become the source of truth. Access tokens continue to come from server configuration, with a connection-specific token taking precedence over the shared token.
 
@@ -195,7 +195,7 @@ The available reporting window and some dimensions depend on the Vercel plan and
 
 | Symptom | Check |
 | --- | --- |
-| **Token missing** | Configure `VercelAnalytics__AccessToken`, or a connection-specific override, and restart the application. |
+| **Token missing** | Configure `WebAnalytics__Providers__Vercel__AccessToken`, or a connection-specific override, and restart the application. |
 | Vercel returns `401` or `403` | Confirm the token is valid, scoped to the owning account/team, and has access to the configured project. |
 | Vercel returns `400` | Verify the project ID and the optional `Team` value. |
 | Analytics section is not visible | Add the Analytics section to the user's Umbraco user group. The automatic administrator grant runs only once. |
@@ -205,7 +205,7 @@ The available reporting window and some dimensions depend on the Vercel plan and
 
 ## Development
 
-The example app opts into development data through `VercelAnalytics:EnableMockConnections` in its development settings. **Settings → Web Analytics** then includes presets for a full demo, UTM campaigns, feature flags, and custom events. Add and save a mock connection like any other connection, then select it in the Analytics dashboard. Mock reports are deterministic, require no access token, and never call Vercel. The package keeps mock connections disabled by default, including when it is consumed by another project running in Development.
+The example app opts into development data through `WebAnalytics:EnableMockConnections` in its development settings. **Settings → Web Analytics** then includes presets for a full demo, UTM campaigns, feature flags, and custom events. Add and save a mock connection like any other connection, then select it in the Analytics dashboard. Mock reports are deterministic, require no access token, and never call Vercel. The package keeps mock connections disabled by default, including when it is consumed by another project running in Development.
 
 The client uses pnpm 11. From `src/TheBuilder.WebAnalytics/Client`:
 

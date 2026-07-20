@@ -4,13 +4,11 @@ namespace TheBuilder.WebAnalytics.Configuration;
 
 public sealed class VercelAnalyticsOptions
 {
-    public const string SectionName = "VercelAnalytics";
+    public const string SectionName = "WebAnalytics";
 
     public bool Enabled { get; set; } = true;
 
     public bool EnableMockConnections { get; set; }
-
-    public string AccessToken { get; set; } = string.Empty;
 
     public int DefaultRangeDays { get; set; } = 30;
 
@@ -20,6 +18,18 @@ public sealed class VercelAnalyticsOptions
 
     public Dictionary<string, string> ConnectionAccessTokens { get; set; } =
         new(StringComparer.OrdinalIgnoreCase);
+
+    public WebAnalyticsProvidersOptions Providers { get; set; } = new();
+}
+
+public sealed class WebAnalyticsProvidersOptions
+{
+    public VercelAnalyticsProviderOptions Vercel { get; set; } = new();
+}
+
+public sealed class VercelAnalyticsProviderOptions
+{
+    public string AccessToken { get; set; } = string.Empty;
 }
 
 public sealed class VercelAnalyticsConnectionOptions

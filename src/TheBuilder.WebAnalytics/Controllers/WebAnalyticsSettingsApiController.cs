@@ -116,6 +116,7 @@ public sealed class WebAnalyticsSettingsApiController(
     {
         var settings = settingsStore.Get();
         var serverConfiguration = serverOptions.Value;
+        var vercelConfiguration = serverConfiguration.Providers.Vercel;
         var connections = registry.Connections.ToDictionary(connection => connection.Key);
         var responseTasks = settings.Connections.Select(async connection =>
         {
@@ -140,7 +141,7 @@ public sealed class WebAnalyticsSettingsApiController(
         var responseConnections = await Task.WhenAll(responseTasks);
         return new AnalyticsSettingsResponse(
             settings.Enabled,
-            !string.IsNullOrWhiteSpace(serverConfiguration.AccessToken),
+            !string.IsNullOrWhiteSpace(vercelConfiguration.AccessToken),
             registry.MockConnectionsEnabled,
             settings.DefaultRangeDays,
             settings.CacheDuration.ToString("c"),

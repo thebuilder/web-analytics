@@ -34,7 +34,7 @@ public sealed class VercelAnalyticsOptionsValidatorTests
         var options = new VercelAnalyticsOptions
         {
             Enabled = true,
-            AccessToken = "server-secret"
+            Providers = { Vercel = { AccessToken = "server-secret" } }
         };
 
         Assert.True(_sut.Validate(null, options).Succeeded);
@@ -98,7 +98,7 @@ public sealed class VercelAnalyticsOptionsValidatorTests
     public void Registry_uses_shared_access_token_when_connection_has_no_override()
     {
         var options = CreateOptions();
-        options.AccessToken = "shared-token";
+        options.Providers.Vercel.AccessToken = "shared-token";
 
         var connection = new VercelAnalyticsConnectionRegistry(Options.Create(options)).Get(MainKey);
 
@@ -111,7 +111,7 @@ public sealed class VercelAnalyticsOptionsValidatorTests
     public void Registry_prefers_connection_access_token_override()
     {
         var options = CreateOptions();
-        options.AccessToken = "shared-token";
+        options.Providers.Vercel.AccessToken = "shared-token";
         options.ConnectionAccessTokens[MainKey.ToString()] = "connection-token";
 
         var connection = new VercelAnalyticsConnectionRegistry(Options.Create(options)).Get(MainKey);
@@ -136,7 +136,7 @@ public sealed class VercelAnalyticsOptionsValidatorTests
     public void Registry_is_unconfigured_when_shared_and_connection_tokens_are_missing()
     {
         var options = CreateOptions();
-        options.AccessToken = string.Empty;
+        options.Providers.Vercel.AccessToken = string.Empty;
 
         var connection = new VercelAnalyticsConnectionRegistry(Options.Create(options)).Get(MainKey);
 
@@ -210,7 +210,7 @@ public sealed class VercelAnalyticsOptionsValidatorTests
     private static VercelAnalyticsOptions CreateOptions() => new()
     {
         Enabled = true,
-        AccessToken = "test-token",
+        Providers = { Vercel = { AccessToken = "test-token" } },
         Connections = [CreateConnection(MainKey)]
     };
 

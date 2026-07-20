@@ -80,7 +80,7 @@ export class VercelAnalyticsConnectionEditorElement extends UmbElementMixin(LitE
   }
 
   async #copyTokenKey(): Promise<void> {
-    await navigator.clipboard.writeText(`VercelAnalytics__ConnectionAccessTokens__${this.connection.key}`);
+    await navigator.clipboard.writeText(`WebAnalytics__ConnectionAccessTokens__${this.connection.key}`);
     this._tokenCopied = true;
     window.setTimeout(() => { this._tokenCopied = false; }, 2000);
   }
@@ -164,7 +164,7 @@ export class VercelAnalyticsConnectionEditorElement extends UmbElementMixin(LitE
                     Create a Vercel access token<uui-icon name="icon-out" aria-hidden="true"></uui-icon>
                   </a>
                 </p>
-                <div class="token-key"><code>VercelAnalytics__ConnectionAccessTokens__${connection.key}</code><uui-button compact look="secondary" label="Copy access token setting name" @click=${this.#copyTokenKey}>${this._tokenCopied ? "Copied" : "Copy"}</uui-button></div>
+                <div class="token-key"><code>WebAnalytics__ConnectionAccessTokens__${connection.key}</code><uui-button compact look="secondary" label="Copy access token setting name" @click=${this.#copyTokenKey}>${this._tokenCopied ? "Copied" : "Copy"}</uui-button></div>
               </div>
             </details>`}
 

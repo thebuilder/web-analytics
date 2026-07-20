@@ -159,7 +159,7 @@ describe("analytics settings onboarding", () => {
     const generatedKey = (editor as VercelAnalyticsConnectionEditorElement).connection.key;
     expect(generatedKey).toMatch(/^[0-9a-f-]{36}$/i);
     expect(editor?.shadowRoot?.querySelector(".token-key code")?.textContent)
-      .toBe(`VercelAnalytics__ConnectionAccessTokens__${generatedKey}`);
+      .toBe(`WebAnalytics__ConnectionAccessTokens__${generatedKey}`);
     expect(dashboard.shadowRoot?.querySelector(".unsaved-indicator")?.textContent?.trim()).toBe("Unsaved changes");
     expect(dashboard.shadowRoot?.querySelector(".save-bar")).not.toBeNull();
     expect(dashboard.shadowRoot?.querySelectorAll('[label="Save Web Analytics settings"]')).toHaveLength(1);
@@ -182,7 +182,7 @@ describe("analytics settings onboarding", () => {
     document.body.append(dashboard);
     await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector(".shared-token")).not.toBeNull());
 
-    expect(dashboard.shadowRoot?.querySelector(".shared-token code")?.textContent).toBe("VercelAnalytics__AccessToken");
+    expect(dashboard.shadowRoot?.querySelector(".shared-token code")?.textContent).toBe("WebAnalytics__Providers__Vercel__AccessToken");
     expect(dashboard.shadowRoot?.querySelector(".shared-token-status")?.textContent?.trim()).toBe("Not configured");
     expect(dashboard.shadowRoot?.querySelector(".shared-token-help")?.textContent?.trim()).toBe(
       "Set this server environment variable to a Vercel access token.",
