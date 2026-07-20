@@ -3,7 +3,11 @@ using TheBuilder.WebAnalytics.Models;
 
 namespace TheBuilder.WebAnalytics.Services;
 
-public sealed class MockAnalyticsClient : IAnalyticsProviderClient
+public sealed class MockAnalyticsClient :
+    IAnalyticsProviderClient,
+    IAnalyticsEventsProviderClient,
+    IAnalyticsEventPropertiesProviderClient,
+    IAnalyticsFlagsProviderClient
 {
     private const double DemoDailyGrowthRate = 0.0008d;
     private const double DemoGrowthWindowDays = 1825d;
@@ -41,23 +45,26 @@ public sealed class MockAnalyticsClient : IAnalyticsProviderClient
         new("personalised-homepage", 4760, 3010)
     ];
 
+    public AnalyticsProvider Provider => AnalyticsProvider.Vercel;
+
+    public AnalyticsCapabilities Capabilities => AnalyticsProviderCatalog.Default.Get(Provider).Capabilities;
+
     public Task<string> GetDisplayNameAsync(AnalyticsConnection connection, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         return Task.FromResult(connection.DisplayName);
     }
 
+    public Task<AnalyticsTotals> GetTotalsAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        CancellationToken cancellationToken) => CountAsync(connection, query, cancellationToken);
+
     public Task<AnalyticsTotals> CountAsync(AnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var scale = QueryScale(connection, query);
         return Task.FromResult(new AnalyticsTotals(Scale(29430, scale), Scale(17260, scale)));
-    }
-
-    public Task<long> GetPageViewTotalAsync(AnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(Scale(29430, QueryScale(connection, query)));
     }
 
     public Task<IReadOnlyList<AnalyticsPoint>> GetTrendAsync(

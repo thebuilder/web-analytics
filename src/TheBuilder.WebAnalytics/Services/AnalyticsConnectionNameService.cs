@@ -12,16 +12,25 @@ public interface IAnalyticsConnectionNameService
 }
 
 public sealed class AnalyticsConnectionNameService(
-    IAnalyticsProviderClient client,
+    IAnalyticsProviderClientResolver clients,
+    AnalyticsProviderCatalog providerCatalog,
     IMemoryCache cache) : IAnalyticsConnectionNameService
 {
+    internal AnalyticsConnectionNameService(IAnalyticsProviderClient client, IMemoryCache cache)
+        : this(new SingleAnalyticsProviderClientResolver(client), AnalyticsProviderCatalog.Default, cache)
+    {
+    }
+
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
     public async Task<string> GetDisplayNameAsync(
         AnalyticsConnection connection,
         CancellationToken cancellationToken)
     {
-        var fallback = FirstNonEmpty(connection.SiteId, connection.ProjectId, connection.DisplayName, connection.Key.ToString());
+        var fallback = FirstNonEmpty(
+            providerCatalog.Get(connection.Provider).GetIdentifier(connection),
+            connection.DisplayName,
+            connection.Key.ToString());
         if (!connection.IsConfigured) return fallback;
 
         var cacheKey = string.Join(':',
@@ -37,7 +46,7 @@ public sealed class AnalyticsConnectionNameService(
             return await cache.GetOrCreateAsync(cacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-                return await client.GetDisplayNameAsync(connection, cancellationToken);
+                return await clients.Get(connection).GetDisplayNameAsync(connection, cancellationToken);
             }) ?? fallback;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

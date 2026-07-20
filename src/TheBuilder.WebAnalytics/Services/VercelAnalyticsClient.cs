@@ -10,13 +10,21 @@ namespace TheBuilder.WebAnalytics.Services;
 
 public sealed class VercelAnalyticsClient(
     HttpClient httpClient,
-    AnalyticsProviderRequestGate requestGate) : IAnalyticsProviderClient
+    AnalyticsProviderRequestGate requestGate) :
+    IAnalyticsProviderClient,
+    IAnalyticsEventsProviderClient,
+    IAnalyticsEventPropertiesProviderClient,
+    IAnalyticsFlagsProviderClient
 {
     private const int EventPropertyLimit = 20;
     private const string CountPath = "v1/query/web-analytics/visits/count";
     private const string AggregatePath = "v1/query/web-analytics/visits/aggregate";
     private const string EventCountPath = "v1/query/web-analytics/events/count";
     private const string EventAggregatePath = "v1/query/web-analytics/events/aggregate";
+
+    public AnalyticsProvider Provider => AnalyticsProvider.Vercel;
+
+    public AnalyticsCapabilities Capabilities => AnalyticsProviderCatalog.Default.Get(Provider).Capabilities;
 
     public async Task<string> GetDisplayNameAsync(
         AnalyticsConnection connection,
@@ -31,6 +39,17 @@ public sealed class VercelAnalyticsClient(
         return !string.IsNullOrWhiteSpace(project?.Name)
             ? project.Name
             : throw new JsonException("Vercel project response did not contain a name.");
+    }
+
+    public async Task<AnalyticsTotals> GetTotalsAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        CancellationToken cancellationToken)
+    {
+        var count = CountAsync(connection, query, cancellationToken);
+        var pageViews = GetPageViewTotalAsync(connection, query, cancellationToken);
+        await Task.WhenAll(count, pageViews);
+        return new AnalyticsTotals(await pageViews, (await count).Visitors);
     }
 
     public async Task<AnalyticsTotals> CountAsync(

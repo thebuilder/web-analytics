@@ -17,9 +17,28 @@ public sealed class WebAnalyticsSettingsApiController(
     WebAnalyticsSettingsStore settingsStore,
     AnalyticsConnectionRegistry registry,
     IOptions<WebAnalyticsOptions> serverOptions,
-    IAnalyticsProviderClient providerClient,
+    AnalyticsProviderCatalog providerCatalog,
+    IAnalyticsProviderClientResolver providerClients,
     IAnalyticsConnectionNameService projectNames) : WebAnalyticsApiControllerBase
 {
+    internal WebAnalyticsSettingsApiController(
+        IBackOfficeSecurityAccessor backOfficeSecurityAccessor,
+        WebAnalyticsSettingsStore settingsStore,
+        AnalyticsConnectionRegistry registry,
+        IOptions<WebAnalyticsOptions> serverOptions,
+        IAnalyticsProviderClient providerClient,
+        IAnalyticsConnectionNameService projectNames)
+        : this(
+            backOfficeSecurityAccessor,
+            settingsStore,
+            registry,
+            serverOptions,
+            AnalyticsProviderCatalog.Default,
+            new SingleAnalyticsProviderClientResolver(providerClient),
+            projectNames)
+    {
+    }
+
     [HttpGet("settings")]
     [ProducesResponseType<AnalyticsSettingsResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<AnalyticsSettingsResponse>> Settings(CancellationToken cancellationToken)
@@ -85,7 +104,7 @@ public sealed class WebAnalyticsSettingsApiController(
         try
         {
             var now = DateTimeOffset.UtcNow;
-            await providerClient.CountAsync(
+            await providerClients.Get(connection).GetTotalsAsync(
                 connection,
                 new AnalyticsQuery(key, now.AddDays(-1), now, AnalyticsInterval.Hour),
                 cancellationToken);
@@ -93,24 +112,7 @@ public sealed class WebAnalyticsSettingsApiController(
         }
         catch (AnalyticsProviderApiException exception)
         {
-            var message = (exception.Provider, exception.StatusCode) switch
-            {
-                (AnalyticsProvider.Vercel, System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden) =>
-                    "Vercel rejected the token or its project/team permissions.",
-                (AnalyticsProvider.Vercel, System.Net.HttpStatusCode.PaymentRequired) =>
-                    "Web Analytics is unavailable for the current Vercel plan or reporting window.",
-                (AnalyticsProvider.Vercel, System.Net.HttpStatusCode.BadRequest) =>
-                    "Vercel rejected the project or team configuration.",
-                (AnalyticsProvider.Plausible, System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden) =>
-                    "Plausible rejected the Stats API key or site access.",
-                (AnalyticsProvider.Plausible, System.Net.HttpStatusCode.PaymentRequired) =>
-                    "The Plausible Stats API is unavailable for the current plan.",
-                (AnalyticsProvider.Plausible, System.Net.HttpStatusCode.BadRequest or System.Net.HttpStatusCode.NotFound) =>
-                    "Plausible rejected the site ID or analytics query.",
-                (AnalyticsProvider.Plausible, System.Net.HttpStatusCode.TooManyRequests) =>
-                    "Plausible rate-limited the connection test. Try again shortly.",
-                _ => $"{connection.Provider} Analytics is temporarily unavailable."
-            };
+            var message = providerCatalog.Get(exception.Provider).ConnectionTestFailure(exception.StatusCode);
             return Ok(new AnalyticsConnectionTestResult(false, message));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -131,7 +133,6 @@ public sealed class WebAnalyticsSettingsApiController(
     {
         var settings = settingsStore.Get();
         var serverConfiguration = serverOptions.Value;
-        var vercelConfiguration = serverConfiguration.Providers.Vercel;
         var connections = registry.Connections.ToDictionary(connection => connection.Key);
         var responseTasks = settings.Connections.Select(async connection =>
         {
@@ -139,7 +140,7 @@ public sealed class WebAnalyticsSettingsApiController(
             var displayName = connection.IsMock
                 ? connection.DisplayName
                 : registered is null
-                    ? connection.Provider == AnalyticsProvider.Plausible ? connection.SiteId : connection.ProjectId
+                    ? providerCatalog.Get(connection.Provider).GetIdentifier(connection)
                     : await projectNames.GetDisplayNameAsync(registered, cancellationToken);
             return new AnalyticsConnectionSettingsResponse(
                 connection.Key,
@@ -148,7 +149,7 @@ public sealed class WebAnalyticsSettingsApiController(
                 connection.ProjectId,
                 connection.Team,
                 connection.SiteId,
-                registered?.Capabilities ?? AnalyticsProviderCapabilities.For(AnalyticsConnection.Create(connection, null)),
+                registered?.Capabilities ?? providerCatalog.Get(connection.Provider).Capabilities,
                 connection.DocumentRootKeys,
                 connection.EnableAllDocumentTypes,
                 connection.EnabledDocumentTypeKeys,
@@ -159,10 +160,11 @@ public sealed class WebAnalyticsSettingsApiController(
         var responseConnections = await Task.WhenAll(responseTasks);
         return new AnalyticsSettingsResponse(
             settings.Enabled,
-            [
-                new(AnalyticsProvider.Vercel, !string.IsNullOrWhiteSpace(vercelConfiguration.AccessToken)),
-                new(AnalyticsProvider.Plausible, !string.IsNullOrWhiteSpace(serverConfiguration.Providers.Plausible.AccessToken))
-            ],
+            providerCatalog.Definitions
+                .Select(definition => new AnalyticsProviderTokenStatus(
+                    definition.Provider,
+                    !string.IsNullOrWhiteSpace(definition.GetAccessToken(serverConfiguration))))
+                .ToArray(),
             registry.MockConnectionsEnabled,
             settings.DefaultRangeDays,
             settings.CacheDuration.ToString("c"),

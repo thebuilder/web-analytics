@@ -7,9 +7,17 @@ namespace TheBuilder.WebAnalytics.Services;
 
 public sealed class AnalyticsReportService(
     AnalyticsConnectionRegistry registry,
-    IAnalyticsProviderClient client,
+    IAnalyticsProviderClientResolver clients,
     AnalyticsReportCache cache)
 {
+    internal AnalyticsReportService(
+        AnalyticsConnectionRegistry registry,
+        IAnalyticsProviderClient client,
+        AnalyticsReportCache cache)
+        : this(registry, new SingleAnalyticsProviderClientResolver(client), cache)
+    {
+    }
+
     public async Task<AnalyticsSummary?> GetSummaryAsync(
         AnalyticsQuery query,
         CancellationToken cancellationToken)
@@ -17,17 +25,16 @@ public sealed class AnalyticsReportService(
         var snapshot = registry.Capture();
         var connection = snapshot.Get(query.Connection);
         if (connection is null || !connection.IsConfigured) return null;
+        var client = clients.Get(connection);
         var cacheKey = $"web-analytics:{connection.Provider}:{snapshot.Revision}:summary:{Normalize(query)}";
         return await GetOrCreateAsync(cacheKey, snapshot.Settings.CacheDuration, async operationCancellationToken =>
         {
-            var count = client.CountAsync(connection, query, operationCancellationToken);
-            var pageViews = PageViewsAsync(connection, query, count, operationCancellationToken);
+            var totals = client.GetTotalsAsync(connection, query, operationCancellationToken);
             var previousTotals = TryGetPreviousTotalsAsync(connection, query, operationCancellationToken);
             var trend = client.GetTrendAsync(connection, query, operationCancellationToken);
-            await Task.WhenAll(count, pageViews, previousTotals, trend);
+            await Task.WhenAll(totals, previousTotals, trend);
             var points = await trend;
-            var totals = new AnalyticsTotals(await pageViews, (await count).Visitors);
-            return new AnalyticsSummary(totals, await previousTotals, points);
+            return new AnalyticsSummary(await totals, await previousTotals, points);
         }, cancellationToken);
     }
 
@@ -41,6 +48,7 @@ public sealed class AnalyticsReportService(
         var snapshot = registry.Capture();
         var connection = snapshot.Get(query.Connection);
         if (connection is null || !connection.IsConfigured || !connection.Capabilities.Dimensions.Contains(dimension)) return null;
+        var client = clients.Get(connection);
         var normalizedSearch = search?.Trim();
         var cacheKey = $"web-analytics:{connection.Provider}:{snapshot.Revision}:breakdown:{dimension}:{limit}:{normalizedSearch}:{Normalize(query)}";
         return await GetOrCreateAsync(cacheKey, snapshot.Settings.CacheDuration, async operationCancellationToken =>
@@ -59,6 +67,7 @@ public sealed class AnalyticsReportService(
         var snapshot = registry.Capture();
         var connection = snapshot.Get(query.Connection);
         if (connection is null || !connection.IsConfigured || !connection.Capabilities.Events) return null;
+        if (clients.Get(connection) is not IAnalyticsEventsProviderClient client) return null;
         var normalizedSearch = search?.Trim();
         var cacheKey = $"web-analytics:{connection.Provider}:{snapshot.Revision}:events:{limit}:{normalizedSearch}:{Normalize(query)}";
         return await GetOrCreateAsync(cacheKey, snapshot.Settings.CacheDuration, async operationCancellationToken =>
@@ -77,6 +86,7 @@ public sealed class AnalyticsReportService(
         var snapshot = registry.Capture();
         var connection = snapshot.Get(query.Connection);
         if (connection is null || !connection.IsConfigured || !connection.Capabilities.Flags) return null;
+        if (clients.Get(connection) is not IAnalyticsFlagsProviderClient client) return null;
         var normalizedFlagKey = string.IsNullOrWhiteSpace(flagKey) ? null : flagKey.Trim();
         var flagKeyCacheKey = EncodeCachePart(normalizedFlagKey ?? string.Empty);
         var cacheKey = $"web-analytics:{connection.Provider}:{snapshot.Revision}:flags:{flagKeyCacheKey}:{limit}:{Normalize(query)}";
@@ -96,6 +106,7 @@ public sealed class AnalyticsReportService(
         var snapshot = registry.Capture();
         var connection = snapshot.Get(query.Connection);
         if (connection is null || !connection.IsConfigured || !connection.Capabilities.EventProperties) return null;
+        if (clients.Get(connection) is not IAnalyticsEventPropertiesProviderClient client) return null;
         var normalizedEventName = eventName.Trim();
         var eventDataCacheKey = eventDataFilter is null
             ? string.Empty
@@ -126,6 +137,7 @@ public sealed class AnalyticsReportService(
         var snapshot = registry.Capture();
         var connection = snapshot.Get(query.Connection);
         if (connection is null || !connection.IsConfigured || !connection.Capabilities.EventProperties) return null;
+        if (clients.Get(connection) is not IAnalyticsEventPropertiesProviderClient client) return null;
         var normalizedEventName = eventName.Trim();
         var normalizedPropertyName = propertyName.Trim();
         var normalizedSearch = search?.Trim();
@@ -187,11 +199,10 @@ public sealed class AnalyticsReportService(
 
         try
         {
-            var count = client.CountAsync(connection, previousQuery, cancellationToken);
-            var pageViews = PageViewsAsync(connection, previousQuery, count, cancellationToken);
-            comparison = Task.WhenAll(count, pageViews);
+            var totals = clients.Get(connection).GetTotalsAsync(connection, previousQuery, cancellationToken);
+            comparison = totals;
             await comparison;
-            return new AnalyticsTotals(await pageViews, (await count).Visitors);
+            return await totals;
         }
         catch (Exception failure)
         {
@@ -211,11 +222,9 @@ public sealed class AnalyticsReportService(
     private static bool IsOptionalComparisonFailure(Exception failure) =>
         failure is AnalyticsProviderApiException or HttpRequestException or JsonException or OperationCanceledException;
 
-    private async Task<long> PageViewsAsync(
-        AnalyticsConnection connection,
-        AnalyticsQuery query,
-        Task<AnalyticsTotals> count,
-        CancellationToken cancellationToken) => connection.Provider == AnalyticsProvider.Plausible
-            ? (await count).PageViews
-            : await client.GetPageViewTotalAsync(connection, query, cancellationToken);
+}
+
+internal sealed class SingleAnalyticsProviderClientResolver(IAnalyticsProviderClient client) : IAnalyticsProviderClientResolver
+{
+    public IAnalyticsProviderClient Get(AnalyticsConnection connection) => client;
 }

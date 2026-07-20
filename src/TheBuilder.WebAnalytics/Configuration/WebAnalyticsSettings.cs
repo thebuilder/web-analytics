@@ -114,16 +114,27 @@ public sealed class WebAnalyticsSettingsStore
         Enabled = settings.Enabled,
         DefaultRangeDays = settings.DefaultRangeDays,
         CacheDuration = settings.CacheDuration,
-        Connections = settings.Connections.Select(connection => new AnalyticsConnectionSettings
+        Connections = settings.Connections.Select(NormalizeConnection).ToList()
+    };
+
+    private static AnalyticsConnectionSettings NormalizeConnection(AnalyticsConnectionSettings connection)
+    {
+        var definition = AnalyticsProviderCatalog.Default.Get(connection.Provider);
+        var isMock = connection.IsMock;
+        return new AnalyticsConnectionSettings
         {
             Key = connection.Key == Guid.Empty ? Guid.NewGuid() : connection.Key,
             Provider = connection.Provider,
             DisplayName = connection.MockScenario is { } scenario
                 ? MockAnalyticsScenarioMetadata.DisplayName(scenario)
                 : connection.DisplayName.Trim(),
-            ProjectId = connection.IsMock || connection.Provider != AnalyticsProvider.Vercel ? string.Empty : connection.ProjectId.Trim(),
-            Team = connection.IsMock || connection.Provider != AnalyticsProvider.Vercel ? null : NullIfWhiteSpace(connection.Team),
-            SiteId = connection.IsMock || connection.Provider != AnalyticsProvider.Plausible ? string.Empty : connection.SiteId.Trim(),
+            ProjectId = !isMock && definition.Identifier == AnalyticsConnectionIdentifier.ProjectId
+                ? connection.ProjectId.Trim()
+                : string.Empty,
+            Team = !isMock && definition.SupportsTeam ? NullIfWhiteSpace(connection.Team) : null,
+            SiteId = !isMock && definition.Identifier == AnalyticsConnectionIdentifier.SiteId
+                ? connection.SiteId.Trim()
+                : string.Empty,
             MockScenario = connection.MockScenario,
             DocumentRootKeys = NormalizeGuidValues(connection.DocumentRootKeys),
             EnableAllDocumentTypes = connection.EnableAllDocumentTypes,
@@ -133,8 +144,8 @@ public sealed class WebAnalyticsSettingsStore
                 .Where(value => value.Length > 0)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray()
-        }).ToList()
-    };
+        };
+    }
 
     private static string? NullIfWhiteSpace(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();

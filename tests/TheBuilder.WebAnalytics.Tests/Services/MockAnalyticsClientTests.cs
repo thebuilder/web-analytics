@@ -151,9 +151,10 @@ public sealed class MockAnalyticsClientTests
     public async Task Router_serves_mock_reports_without_contacting_Vercel()
     {
         var handler = new RejectingHttpMessageHandler();
-        var router = new AnalyticsProviderClientRouter(
+        var router = new AnalyticsProviderClientResolver(
             new VercelAnalyticsClient(new HttpClient(handler), new AnalyticsProviderRequestGate()),
-            new MockAnalyticsClient());
+            new MockAnalyticsClient(),
+            new PlausibleAnalyticsClient(new HttpClient(handler), new AnalyticsProviderRequestGate()));
         using var cache = new AnalyticsReportCache();
         var service = new AnalyticsReportService(
             CreateRegistry(MockAnalyticsScenario.Complete, true),

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using TheBuilder.WebAnalytics.Configuration;
 
 namespace TheBuilder.WebAnalytics.Models;
 
@@ -160,7 +161,7 @@ public sealed record AnalyticsDocumentRoute(
         : this(
             connection,
             AnalyticsProvider.Vercel,
-            AnalyticsProviderCapabilitiesDefaults.Vercel,
+            AnalyticsProviderCatalog.Default.Get(AnalyticsProvider.Vercel).Capabilities,
             culture,
             hostname,
             path,
@@ -169,15 +170,6 @@ public sealed record AnalyticsDocumentRoute(
             warnings)
     {
     }
-}
-
-internal static class AnalyticsProviderCapabilitiesDefaults
-{
-    public static readonly AnalyticsCapabilities Vercel = new(
-        Enum.GetValues<AnalyticsDimension>(),
-        Events: true,
-        EventProperties: true,
-        Flags: true);
 }
 
 public sealed record AnalyticsSettingsResponse(

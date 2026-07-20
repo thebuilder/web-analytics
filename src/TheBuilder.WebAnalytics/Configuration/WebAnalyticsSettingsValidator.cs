@@ -50,17 +50,21 @@ public static class WebAnalyticsSettingsValidator
             failures.Add("Every connection requires a valid key.");
         else if (!keys.Add(connection.Key))
             failures.Add($"Connection key '{connection.Key}' is used more than once.");
-        if (!Enum.IsDefined(connection.Provider))
+        var hasProvider = AnalyticsProviderCatalog.Default.TryGet(connection.Provider, out var provider);
+        if (!hasProvider)
             failures.Add($"Connection '{label}' defines an unsupported analytics provider.");
-        if (requireConnectionMetadata && !hasSupportedMockScenario && connection.Provider == AnalyticsProvider.Vercel && string.IsNullOrWhiteSpace(connection.ProjectId))
-            failures.Add($"Connection '{label}' requires a project ID.");
-        if (requireConnectionMetadata && !hasSupportedMockScenario && connection.Provider == AnalyticsProvider.Plausible && string.IsNullOrWhiteSpace(connection.SiteId))
-            failures.Add($"Connection '{label}' requires a Plausible site ID.");
-        if (!string.IsNullOrWhiteSpace(connection.ProjectId) && connection.Provider != AnalyticsProvider.Vercel)
+        if (requireConnectionMetadata && !hasSupportedMockScenario && hasProvider &&
+            string.IsNullOrWhiteSpace(provider.GetIdentifier(connection)))
+            failures.Add(provider.Identifier == AnalyticsConnectionIdentifier.ProjectId
+                ? $"Connection '{label}' requires a project ID."
+                : $"Connection '{label}' requires a Plausible site ID.");
+        if (!string.IsNullOrWhiteSpace(connection.ProjectId) &&
+            (!hasProvider || provider.Identifier != AnalyticsConnectionIdentifier.ProjectId))
             failures.Add($"Connection '{label}' cannot define a Vercel project ID for {connection.Provider}.");
-        if (!string.IsNullOrWhiteSpace(connection.Team) && connection.Provider != AnalyticsProvider.Vercel)
+        if (!string.IsNullOrWhiteSpace(connection.Team) && (!hasProvider || !provider.SupportsTeam))
             failures.Add($"Connection '{label}' cannot define a Vercel team for {connection.Provider}.");
-        if (!string.IsNullOrWhiteSpace(connection.SiteId) && connection.Provider != AnalyticsProvider.Plausible)
+        if (!string.IsNullOrWhiteSpace(connection.SiteId) &&
+            (!hasProvider || provider.Identifier != AnalyticsConnectionIdentifier.SiteId))
             failures.Add($"Connection '{label}' cannot define a Plausible site ID for {connection.Provider}.");
         if (hasSupportedMockScenario && !string.IsNullOrWhiteSpace(connection.ProjectId))
             failures.Add($"Mock connection '{label}' cannot define a Vercel project ID.");

@@ -81,7 +81,7 @@ public sealed class AnalyticsConnectionRegistry
             connection => AnalyticsConnection.Create(
                 connection,
                 ResolveAccessToken(
-                    ProviderAccessToken(serverConfiguration, connection.Provider),
+                    AnalyticsProviderCatalog.Default.Get(connection.Provider).GetAccessToken(serverConfiguration),
                     serverConfiguration.ConnectionAccessTokens.GetValueOrDefault(connection.Key.ToString()))));
         var roots = connections.Values
             .SelectMany(connection => connection.DocumentRootKeys.Select(rootKey => (rootKey, connection.Key)))
@@ -97,13 +97,6 @@ public sealed class AnalyticsConnectionRegistry
         !string.IsNullOrWhiteSpace(connectionAccessToken)
             ? connectionAccessToken
             : sharedAccessToken ?? string.Empty;
-
-    private static string ProviderAccessToken(WebAnalyticsOptions options, AnalyticsProvider provider) => provider switch
-    {
-        AnalyticsProvider.Vercel => options.Providers.Vercel.AccessToken,
-        AnalyticsProvider.Plausible => options.Providers.Plausible.AccessToken,
-        _ => string.Empty
-    };
 
     internal sealed record RegistrySnapshot(
         WebAnalyticsSettings Settings,
@@ -160,14 +153,12 @@ public sealed record AnalyticsConnection(
 
     public bool IsMock => MockScenario is not null;
 
-    public bool IsConfigured => IsMock || HasAccessToken && Provider switch
-    {
-        AnalyticsProvider.Vercel => !string.IsNullOrWhiteSpace(ProjectId),
-        AnalyticsProvider.Plausible => !string.IsNullOrWhiteSpace(SiteId),
-        _ => false
-    };
+    public bool IsConfigured => IsMock || HasAccessToken &&
+        !string.IsNullOrWhiteSpace(AnalyticsProviderCatalog.Default.Get(Provider).GetIdentifier(this));
 
-    public AnalyticsCapabilities Capabilities => AnalyticsProviderCapabilities.For(this);
+    public AnalyticsCapabilities Capabilities => IsMock
+        ? AnalyticsProviderCatalog.Default.Get(AnalyticsProvider.Vercel).Capabilities
+        : AnalyticsProviderCatalog.Default.Get(Provider).Capabilities;
 
     public override string ToString() =>
         $"{nameof(AnalyticsConnection)} {{ Key = {Key}, DisplayName = {DisplayName}, Provider = {Provider}, ProjectId = {ProjectId}, Team = {Team}, SiteId = {SiteId}, AccessToken = [REDACTED] }}";
@@ -201,31 +192,4 @@ public sealed record AnalyticsConnection(
         .Select(value => Guid.TryParse(value, out var parsed) ? parsed : (Guid?)null)
         .OfType<Guid>()
         .ToArray();
-}
-
-internal static class AnalyticsProviderCapabilities
-{
-    private static readonly AnalyticsDimension[] VercelDimensions = Enum.GetValues<AnalyticsDimension>();
-    private static readonly AnalyticsDimension[] PlausibleDimensions =
-    [
-        AnalyticsDimension.RequestPath,
-        AnalyticsDimension.Route,
-        AnalyticsDimension.ReferrerHostname,
-        AnalyticsDimension.Country,
-        AnalyticsDimension.DeviceType,
-        AnalyticsDimension.BrowserName,
-        AnalyticsDimension.OsName,
-        AnalyticsDimension.UtmSource,
-        AnalyticsDimension.UtmMedium,
-        AnalyticsDimension.UtmCampaign,
-        AnalyticsDimension.EventName
-    ];
-
-    public static AnalyticsCapabilities For(AnalyticsConnection connection) => connection.IsMock
-        ? new(VercelDimensions, Events: true, EventProperties: true, Flags: true)
-        : connection.Provider switch
-        {
-            AnalyticsProvider.Plausible => new(PlausibleDimensions, Events: true, EventProperties: false, Flags: false),
-            _ => new(VercelDimensions, Events: true, EventProperties: true, Flags: true)
-        };
 }

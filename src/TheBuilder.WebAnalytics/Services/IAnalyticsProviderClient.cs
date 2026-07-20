@@ -5,16 +5,15 @@ namespace TheBuilder.WebAnalytics.Services;
 
 public interface IAnalyticsProviderClient
 {
+    AnalyticsProvider Provider { get; }
+
+    AnalyticsCapabilities Capabilities { get; }
+
     Task<string> GetDisplayNameAsync(
         AnalyticsConnection connection,
         CancellationToken cancellationToken);
 
-    Task<AnalyticsTotals> CountAsync(
-        AnalyticsConnection connection,
-        AnalyticsQuery query,
-        CancellationToken cancellationToken);
-
-    Task<long> GetPageViewTotalAsync(
+    Task<AnalyticsTotals> GetTotalsAsync(
         AnalyticsConnection connection,
         AnalyticsQuery query,
         CancellationToken cancellationToken);
@@ -32,25 +31,25 @@ public interface IAnalyticsProviderClient
         string? search,
         CancellationToken cancellationToken);
 
-    Task<AnalyticsEventTotals> CountEventsAsync(
-        AnalyticsConnection connection,
-        AnalyticsQuery query,
-        string eventName,
-        AnalyticsEventDataFilter? eventDataFilter,
-        CancellationToken cancellationToken);
+}
 
+public interface IAnalyticsEventsProviderClient
+{
     Task<IReadOnlyList<AnalyticsEventRow>> GetEventsAsync(
         AnalyticsConnection connection,
         AnalyticsQuery query,
         int limit,
         string? search,
         CancellationToken cancellationToken);
+}
 
-    Task<IReadOnlyList<AnalyticsFlagRow>> GetFlagsAsync(
+public interface IAnalyticsEventPropertiesProviderClient
+{
+    Task<AnalyticsEventTotals> CountEventsAsync(
         AnalyticsConnection connection,
         AnalyticsQuery query,
-        string? flagKey,
-        int limit,
+        string eventName,
+        AnalyticsEventDataFilter? eventDataFilter,
         CancellationToken cancellationToken);
 
     Task<IReadOnlyList<string>> GetEventPropertyNamesAsync(
@@ -69,4 +68,19 @@ public interface IAnalyticsProviderClient
         string? search,
         AnalyticsEventDataFilter? eventDataFilter,
         CancellationToken cancellationToken);
+}
+
+public interface IAnalyticsFlagsProviderClient
+{
+    Task<IReadOnlyList<AnalyticsFlagRow>> GetFlagsAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        string? flagKey,
+        int limit,
+        CancellationToken cancellationToken);
+}
+
+public interface IAnalyticsProviderClientResolver
+{
+    IAnalyticsProviderClient Get(AnalyticsConnection connection);
 }

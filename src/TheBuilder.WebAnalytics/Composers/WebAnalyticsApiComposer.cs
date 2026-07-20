@@ -18,6 +18,7 @@ namespace TheBuilder.WebAnalytics.Composers
                 .ValidateOnStart();
             builder.Services.AddSingleton<IValidateOptions<WebAnalyticsOptions>, WebAnalyticsOptionsValidator>();
             builder.Services.AddSingleton<WebAnalyticsSettingsStore>();
+            builder.Services.AddSingleton(AnalyticsProviderCatalog.Default);
             builder.Services.AddSingleton<AnalyticsConnectionRegistry>();
             builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<AnalyticsReportCache>();
@@ -33,7 +34,7 @@ namespace TheBuilder.WebAnalytics.Composers
                 client.Timeout = TimeSpan.FromSeconds(15);
             });
             builder.Services.AddSingleton<MockAnalyticsClient>();
-            builder.Services.AddTransient<IAnalyticsProviderClient, AnalyticsProviderClientRouter>();
+            builder.Services.AddTransient<IAnalyticsProviderClientResolver, AnalyticsProviderClientResolver>();
             builder.Services.AddTransient<AnalyticsReportService>();
             builder.Services.AddTransient<IAnalyticsConnectionNameService, AnalyticsConnectionNameService>();
             builder.Services.AddTransient<IAnalyticsAuthorizationService, AnalyticsAuthorizationService>();

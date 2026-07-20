@@ -24,7 +24,6 @@ public sealed class AnalyticsReportServiceTests
         Assert.Same(first, second);
         Assert.Equal(2, client.CountCalls);
         Assert.Equal(1, client.TrendCalls);
-        Assert.Equal(2, client.PageViewTotalCalls);
     }
 
     [Fact]
@@ -43,7 +42,6 @@ public sealed class AnalyticsReportServiceTests
 
         Assert.Equal(4, client.CountCalls);
         Assert.Equal(2, client.TrendCalls);
-        Assert.Equal(4, client.PageViewTotalCalls);
     }
 
     [Fact]
@@ -171,36 +169,6 @@ public sealed class AnalyticsReportServiceTests
     }
 
     [Fact]
-    public async Task Summary_propagates_an_unexpected_previous_page_view_failure_when_count_has_an_optional_failure()
-    {
-        var client = new CountingClient
-        {
-            PreviousCountException = new AnalyticsProviderApiException(System.Net.HttpStatusCode.PaymentRequired),
-            PreviousPageViewTotalException = new InvalidOperationException()
-        };
-        using var cache = new AnalyticsReportCache();
-        var service = new AnalyticsReportService(CreateRegistry(), client, cache);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.GetSummaryAsync(CreateQuery(), CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task Summary_propagates_an_unexpected_previous_count_failure_when_page_views_have_an_optional_failure()
-    {
-        var client = new CountingClient
-        {
-            PreviousCountException = new InvalidOperationException(),
-            PreviousPageViewTotalException = new AnalyticsProviderApiException(System.Net.HttpStatusCode.PaymentRequired)
-        };
-        using var cache = new AnalyticsReportCache();
-        var service = new AnalyticsReportService(CreateRegistry(), client, cache);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.GetSummaryAsync(CreateQuery(), CancellationToken.None));
-    }
-
-    [Fact]
     public async Task Summary_omits_comparison_when_the_previous_range_would_precede_date_minimum()
     {
         var client = new CountingClient();
@@ -262,7 +230,6 @@ public sealed class AnalyticsReportServiceTests
 
         Assert.Equal(4, client.CountCalls);
         Assert.Equal(2, client.TrendCalls);
-        Assert.Equal(4, client.PageViewTotalCalls);
     }
 
     [Fact]
@@ -365,7 +332,6 @@ public sealed class AnalyticsReportServiceTests
             service.GetSummaryAsync(CreateQuery(), cancellation.Token));
 
         Assert.Equal(0, client.CountCalls);
-        Assert.Equal(0, client.PageViewTotalCalls);
         Assert.Equal(0, client.TrendCalls);
     }
 
@@ -388,7 +354,6 @@ public sealed class AnalyticsReportServiceTests
         Assert.NotNull(summaries[0]);
         Assert.Same(summaries[0], summaries[1]);
         Assert.Equal(2, client.CountCalls);
-        Assert.Equal(2, client.PageViewTotalCalls);
         Assert.Equal(1, client.TrendCalls);
     }
 
@@ -439,11 +404,18 @@ public sealed class AnalyticsReportServiceTests
         ]
     }));
 
-    private sealed class CountingClient : IAnalyticsProviderClient
+    private sealed class CountingClient :
+        IAnalyticsProviderClient,
+        IAnalyticsEventsProviderClient,
+        IAnalyticsEventPropertiesProviderClient,
+        IAnalyticsFlagsProviderClient
     {
+        public AnalyticsProvider Provider => AnalyticsProvider.Vercel;
+
+        public AnalyticsCapabilities Capabilities => AnalyticsProviderCatalog.Default.Get(Provider).Capabilities;
+
         public int CountCalls { get; private set; }
         public int TrendCalls { get; private set; }
-        public int PageViewTotalCalls { get; private set; }
         public int BreakdownCalls { get; private set; }
         public int EventCalls { get; private set; }
         public int EventCountCalls { get; private set; }
@@ -457,7 +429,6 @@ public sealed class AnalyticsReportServiceTests
         public CancellationToken LastCountCancellationToken { get; private set; }
         public Exception? CurrentCountException { get; init; }
         public Exception? PreviousCountException { get; init; }
-        public Exception? PreviousPageViewTotalException { get; init; }
         public Action? BeforePreviousCountFailure { get; init; }
         public TaskCompletionSource? PreviousCountStarted { get; init; }
         public TaskCompletionSource? PreviousCountRelease { get; init; }
@@ -467,7 +438,7 @@ public sealed class AnalyticsReportServiceTests
         public Task<string> GetDisplayNameAsync(AnalyticsConnection connection, CancellationToken cancellationToken) =>
             Task.FromResult(connection.DisplayName);
 
-        public async Task<AnalyticsTotals> CountAsync(AnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)
+        public async Task<AnalyticsTotals> GetTotalsAsync(AnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             LastCountCancellationToken = cancellationToken;
@@ -500,17 +471,6 @@ public sealed class AnalyticsReportServiceTests
             }
 
             return new AnalyticsTotals(20, 10);
-        }
-
-        public Task<long> GetPageViewTotalAsync(AnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            PageViewTotalCalls++;
-            if (query.To <= new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero) && PreviousPageViewTotalException is not null)
-            {
-                return Task.FromException<long>(PreviousPageViewTotalException);
-            }
-            return Task.FromResult(20L);
         }
 
         public Task<IReadOnlyList<AnalyticsPoint>> GetTrendAsync(AnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)

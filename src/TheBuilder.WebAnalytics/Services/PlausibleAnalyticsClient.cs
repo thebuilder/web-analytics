@@ -10,13 +10,22 @@ namespace TheBuilder.WebAnalytics.Services;
 
 public sealed class PlausibleAnalyticsClient(
     HttpClient httpClient,
-    AnalyticsProviderRequestGate requestGate) : IAnalyticsProviderClient
+    AnalyticsProviderRequestGate requestGate) : IAnalyticsProviderClient, IAnalyticsEventsProviderClient
 {
     private const string QueryPath = "api/v2/query";
+
+    public AnalyticsProvider Provider => AnalyticsProvider.Plausible;
+
+    public AnalyticsCapabilities Capabilities => AnalyticsProviderCatalog.Default.Get(Provider).Capabilities;
 
     public Task<string> GetDisplayNameAsync(
         AnalyticsConnection connection,
         CancellationToken cancellationToken) => Task.FromResult(connection.SiteId);
+
+    public Task<AnalyticsTotals> GetTotalsAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        CancellationToken cancellationToken) => CountAsync(connection, query, cancellationToken);
 
     public async Task<AnalyticsTotals> CountAsync(
         AnalyticsConnection connection,
@@ -27,11 +36,6 @@ public sealed class PlausibleAnalyticsClient(
         var row = SingleRow(response);
         return new AnalyticsTotals(Metric(row, 0, "pageviews"), Metric(row, 1, "visitors"));
     }
-
-    public async Task<long> GetPageViewTotalAsync(
-        AnalyticsConnection connection,
-        AnalyticsQuery query,
-        CancellationToken cancellationToken) => (await CountAsync(connection, query, cancellationToken)).PageViews;
 
     public async Task<IReadOnlyList<AnalyticsPoint>> GetTrendAsync(
         AnalyticsConnection connection,
@@ -76,19 +80,6 @@ public sealed class PlausibleAnalyticsClient(
             Metric(row, 1, "visitors"))).ToArray();
     }
 
-    public async Task<AnalyticsEventTotals> CountEventsAsync(
-        AnalyticsConnection connection,
-        AnalyticsQuery query,
-        string eventName,
-        AnalyticsEventDataFilter? eventDataFilter,
-        CancellationToken cancellationToken)
-    {
-        if (eventDataFilter is not null) return new AnalyticsEventTotals(0, 0);
-        var response = await QueryAsync(connection, query, ["events", "visitors"], [], null, null, cancellationToken, eventName);
-        var row = SingleRow(response);
-        return new AnalyticsEventTotals(Metric(row, 0, "events"), Metric(row, 1, "visitors"));
-    }
-
     public async Task<IReadOnlyList<AnalyticsEventRow>> GetEventsAsync(
         AnalyticsConnection connection,
         AnalyticsQuery query,
@@ -110,30 +101,6 @@ public sealed class PlausibleAnalyticsClient(
             Metric(row, 0, "events"),
             Metric(row, 1, "visitors"))).ToArray();
     }
-
-    public Task<IReadOnlyList<AnalyticsFlagRow>> GetFlagsAsync(
-        AnalyticsConnection connection,
-        AnalyticsQuery query,
-        string? flagKey,
-        int limit,
-        CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<AnalyticsFlagRow>>([]);
-
-    public Task<IReadOnlyList<string>> GetEventPropertyNamesAsync(
-        AnalyticsConnection connection,
-        AnalyticsQuery query,
-        string eventName,
-        AnalyticsEventDataFilter? eventDataFilter,
-        CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<string>>([]);
-
-    public Task<IReadOnlyList<AnalyticsEventPropertyValue>> GetEventPropertyValuesAsync(
-        AnalyticsConnection connection,
-        AnalyticsQuery query,
-        string eventName,
-        string propertyName,
-        int limit,
-        string? search,
-        AnalyticsEventDataFilter? eventDataFilter,
-        CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<AnalyticsEventPropertyValue>>([]);
 
     private async Task<PlausibleResponse> QueryAsync(
         AnalyticsConnection connection,

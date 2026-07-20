@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using TheBuilder.WebAnalytics.Configuration;
 using TheBuilder.WebAnalytics.Models;
 using TheBuilder.WebAnalytics.Services;
 
@@ -63,8 +64,11 @@ internal static class WebAnalyticsProblemFactory
         _ => null
     };
 
-    private static WebAnalyticsProblemDefinition FromProviderStatus(AnalyticsProvider provider, HttpStatusCode statusCode) => statusCode switch
+    private static WebAnalyticsProblemDefinition FromProviderStatus(AnalyticsProvider provider, HttpStatusCode statusCode)
     {
+        var definition = AnalyticsProviderCatalog.Default.Get(provider);
+        return statusCode switch
+        {
         HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => new(
             StatusCodes.Status502BadGateway,
             WebAnalyticsProblemCodes.InvalidCredentials,
@@ -73,7 +77,7 @@ internal static class WebAnalyticsProblemFactory
             StatusCodes.Status402PaymentRequired,
             WebAnalyticsProblemCodes.PlanLimit,
             $"The report is unavailable for the current {provider} plan."),
-        HttpStatusCode.BadRequest => new(
+        _ when definition.IsInvalidQuery(statusCode) => new(
             StatusCodes.Status400BadRequest,
             WebAnalyticsProblemCodes.InvalidQuery,
             $"{provider} rejected the analytics query or reporting window."),
@@ -85,7 +89,8 @@ internal static class WebAnalyticsProblemFactory
             StatusCodes.Status502BadGateway,
             WebAnalyticsProblemCodes.UpstreamUnavailable,
             $"{provider} Analytics is temporarily unavailable.")
-    };
+        };
+    }
 }
 
 public sealed class WebAnalyticsExceptionFilter : IExceptionFilter
