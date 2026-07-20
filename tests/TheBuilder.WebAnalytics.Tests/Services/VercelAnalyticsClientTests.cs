@@ -446,8 +446,52 @@ public sealed class VercelAnalyticsClientTests
         Assert.DoesNotContain("secret", exception.Message);
     }
 
+    [Fact]
+    public async Task Request_gate_bounds_real_http_operations_across_client_instances()
+    {
+        using var gate = new VercelAnalyticsRequestGate(maximumConcurrentRequests: 8);
+        var handler = new BlockingHandler(expectedStarts: 8);
+        var firstClient = CreateClient(handler, gate);
+        var secondClient = CreateClient(handler, gate);
+        var connection = CreateConnection();
+        var query = new AnalyticsQuery(connection.Key, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 2), AnalyticsInterval.Day);
+        var admitted = Enumerable.Range(0, 8)
+            .Select(index => (index % 2 == 0 ? firstClient : secondClient).CountAsync(connection, query, CancellationToken.None))
+            .ToArray();
+
+        await handler.AllExpectedRequestsStarted;
+
+        var rejected = firstClient.CountAsync(connection, query, CancellationToken.None);
+        Assert.True(rejected.IsFaulted);
+        await Assert.ThrowsAsync<AnalyticsReportCapacityException>(async () => await rejected);
+
+        handler.Release();
+        await Task.WhenAll(admitted);
+        await firstClient.CountAsync(connection, query, CancellationToken.None);
+
+        Assert.Equal(9, handler.RequestCount);
+        Assert.InRange(handler.MaximumActiveRequests, 1, 8);
+    }
+
+    [Fact]
+    public async Task Request_gate_releases_capacity_after_an_upstream_error()
+    {
+        using var gate = new VercelAnalyticsRequestGate(maximumConcurrentRequests: 1);
+        var client = CreateClient(new SequencedHandler(HttpStatusCode.Forbidden, HttpStatusCode.OK), gate);
+        var connection = CreateConnection();
+        var query = new AnalyticsQuery(connection.Key, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 2), AnalyticsInterval.Day);
+
+        await Assert.ThrowsAsync<VercelAnalyticsApiException>(() => client.CountAsync(connection, query, CancellationToken.None));
+        var result = await client.CountAsync(connection, query, CancellationToken.None);
+
+        Assert.Equal(new AnalyticsTotals(42, 31), result);
+    }
+
     private static VercelAnalyticsClient CreateClient(HttpMessageHandler handler) =>
-        new(new HttpClient(handler) { BaseAddress = new Uri("https://api.vercel.com/") });
+        CreateClient(handler, new VercelAnalyticsRequestGate());
+
+    private static VercelAnalyticsClient CreateClient(HttpMessageHandler handler, VercelAnalyticsRequestGate gate) =>
+        new(new HttpClient(handler) { BaseAddress = new Uri("https://api.vercel.com/") }, gate);
 
     private static VercelAnalyticsConnection CreateConnection(string? team = null) => new(
         Guid.Parse("11111111-1111-1111-1111-111111111110"), "Main", "secret", "project", team,
@@ -469,4 +513,64 @@ public sealed class VercelAnalyticsClientTests
             });
         }
     }
+
+    private sealed class BlockingHandler(int expectedStarts) : HttpMessageHandler
+    {
+        private readonly TaskCompletionSource _allExpectedRequestsStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _activeRequests;
+        private int _maximumActiveRequests;
+        private int _requestCount;
+
+        public Task AllExpectedRequestsStarted => _allExpectedRequestsStarted.Task;
+        public int MaximumActiveRequests => _maximumActiveRequests;
+        public int RequestCount => _requestCount;
+
+        public void Release() => _release.SetResult();
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var activeRequests = Interlocked.Increment(ref _activeRequests);
+            UpdateMaximum(activeRequests);
+            if (Interlocked.Increment(ref _requestCount) == expectedStarts)
+            {
+                _allExpectedRequestsStarted.SetResult();
+            }
+
+            try
+            {
+                await _release.Task.WaitAsync(cancellationToken);
+                return SuccessfulResponse();
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _activeRequests);
+            }
+        }
+
+        private void UpdateMaximum(int activeRequests)
+        {
+            var observed = Volatile.Read(ref _maximumActiveRequests);
+            while (activeRequests > observed && Interlocked.CompareExchange(ref _maximumActiveRequests, activeRequests, observed) != observed)
+            {
+                observed = Volatile.Read(ref _maximumActiveRequests);
+            }
+        }
+    }
+
+    private sealed class SequencedHandler(params HttpStatusCode[] statusCodes) : HttpMessageHandler
+    {
+        private int _nextStatusCode;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(statusCodes[Interlocked.Increment(ref _nextStatusCode) - 1])
+            {
+                Content = new StringContent("""{"data":{"pageviews":42,"visitors":31}}""", Encoding.UTF8, "application/json")
+            });
+    }
+
+    private static HttpResponseMessage SuccessfulResponse() => new(HttpStatusCode.OK)
+    {
+        Content = new StringContent("""{"data":{"pageviews":42,"visitors":31}}""", Encoding.UTF8, "application/json")
+    };
 }

@@ -8,7 +8,9 @@ using TheBuilder.WebAnalytics.Models;
 
 namespace TheBuilder.WebAnalytics.Services;
 
-public sealed class VercelAnalyticsClient(HttpClient httpClient) : IVercelAnalyticsClient
+public sealed class VercelAnalyticsClient(
+    HttpClient httpClient,
+    VercelAnalyticsRequestGate requestGate) : IVercelAnalyticsClient
 {
     private const int EventPropertyLimit = 20;
     private const string CountPath = "v1/query/web-analytics/visits/count";
@@ -221,15 +223,19 @@ public sealed class VercelAnalyticsClient(HttpClient httpClient) : IVercelAnalyt
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", connection.AccessToken);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        return await requestGate.RunAsync(async () =>
         {
-            var statusCode = response.StatusCode;
-            response.Dispose();
-            throw new VercelAnalyticsApiException(statusCode);
-        }
+            // ResponseContentRead keeps the lease until the upstream response body is buffered.
+            var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var statusCode = response.StatusCode;
+                response.Dispose();
+                throw new VercelAnalyticsApiException(statusCode);
+            }
 
-        return response;
+            return response;
+        });
     }
 
     private static Dictionary<string, string?> BuildVisitParameters(

@@ -114,7 +114,7 @@ public sealed class MockVercelAnalyticsClientTests
     {
         var handler = new RejectingHttpMessageHandler();
         var router = new VercelAnalyticsClientRouter(
-            new VercelAnalyticsClient(new HttpClient(handler)),
+            new VercelAnalyticsClient(new HttpClient(handler), new VercelAnalyticsRequestGate()),
             new MockVercelAnalyticsClient());
         using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(

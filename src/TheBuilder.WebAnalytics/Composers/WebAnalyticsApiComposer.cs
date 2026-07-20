@@ -21,6 +21,7 @@ namespace TheBuilder.WebAnalytics.Composers
             builder.Services.AddSingleton<VercelAnalyticsConnectionRegistry>();
             builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<AnalyticsReportCache>();
+            builder.Services.AddSingleton<VercelAnalyticsRequestGate>();
             builder.Services.AddHttpClient<VercelAnalyticsClient>(client =>
             {
                 client.BaseAddress = new Uri("https://api.vercel.com/");
