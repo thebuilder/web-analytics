@@ -212,16 +212,49 @@ public sealed class VercelAnalyticsReportServiceTests
     }
 
     [Fact]
-    public async Task Cancellation_is_forwarded_to_the_Vercel_client()
+    public async Task Concurrent_identical_summaries_share_one_client_fanout()
     {
-        var client = new CountingClient();
+        var countStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseCounts = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new CountingClient { CountStarted = countStarted, CountRelease = releaseCounts };
         using var cache = new AnalyticsReportCache();
         var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
-        using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            service.GetSummaryAsync(CreateQuery(), cancellation.Token));
+        var first = service.GetSummaryAsync(CreateQuery(), CancellationToken.None);
+        await countStarted.Task;
+        var second = service.GetSummaryAsync(CreateQuery(), CancellationToken.None);
+
+        releaseCounts.SetResult();
+        var summaries = await Task.WhenAll(first, second);
+
+        Assert.NotNull(summaries[0]);
+        Assert.Same(summaries[0], summaries[1]);
+        Assert.Equal(2, client.CountCalls);
+        Assert.Equal(2, client.PageViewTotalCalls);
+        Assert.Equal(1, client.TrendCalls);
+    }
+
+    [Fact]
+    public async Task Cancelling_one_summary_waiter_does_not_cancel_the_shared_client_fanout()
+    {
+        var countStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseCounts = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new CountingClient { CountStarted = countStarted, CountRelease = releaseCounts };
+        using var cache = new AnalyticsReportCache();
+        var service = new VercelAnalyticsReportService(CreateRegistry(), client, cache);
+        using var firstCancellation = new CancellationTokenSource();
+
+        var first = service.GetSummaryAsync(CreateQuery(), firstCancellation.Token);
+        await countStarted.Task;
+        var second = service.GetSummaryAsync(CreateQuery(), CancellationToken.None);
+
+        firstCancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
+        Assert.False(client.LastCountCancellationToken.IsCancellationRequested);
+
+        releaseCounts.SetResult();
+        Assert.NotNull(await second);
+        Assert.Equal(2, client.CountCalls);
     }
 
     private static AnalyticsQuery CreateQuery() => new(
@@ -261,21 +294,32 @@ public sealed class VercelAnalyticsReportServiceTests
         public AnalyticsEventDataFilter? LastEventDataFilter { get; private set; }
         public string? LastEventPropertySearch { get; private set; }
         public bool FailPreviousCount { get; init; }
+        public TaskCompletionSource? CountStarted { get; init; }
+        public TaskCompletionSource? CountRelease { get; init; }
+        public CancellationToken LastCountCancellationToken { get; private set; }
         public List<AnalyticsQuery> CountQueries { get; } = [];
 
         public Task<string> GetProjectNameAsync(VercelAnalyticsConnection connection, CancellationToken cancellationToken) =>
             Task.FromResult(connection.DisplayName);
 
-        public Task<AnalyticsTotals> CountAsync(VercelAnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)
+        public async Task<AnalyticsTotals> CountAsync(VercelAnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            LastCountCancellationToken = cancellationToken;
             CountCalls++;
             CountQueries.Add(query);
             if (FailPreviousCount && query.To <= new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero))
             {
                 throw new VercelAnalyticsApiException(System.Net.HttpStatusCode.PaymentRequired);
             }
-            return Task.FromResult(new AnalyticsTotals(20, 10));
+
+            CountStarted?.TrySetResult();
+            if (CountRelease is not null)
+            {
+                await CountRelease.Task.WaitAsync(cancellationToken);
+            }
+
+            return new AnalyticsTotals(20, 10);
         }
 
         public Task<long> GetPageViewTotalAsync(VercelAnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken)
