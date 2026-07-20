@@ -13,7 +13,7 @@ import type {
 import { dashboardApi, type DashboardApi } from "./dashboard-api.js";
 import { activeDocumentRoute } from "./document-route.js";
 import { countrySearchValue } from "./country-display.js";
-import { dashboardCards, requestedDimensions, type AcquisitionView, type DashboardCard } from "./dashboard-cards.js";
+import { dashboardReportPlan, type AcquisitionView, type DashboardCard, type DashboardReportPlan } from "./dashboard-cards.js";
 import { dateRangeForPreset, type AnalyticsDateRange, type DatePreset } from "./date-range.js";
 import {
   parseDashboardUrlState,
@@ -178,7 +178,7 @@ export class AnalyticsDashboardController {
   }
 
   cards(): ReadonlyArray<DashboardCard> {
-    return dashboardCards(Boolean(this.#documentId), this.state.utmCapability);
+    return this.#dashboardReportPlan().cards;
   }
 
   linkBaseUrl(): string | undefined {
@@ -196,12 +196,7 @@ export class AnalyticsDashboardController {
     this.#closeDialogs();
     this.#utmRequest.cancel();
     const utmCapability = this.#utmCapabilityByConnection.get(connection) ?? "unknown";
-    const utmDimension = utmCapability === "unknown"
-      ? "UtmSource"
-      : utmCapability === "available" && this.state.acquisitionView === "utm"
-        ? this.state.utmDimension
-        : undefined;
-    const dimensions = requestedDimensions(dashboardCards(Boolean(this.#documentId), utmCapability), utmDimension);
+    const { dimensions } = this.#dashboardReportPlan(utmCapability);
     this.#set({
       utmCapability,
       summary: loadingState(this.state.summary),
@@ -437,13 +432,22 @@ export class AnalyticsDashboardController {
     }
   }
 
-  #failLoadingReports(message: string, dimensions: AnalyticsDimension[]): void {
+  #failLoadingReports(message: string, dimensions: ReadonlyArray<AnalyticsDimension>): void {
     this.#set({
       summary: errorState(message, this.state.summary),
       events: errorState(message, this.state.events),
       flags: errorState(message, this.state.flags),
       breakdowns: Object.fromEntries(dimensions.map((dimension) => [dimension, errorState(message, this.state.breakdowns[dimension])])),
     });
+  }
+
+  #dashboardReportPlan(utmCapability = this.state.utmCapability): DashboardReportPlan {
+    return dashboardReportPlan(
+      Boolean(this.#documentId),
+      utmCapability,
+      this.state.acquisitionView,
+      this.state.utmDimension,
+    );
   }
 
   #ensureUtmBreakdown(dimension: UtmDimension): void {
