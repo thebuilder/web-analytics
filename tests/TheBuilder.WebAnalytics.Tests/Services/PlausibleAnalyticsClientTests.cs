@@ -44,6 +44,28 @@ public sealed class PlausibleAnalyticsClientTests
         Assert.Contains("visit:country", handler.Body);
         Assert.Contains("event:page", handler.Body);
         Assert.Contains("contains", handler.Body);
+        using var body = JsonDocument.Parse(handler.Body!);
+        Assert.Equal("visitors", body.RootElement.GetProperty("order_by")[0][0].GetString());
+    }
+
+    [Fact]
+    public async Task Breakdown_can_order_by_page_views()
+    {
+        var handler = new RecordingHandler("""{"results":[]}""");
+        var client = CreateClient(handler);
+
+        await client.GetBreakdownAsync(
+            CreateConnection(),
+            CreateQuery(),
+            AnalyticsDimension.RequestPath,
+            10,
+            null,
+            CancellationToken.None,
+            AnalyticsTrafficMetric.PageViews);
+
+        using var body = JsonDocument.Parse(handler.Body!);
+        Assert.Equal("pageviews", body.RootElement.GetProperty("order_by")[0][0].GetString());
+        Assert.Equal("desc", body.RootElement.GetProperty("order_by")[0][1].GetString());
     }
 
     [Fact]

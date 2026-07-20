@@ -103,7 +103,8 @@ public sealed class VercelAnalyticsClient(
         AnalyticsDimension dimension,
         int limit,
         string? search,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AnalyticsTrafficMetric orderBy = AnalyticsTrafficMetric.Visitors)
     {
         var apiDimension = ToApiValue(dimension);
         var parameters = BuildVisitParameters(connection, query);

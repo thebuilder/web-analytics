@@ -79,7 +79,8 @@ public sealed class PlausibleAnalyticsClient(
         AnalyticsDimension dimension,
         int limit,
         string? search,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AnalyticsTrafficMetric orderBy = AnalyticsTrafficMetric.Visitors)
     {
         var plausibleDimension = ToApiDimension(dimension);
         var response = await QueryAsync(
@@ -89,7 +90,8 @@ public sealed class PlausibleAnalyticsClient(
             [plausibleDimension],
             limit,
             string.IsNullOrWhiteSpace(search) ? null : (plausibleDimension, search.Trim()),
-            cancellationToken);
+            cancellationToken,
+            orderBy: orderBy == AnalyticsTrafficMetric.PageViews ? "pageviews" : "visitors");
         return response.Results!.Select(row => new AnalyticsBreakdownRow(
             Dimension(row, 0, plausibleDimension),
             Metric(row, 0, "pageviews"),
@@ -127,7 +129,8 @@ public sealed class PlausibleAnalyticsClient(
         (string Dimension, string Value)? search,
         CancellationToken cancellationToken,
         string? eventName = null,
-        bool includeTimeLabels = false)
+        bool includeTimeLabels = false,
+        string? orderBy = null)
     {
         var filters = BuildFilters(query, eventName);
         if (search is { } searchFilter)
@@ -145,7 +148,8 @@ public sealed class PlausibleAnalyticsClient(
             dimensions,
             filters,
             limit is null ? null : new PlausiblePagination(Math.Min(limit.Value, 100), 0),
-            includeTimeLabels ? new PlausibleInclude(TimeLabels: true) : null);
+            includeTimeLabels ? new PlausibleInclude(TimeLabels: true) : null,
+            orderBy is null ? null : [[orderBy, "desc"]]);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, QueryPath)
         {
@@ -246,7 +250,8 @@ public sealed class PlausibleAnalyticsClient(
         [property: JsonPropertyName("dimensions")] string[] Dimensions,
         [property: JsonPropertyName("filters")] IReadOnlyList<object[]> Filters,
         [property: JsonPropertyName("pagination"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] PlausiblePagination? Pagination,
-        [property: JsonPropertyName("include"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] PlausibleInclude? Include);
+        [property: JsonPropertyName("include"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] PlausibleInclude? Include,
+        [property: JsonPropertyName("order_by"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string[][]? OrderBy);
 
     private sealed record PlausiblePagination(
         [property: JsonPropertyName("limit")] int Limit,

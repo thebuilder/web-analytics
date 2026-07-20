@@ -3,6 +3,7 @@ import { dashboardApi, type DashboardApi } from "./dashboard-api.js";
 import { reportErrorMessage } from "./report-error.js";
 import { settleRequest, type SettledRequestResult } from "./request-coordinator.js";
 import { isUtmDimension } from "./utm-capability.js";
+import type { DashboardMetric } from "./dashboard-url-state.js";
 
 type SummaryOptions = NonNullable<Parameters<DashboardApi["summary"]>[0]>;
 export type DashboardReportQuery = NonNullable<SummaryOptions["query"]>;
@@ -30,6 +31,7 @@ export async function loadDashboardReports(
   onUpdate: (update: DashboardReportUpdate) => void,
   api: ReportApi = dashboardApi,
   capabilities: { events: boolean; flags: boolean } = { events: true, flags: true },
+  metric: DashboardMetric = "visitors",
 ): Promise<DashboardReportEvidence> {
   let baselineSucceeded = false;
   let utmSucceeded = false;
@@ -49,7 +51,7 @@ export async function loadDashboardReports(
       publish({ panel: "flags", ...toLoadedReport<AnalyticsFlagsReport>(result) });
     })] : []),
     ...dimensions.map((dimension) => async () => {
-      const { update, responseStatus } = await loadDashboardBreakdown(visitQuery, dimension, signal, api);
+      const { update, responseStatus } = await loadDashboardBreakdown(visitQuery, dimension, signal, api, metric);
       if (isUtmDimension(dimension)) {
         if (update.status === "success") utmSucceeded = true;
         else if (responseStatus !== undefined) utmStatuses.push(responseStatus);
@@ -67,9 +69,12 @@ export async function loadDashboardBreakdown(
   dimension: AnalyticsDimension,
   signal: AbortSignal,
   api: BreakdownApi = dashboardApi,
+  metric: DashboardMetric = "visitors",
 ): Promise<LoadedDashboardBreakdown> {
   const result = await settleRequest(api.breakdown({
-    path: { dimension }, query: { ...query, limit: 11 }, signal,
+    path: { dimension },
+    query: { ...query, limit: 11, orderBy: metric === "pageViews" ? "PageViews" : "Visitors" },
+    signal,
   }));
   return {
     update: { panel: "breakdown", dimension, ...toLoadedReport<AnalyticsBreakdown>(result) },

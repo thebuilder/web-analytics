@@ -96,7 +96,8 @@ public sealed class MockAnalyticsClient :
         AnalyticsDimension dimension,
         int limit,
         string? search,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AnalyticsTrafficMetric orderBy = AnalyticsTrafficMetric.Visitors)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var scenario = Scenario(connection);

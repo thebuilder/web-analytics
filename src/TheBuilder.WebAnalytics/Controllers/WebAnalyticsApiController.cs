@@ -118,6 +118,7 @@ public sealed class WebAnalyticsApiController(
         [FromQuery] AnalyticsInterval interval,
         [FromQuery] int limit = 10,
         [FromQuery] string? search = null,
+        [FromQuery] AnalyticsTrafficMetric orderBy = AnalyticsTrafficMetric.Visitors,
         [FromQuery] Guid? documentId = null,
         [FromQuery] string? culture = null,
         [FromQuery] string? path = null,
@@ -130,11 +131,12 @@ public sealed class WebAnalyticsApiController(
         }
         if (limit is < 1 or > 100) return ValidationProblem("Limit must be between 1 and 100.");
         if (search?.Length > 200) return ValidationProblem("Search must be 200 characters or fewer.");
+        if (!Enum.IsDefined(orderBy)) return ValidationProblem("The requested breakdown metric is not supported.");
         var scope = await AuthorizeAndBuildQueryAsync(
             connection, from, to, interval, documentId, culture, path, filter, ReportScope.Visits,
             new(ReportCapability.Breakdown, dimension), cancellationToken);
         if (scope.Error is not null) return scope.Error;
-        var report = await reportService.GetBreakdownAsync(scope.Query!, dimension, limit, search, cancellationToken);
+        var report = await reportService.GetBreakdownAsync(scope.Query!, dimension, limit, search, cancellationToken, orderBy);
         return report is null ? NotFoundProblem("The selected analytics connection does not exist.") : Ok(report);
     }
 

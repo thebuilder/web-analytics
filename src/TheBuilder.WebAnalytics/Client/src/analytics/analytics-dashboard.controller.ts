@@ -219,6 +219,7 @@ export class AnalyticsDashboardController {
       (update) => this.#applyReportUpdate(update),
       this.#api,
       capabilities,
+      this.state.metric,
     ));
     if (result.status !== "success") {
       if (result.status === "error") this.#failLoadingReports(reportErrorMessage(result.error), dimensions);
@@ -263,7 +264,12 @@ export class AnalyticsDashboardController {
     void this.loadReports();
   }
 
-  setMetric(metric: DashboardMetric): void { this.#set({ metric }); this.#syncUrlState(); }
+  setMetric(metric: DashboardMetric): void {
+    if (this.state.metric === metric) return;
+    this.#set({ metric });
+    this.#syncUrlState();
+    void this.loadReports();
+  }
   setAudienceDimension(audienceDimension: AudienceDimension): void { this.#set({ audienceDimension }); this.#syncUrlState(); }
   setAcquisitionView(acquisitionView: AcquisitionView): void {
     if (acquisitionView === "utm" && this.state.utmCapability !== "available") return;
@@ -518,6 +524,7 @@ export class AnalyticsDashboardController {
       dimension,
       signal,
       this.#api,
+      this.state.metric,
     ));
     if (result.status === "cancelled" || result.status === "stale"
       || this.state.connection !== connection

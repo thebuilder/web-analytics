@@ -480,7 +480,7 @@ public sealed class AnalyticsReportServiceTests
             ]);
         }
 
-        public Task<IReadOnlyList<AnalyticsBreakdownRow>> GetBreakdownAsync(AnalyticsConnection connection, AnalyticsQuery query, AnalyticsDimension dimension, int limit, string? search, CancellationToken cancellationToken)
+        public Task<IReadOnlyList<AnalyticsBreakdownRow>> GetBreakdownAsync(AnalyticsConnection connection, AnalyticsQuery query, AnalyticsDimension dimension, int limit, string? search, CancellationToken cancellationToken, AnalyticsTrafficMetric orderBy = AnalyticsTrafficMetric.Visitors)
         {
             cancellationToken.ThrowIfCancellationRequested();
             BreakdownCalls++;

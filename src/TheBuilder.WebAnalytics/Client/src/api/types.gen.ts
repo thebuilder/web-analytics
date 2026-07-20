@@ -15,6 +15,13 @@ export type AnalyticsBreakdownRow = {
     visitors: number;
 };
 
+export type AnalyticsCapabilities = {
+    dimensions: Array<AnalyticsDimension>;
+    events: boolean;
+    eventProperties: boolean;
+    flags: boolean;
+};
+
 export type AnalyticsConnectionSettingsResponse = {
     key: string;
     displayName: string;
@@ -27,7 +34,7 @@ export type AnalyticsConnectionSettingsResponse = {
     enabledDocumentTypeKeys: Array<string>;
     hasAccessToken: boolean;
     hasAccessTokenOverride: boolean;
-    mockScenario?: MockAnalyticsScenario | null;
+    mockScenario: MockAnalyticsScenario;
 };
 
 export type AnalyticsConnectionSummary = {
@@ -39,20 +46,6 @@ export type AnalyticsConnectionSummary = {
     isConfigured: boolean;
     baseUrl?: string | null;
     warnings: Array<string>;
-};
-
-export type AnalyticsCapabilities = {
-    dimensions: Array<AnalyticsDimension>;
-    events: boolean;
-    eventProperties: boolean;
-    flags: boolean;
-};
-
-export type AnalyticsProvider = 'Vercel' | 'Plausible';
-
-export type AnalyticsProviderTokenStatus = {
-    provider: AnalyticsProvider;
-    hasAccessToken: boolean;
 };
 
 export type AnalyticsConnectionTestResult = {
@@ -125,21 +118,17 @@ export type AnalyticsFlagsReport = {
 
 export type AnalyticsInterval = 'Hour' | 'Day' | 'Week' | 'Month';
 
-export type MockAnalyticsScenario = 'Complete' | 'Utm' | 'Flags' | 'Events';
-
 export type AnalyticsPoint = {
     timestamp: string;
     pageViews: number;
     visitors: number;
 };
 
-export type AnalyticsProblemDetails = {
-    type?: string | null;
-    title?: string | null;
-    status?: number | null;
-    detail?: string | null;
-    instance?: string | null;
-    code: string;
+export type AnalyticsProvider = 'Vercel' | 'Plausible';
+
+export type AnalyticsProviderTokenStatus = {
+    provider: AnalyticsProvider;
+    hasAccessToken: boolean;
 };
 
 export type AnalyticsSettingsResponse = {
@@ -162,13 +151,9 @@ export type AnalyticsTotals = {
     visitors: number;
 };
 
-export type EventMessageTypeModel = 'Default' | 'Info' | 'Error' | 'Success' | 'Warning';
+export type AnalyticsTrafficMetric = 'Visitors' | 'PageViews';
 
-export type NotificationHeaderModel = {
-    message: string;
-    category: string;
-    type: EventMessageTypeModel;
-};
+export type MockAnalyticsScenario = 'Complete' | 'Utm' | 'Flags' | 'Events';
 
 export type UpdateAnalyticsConnectionRequest = {
     key: string;
@@ -177,7 +162,7 @@ export type UpdateAnalyticsConnectionRequest = {
     projectId: string;
     team?: string | null;
     siteId: string;
-    mockScenario?: MockAnalyticsScenario | null;
+    mockScenario: MockAnalyticsScenario;
     documentRootKeys: Array<string>;
     enableAllDocumentTypes: boolean;
     enabledDocumentTypeKeys: Array<string>;
@@ -256,6 +241,7 @@ export type BreakdownData = {
         interval?: AnalyticsInterval;
         limit?: number;
         search?: string;
+        orderBy?: AnalyticsTrafficMetric;
         documentId?: string;
         culture?: string;
         path?: string;
@@ -269,12 +255,6 @@ export type BreakdownErrors = {
      * The resource is protected and requires an authentication token
      */
     401: unknown;
-    400: AnalyticsProblemDetails;
-    402: AnalyticsProblemDetails;
-    404: AnalyticsProblemDetails;
-    502: AnalyticsProblemDetails;
-    503: AnalyticsProblemDetails;
-    504: AnalyticsProblemDetails;
 };
 
 export type BreakdownResponses = {
@@ -309,12 +289,6 @@ export type EventsErrors = {
      * The resource is protected and requires an authentication token
      */
     401: unknown;
-    400: AnalyticsProblemDetails;
-    402: AnalyticsProblemDetails;
-    404: AnalyticsProblemDetails;
-    502: AnalyticsProblemDetails;
-    503: AnalyticsProblemDetails;
-    504: AnalyticsProblemDetails;
 };
 
 export type EventsResponses = {
@@ -325,48 +299,6 @@ export type EventsResponses = {
 };
 
 export type EventsResponse = EventsResponses[keyof EventsResponses];
-
-export type FlagsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        connection?: string;
-        from?: string;
-        to?: string;
-        interval?: AnalyticsInterval;
-        flagKey?: string;
-        limit?: number;
-        documentId?: string;
-        culture?: string;
-        path?: string;
-        filter?: Array<string>;
-    };
-    url: '/umbraco/management/api/v1/web-analytics/reports/flags';
-};
-
-export type FlagsErrors = {
-    /**
-     * The resource is protected and requires an authentication token
-     */
-    401: unknown;
-    400: AnalyticsProblemDetails;
-    402: AnalyticsProblemDetails;
-    404: AnalyticsProblemDetails;
-    502: AnalyticsProblemDetails;
-    503: AnalyticsProblemDetails;
-    504: AnalyticsProblemDetails;
-};
-
-export type FlagsError = FlagsErrors[keyof FlagsErrors];
-
-export type FlagsResponses = {
-    /**
-     * OK
-     */
-    200: AnalyticsFlagsReport;
-};
-
-export type FlagsResponse = FlagsResponses[keyof FlagsResponses];
 
 export type EventDetailsData = {
     body?: never;
@@ -392,12 +324,6 @@ export type EventDetailsErrors = {
      * The resource is protected and requires an authentication token
      */
     401: unknown;
-    400: AnalyticsProblemDetails;
-    402: AnalyticsProblemDetails;
-    404: AnalyticsProblemDetails;
-    502: AnalyticsProblemDetails;
-    503: AnalyticsProblemDetails;
-    504: AnalyticsProblemDetails;
 };
 
 export type EventDetailsResponses = {
@@ -436,12 +362,6 @@ export type EventPropertyValuesErrors = {
      * The resource is protected and requires an authentication token
      */
     401: unknown;
-    400: AnalyticsProblemDetails;
-    402: AnalyticsProblemDetails;
-    404: AnalyticsProblemDetails;
-    502: AnalyticsProblemDetails;
-    503: AnalyticsProblemDetails;
-    504: AnalyticsProblemDetails;
 };
 
 export type EventPropertyValuesResponses = {
@@ -452,6 +372,40 @@ export type EventPropertyValuesResponses = {
 };
 
 export type EventPropertyValuesResponse = EventPropertyValuesResponses[keyof EventPropertyValuesResponses];
+
+export type FlagsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        connection?: string;
+        from?: string;
+        to?: string;
+        interval?: AnalyticsInterval;
+        flagKey?: string;
+        limit?: number;
+        documentId?: string;
+        culture?: string;
+        path?: string;
+        filter?: Array<string>;
+    };
+    url: '/umbraco/management/api/v1/web-analytics/reports/flags';
+};
+
+export type FlagsErrors = {
+    /**
+     * The resource is protected and requires an authentication token
+     */
+    401: unknown;
+};
+
+export type FlagsResponses = {
+    /**
+     * OK
+     */
+    200: AnalyticsFlagsReport;
+};
+
+export type FlagsResponse = FlagsResponses[keyof FlagsResponses];
 
 export type SummaryData = {
     body?: never;
@@ -474,12 +428,6 @@ export type SummaryErrors = {
      * The resource is protected and requires an authentication token
      */
     401: unknown;
-    400: AnalyticsProblemDetails;
-    402: AnalyticsProblemDetails;
-    404: AnalyticsProblemDetails;
-    502: AnalyticsProblemDetails;
-    503: AnalyticsProblemDetails;
-    504: AnalyticsProblemDetails;
 };
 
 export type SummaryResponses = {

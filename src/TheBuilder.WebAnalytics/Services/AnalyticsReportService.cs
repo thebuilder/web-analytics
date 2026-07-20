@@ -43,17 +43,18 @@ public sealed class AnalyticsReportService(
         AnalyticsDimension dimension,
         int limit,
         string? search,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AnalyticsTrafficMetric orderBy = AnalyticsTrafficMetric.Visitors)
     {
         var snapshot = registry.Capture();
         var connection = snapshot.Get(query.Connection);
         if (connection is null || !connection.IsConfigured || !connection.Capabilities.Dimensions.Contains(dimension)) return null;
         var client = clients.Get(connection);
         var normalizedSearch = search?.Trim();
-        var cacheKey = $"web-analytics:{connection.Provider}:{snapshot.Revision}:breakdown:{dimension}:{limit}:{normalizedSearch}:{Normalize(query)}";
+        var cacheKey = $"web-analytics:{connection.Provider}:{snapshot.Revision}:breakdown:{dimension}:{orderBy}:{limit}:{normalizedSearch}:{Normalize(query)}";
         return await GetOrCreateAsync(cacheKey, snapshot.Settings.CacheDuration, async operationCancellationToken =>
         {
-            var rows = await client.GetBreakdownAsync(connection, query, dimension, limit, normalizedSearch, operationCancellationToken);
+            var rows = await client.GetBreakdownAsync(connection, query, dimension, limit, normalizedSearch, operationCancellationToken, orderBy);
             return new AnalyticsBreakdown(dimension, rows);
         }, cancellationToken);
     }

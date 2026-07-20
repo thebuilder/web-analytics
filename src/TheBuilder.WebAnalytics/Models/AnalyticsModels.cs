@@ -26,6 +26,13 @@ public enum AnalyticsInterval
     Month
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter<AnalyticsTrafficMetric>))]
+public enum AnalyticsTrafficMetric
+{
+    Visitors,
+    PageViews
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<MockAnalyticsScenario>))]
 public enum MockAnalyticsScenario
 {

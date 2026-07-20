@@ -86,6 +86,28 @@ describe("loadDashboardReports", () => {
     expect(sdk.events).toHaveBeenCalledWith(expect.objectContaining({ query: { ...eventQuery, limit: 20 } }));
   });
 
+  it("orders breakdowns by the selected dashboard metric", async () => {
+    sdk.summary.mockResolvedValue(ok({ totals: { visitors: 1, pageViews: 2 }, points: [] }));
+    sdk.events.mockResolvedValue(ok({ rows: [] }));
+    sdk.flags.mockResolvedValue(ok({ rows: [] }));
+    sdk.breakdown.mockResolvedValue(ok({ rows: [] }));
+
+    await loadDashboardReports(
+      query,
+      query,
+      ["RequestPath"],
+      new AbortController().signal,
+      () => undefined,
+      sdk,
+      { events: true, flags: true },
+      "pageViews",
+    );
+
+    expect(sdk.breakdown).toHaveBeenCalledWith(expect.objectContaining({
+      query: expect.objectContaining({ orderBy: "PageViews" }),
+    }));
+  });
+
   it("preserves stable upstream problem codes when adding HTTP status", async () => {
     sdk.summary.mockResolvedValue(problem({ code: "invalid_credentials" }, 502));
     sdk.events.mockResolvedValue(ok({ rows: [] }));
