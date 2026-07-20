@@ -232,7 +232,17 @@ export class AnalyticsDashboardController {
   setConnection(connection: string): void {
     this.#utmRequest.cancel();
     this.#environment.setStoredConnection(connection);
-    this.#set({ connection, acquisitionView: "referrers" });
+    // A report from one project must never remain visible while another project's
+    // request is in flight. Other refreshes retain their previous value, but a
+    // connection change crosses the data boundary and starts with empty state.
+    this.#set({
+      connection,
+      acquisitionView: "referrers",
+      summary: loadingState(),
+      breakdowns: {},
+      events: loadingState(),
+      flags: loadingState(),
+    });
     this.#syncUrlState();
     void this.loadReports();
   }
