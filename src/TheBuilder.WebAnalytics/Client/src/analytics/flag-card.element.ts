@@ -84,7 +84,7 @@ export class VercelAnalyticsFlagCardElement extends UmbElementMixin(LitElement) 
     .selected-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .flag-back:focus-visible, .select:focus-visible, a:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
     .rows { padding: 0; }
-    .row { align-items: center; display: grid; gap: var(--uui-size-space-4); grid-template-columns: minmax(0, 1fr) 8rem 8rem; min-block-size: 3rem; padding: 0 var(--uui-size-space-5); position: relative; }
+    .row { align-items: center; display: grid; gap: var(--uui-size-space-4); grid-template-columns: minmax(0, 1fr) 8rem 8rem; min-block-size: 2.5rem; padding: 0 var(--uui-size-space-5); position: relative; }
     .row > :not(.bar) { position: relative; z-index: 1; }
     .row > strong:not(.value) { font-variant-numeric: tabular-nums; text-align: right; }
     .bar { inset-block: var(--uui-size-space-1); inset-inline: var(--uui-size-space-3); position: absolute; }

@@ -4,6 +4,7 @@ import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { UUISelectElement } from "@umbraco-cms/backoffice/external/uui";
 import type { AnalyticsConnectionSummary, AnalyticsDocumentRoute } from "../api/types.gen.js";
 import type { AnalyticsDateRange, DatePreset } from "./date-range.js";
+import { googleFaviconUrl } from "./favicon.js";
 import "./date-range-picker.element.js";
 
 @customElement("vercel-analytics-dashboard-header")
@@ -15,6 +16,7 @@ export class VercelAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEl
   @property() preset: DatePreset = 30;
   @property() siteUrl?: string;
   @property({ type: Boolean }) documentScoped = false;
+  #failedFaviconHostname?: string;
 
   #connection(): AnalyticsConnectionSummary | undefined {
     return this.connections.find(({ key }) => key === this.connection);
@@ -24,6 +26,11 @@ export class VercelAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEl
     if (this.route?.hostname) return this.route.hostname;
     if (!this.siteUrl) return undefined;
     try { return new URL(this.siteUrl).hostname; } catch { return undefined; }
+  }
+
+  #onFaviconError(hostname: string): void {
+    this.#failedFaviconHostname = hostname;
+    this.requestUpdate();
   }
 
   #selectOptions() {
@@ -52,7 +59,20 @@ export class VercelAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEl
         <div class="site-context">
           ${hostname && linkUrl ? html`
             <a class="site-link" href=${linkUrl} target="_blank" rel="noopener noreferrer">
-              <uui-icon name="icon-globe" aria-hidden="true"></uui-icon>
+              <span class="site-mark">
+                ${this.#failedFaviconHostname !== hostname ? html`
+                  <img
+                    class="site-favicon"
+                    src=${googleFaviconUrl(hostname)}
+                    alt=""
+                    width="20"
+                    height="20"
+                    decoding="async"
+                    fetchpriority="low"
+                    referrerpolicy="no-referrer"
+                    @error=${() => this.#onFaviconError(hostname)}>
+                ` : html`<uui-icon name="icon-globe" aria-hidden="true"></uui-icon>`}
+              </span>
               <span class="site-link-label">${hostname}</span>
               <uui-icon class="external-indicator" name="icon-out" aria-hidden="true"></uui-icon>
               <span class="visually-hidden">Open ${this.documentScoped ? "page" : "site"} in a new tab</span>
@@ -82,6 +102,9 @@ export class VercelAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEl
     .site-link:hover .site-link-label { text-decoration: underline; text-underline-offset: 0.18em; }
     .site-link:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 3px; }
     .site-context uui-icon, .external-indicator { color: var(--uui-color-text-alt); flex: 0 0 auto; }
+    .site-mark { align-items: center; block-size: 1.5rem; display: inline-flex; flex: 0 0 auto; inline-size: 1.5rem; justify-content: center; position: relative; }
+    .site-mark uui-icon { block-size: 1.5rem; inline-size: 1.5rem; }
+    .site-favicon { block-size: 1.25rem; inline-size: 1.25rem; inset: 0.125rem; object-fit: contain; position: absolute; }
     .external-indicator { font-size: 0.875em; }
     .controls { align-items: center; display: flex; flex-wrap: wrap; gap: var(--uui-size-space-3); justify-content: flex-end; margin-inline-start: auto; min-inline-size: 0; }
     .project-select {

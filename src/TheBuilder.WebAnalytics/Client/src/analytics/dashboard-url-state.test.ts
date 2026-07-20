@@ -65,6 +65,18 @@ describe("analytics dashboard URL state", () => {
     });
   });
 
+  it("restores supported granularity for long preset URLs", () => {
+    const ninetyDays = parseDashboardUrlState(new URLSearchParams(
+      "range=90&from=2026-04-21T16%3A00%3A00Z&to=2026-07-20T17%3A00%3A00Z&tz=Europe%2FCopenhagen",
+    ));
+    const twelveMonths = parseDashboardUrlState(new URLSearchParams(
+      "range=365&from=2025-07-20T16%3A00%3A00Z&to=2026-07-20T17%3A00%3A00Z&tz=Europe%2FCopenhagen",
+    ));
+
+    expect(ninetyDays.range?.interval).toBe("Week");
+    expect(twelveMonths.range?.interval).toBe("Month");
+  });
+
   it("ignores a preset range with an invalid timezone", () => {
     const state = parseDashboardUrlState(new URLSearchParams(
       "range=7&from=2026-07-06T13%3A00%3A00Z&to=2026-07-13T14%3A00%3A00Z&tz=Not%2FA_Timezone",

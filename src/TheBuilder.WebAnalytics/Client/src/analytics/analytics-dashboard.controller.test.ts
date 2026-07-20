@@ -175,6 +175,23 @@ describe("AnalyticsDashboardController", () => {
     }));
   });
 
+  it("queries the API with supported granularity for long presets", async () => {
+    const api = dashboardApi();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+
+    api.summary.mockClear();
+    controller.setDateRange(90, dateRangeForPreset(90, new Date("2026-07-20T16:00:00Z"), "Europe/Copenhagen"));
+    await vi.waitFor(() => expect(api.summary).toHaveBeenCalled());
+    expect(api.summary.mock.calls[0]?.[0]?.query?.interval).toBe("Week");
+
+    api.summary.mockClear();
+    controller.setDateRange(365, dateRangeForPreset(365, new Date("2026-07-20T16:00:00Z"), "Europe/Copenhagen"));
+    await vi.waitFor(() => expect(api.summary).toHaveBeenCalled());
+    expect(api.summary.mock.calls[0]?.[0]?.query?.interval).toBe("Month");
+  });
+
   it("writes user actions to the shareable URL", () => {
     const api = dashboardApi();
     const target = environment();

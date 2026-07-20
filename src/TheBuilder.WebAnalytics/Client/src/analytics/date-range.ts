@@ -39,8 +39,8 @@ export function dateRangeForPreset(
 
 export function intervalForRange(days: number): AnalyticsInterval {
   if (days <= 1) return "Hour";
-  if (days <= 90) return "Day";
-  if (days <= 365) return "Week";
+  if (days <= 30) return "Day";
+  if (days <= 90) return "Week";
   return "Month";
 }
 
@@ -188,6 +188,7 @@ export function formatAnalyticsDate(
   if (interval === "Hour") {
     return new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", timeZone }).format(date);
   }
+  if (interval === "Week") return formatAnalyticsWeek(date, locale, timeZone);
   return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone }).format(date);
 }
 
@@ -203,10 +204,35 @@ export function formatAnalyticsTooltipDate(
       month: "short", day: "numeric", weekday: "short", hour: "numeric", minute: "2-digit", timeZone,
     }).format(date);
   }
+  if (interval === "Month") {
+    return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone }).format(date);
+  }
+  if (interval === "Week") {
+    const end = new Date(date.valueOf() + 6 * DAY_MS);
+    const startYear = analyticsDateOnly(date.toISOString(), timeZone).slice(0, 4);
+    const endYear = analyticsDateOnly(end.toISOString(), timeZone).slice(0, 4);
+    if (startYear === endYear) {
+      const year = new Intl.DateTimeFormat(locale, { year: "numeric", timeZone }).format(date);
+      return `${formatAnalyticsWeek(date, locale, timeZone)}, ${year}`;
+    }
+    const monthDayYear = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric", timeZone });
+    return `${monthDayYear.format(date)}–${monthDayYear.format(end)}`;
+  }
   const label = formatAnalyticsDate(timestamp, interval, locale, timeZone);
-  if (interval !== "Day") return label;
   const weekday = new Intl.DateTimeFormat(locale, { weekday: "short", timeZone }).format(date);
   return `${label} · ${weekday}`;
+}
+
+function formatAnalyticsWeek(date: Date, locale: string | undefined, timeZone: string): string {
+  const end = new Date(date.valueOf() + 6 * DAY_MS);
+  const startDate = analyticsDateOnly(date.toISOString(), timeZone);
+  const endDate = analyticsDateOnly(end.toISOString(), timeZone);
+  const monthDay = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone });
+  if (startDate.slice(0, 7) === endDate.slice(0, 7)) {
+    const day = new Intl.DateTimeFormat(locale, { day: "numeric", timeZone });
+    return `${monthDay.format(date)}–${day.format(end)}`;
+  }
+  return `${monthDay.format(date)}–${monthDay.format(end)}`;
 }
 
 export function isAnalyticsPeriodInProgress(

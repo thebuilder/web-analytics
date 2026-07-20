@@ -222,9 +222,9 @@ export class VercelAnalyticsBreakdownGridElement extends UmbElementMixin(LitElem
     .wide { grid-column: span 3; }
     .flags-card { --uui-box-default-padding: 0; }
     .document-flags-card { grid-column: 1 / -1; inline-size: 50%; justify-self: center; }
-    .breakdown-card-layout { box-sizing: border-box; min-block-size: 100%; padding-bottom: 3.25rem; }
+    .breakdown-card-layout { box-sizing: border-box; min-block-size: 100%; padding-bottom: var(--uui-size-layout-3); }
     .empty-card-layout { block-size: 100%; padding-bottom: 0; }
-    .breakdown-footer { align-items: center; background: color-mix(in srgb, var(--uui-color-surface-alt) 18%, var(--uui-color-surface)); border-top: 1px solid var(--uui-color-border); bottom: 0; box-sizing: border-box; display: flex; justify-content: flex-end; left: 0; min-block-size: 3.25rem; padding: var(--uui-size-space-1) var(--uui-size-space-4); position: absolute; right: 0; }
+    .breakdown-footer { align-items: center; background: color-mix(in srgb, var(--uui-color-surface-alt) 9%, var(--uui-color-surface)); border-top: 1px solid var(--uui-color-border); bottom: 0; box-sizing: border-box; display: flex; justify-content: flex-end; left: 0; min-block-size: var(--uui-size-layout-3); padding: 0 var(--uui-size-space-4); position: absolute; right: 0; }
     .hint { color: var(--uui-color-text-alt); }
     .breakdown-hint { margin: 0; padding: var(--uui-size-space-3) var(--uui-size-space-5); }
     .breakdown-tabs { align-items: stretch; display: flex; margin: calc(-1 * var(--uui-size-space-3)); min-inline-size: 0; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }

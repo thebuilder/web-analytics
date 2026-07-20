@@ -74,8 +74,21 @@ describe("analytics presentation components", () => {
     await element.updateComplete;
 
     const link = element.shadowRoot?.querySelector<HTMLAnchorElement>(".site-link");
+    const favicon = element.shadowRoot?.querySelector<HTMLImageElement>(".site-favicon");
     expect(link?.href).toBe("https://example.com/products/example");
     expect(link?.textContent).toContain("Open page in a new tab");
+    expect(favicon?.src).toBe("https://www.google.com/s2/favicons?domain=example.com&sz=32");
+    expect(favicon?.alt).toBe("");
+    expect(favicon?.width).toBe(20);
+    expect(favicon?.height).toBe(20);
+    expect(favicon?.getAttribute("referrerpolicy")).toBe("no-referrer");
+    expect(element.shadowRoot?.querySelector(".site-mark uui-icon")).toBeNull();
+
+    favicon?.dispatchEvent(new Event("error"));
+    await element.updateComplete;
+
+    expect(element.shadowRoot?.querySelector(".site-favicon")).toBeNull();
+    expect(element.shadowRoot?.querySelector(".site-mark uui-icon")).not.toBeNull();
   });
 
   it("directs first-time users to Web Analytics settings", async () => {
@@ -163,7 +176,7 @@ describe("analytics presentation components", () => {
     expect(table?.total).toBe(11_339);
   });
 
-  it("renders referrers as secure external links without loading favicons", async () => {
+  it("renders referrers as secure external links with favicons for attributed hosts", async () => {
     const element = document.createElement("vercel-analytics-breakdown-table") as VercelAnalyticsBreakdownTableElement;
     element.dimension = "ReferrerHostname";
     element.rows = [
@@ -177,7 +190,11 @@ describe("analytics presentation components", () => {
     expect(link?.href).toBe("https://google.com/");
     expect(link?.target).toBe("_blank");
     expect(link?.rel).toBe("noopener noreferrer");
-    expect(element.shadowRoot?.querySelectorAll("img")).toHaveLength(0);
+    expect(link?.querySelector("uui-icon")?.getAttribute("name")).toBe("icon-out");
+    const favicons = element.shadowRoot?.querySelectorAll<HTMLImageElement>(".referrer-favicon");
+    expect(favicons).toHaveLength(1);
+    expect(favicons?.[0]?.src).toBe("https://www.google.com/s2/favicons?domain=google.com&sz=32");
+    expect(favicons?.[0]?.getAttribute("referrerpolicy")).toBe("no-referrer");
     expect([...element.shadowRoot?.querySelectorAll(".row-label") ?? []].map((label) => label.textContent?.trim())).toEqual(["google.com (opens in a new tab)", "Unknown"]);
     expect(element.shadowRoot?.querySelector(".metric-number")?.textContent).toBe("22,304");
   });

@@ -259,6 +259,7 @@ export class VercelAnalyticsDateRangePickerElement extends UmbElementMixin(LitEl
   static styles = [UmbTextStyles, css`
     :host { display: block; min-inline-size: 0; }
     details { position: relative; }
+    details[open] { z-index: var(--uui-popover-z-index, 3); }
     .trigger { align-items: center; appearance: none; background: var(--uui-color-surface); block-size: 2.25rem; border: 1px solid color-mix(in srgb, var(--uui-color-border) 55%, var(--uui-color-text-alt)); border-radius: var(--uui-border-radius); box-sizing: border-box; color: var(--uui-color-text); cursor: pointer; display: flex; font: inherit; font-weight: 600; max-inline-size: 100%; min-inline-size: 11rem; padding: 0 var(--uui-size-space-3); }
     .trigger::-webkit-details-marker { display: none; }
     .trigger:hover { background: var(--uui-color-surface-alt); border-color: var(--uui-color-interactive); }
