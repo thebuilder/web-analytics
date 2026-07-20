@@ -87,6 +87,65 @@ public sealed class VercelAnalyticsSettingsValidatorTests
     }
 
     [Fact]
+    public void Undefined_mock_scenarios_are_rejected_in_persisted_settings()
+    {
+        var settings = CreateSettings();
+        settings.Connections[0].MockScenario = (MockAnalyticsScenario)999;
+
+        var failures = VercelAnalyticsSettingsValidator.Validate(settings);
+
+        var failure = Assert.Single(failures);
+        Assert.Contains("unsupported mock analytics scenario", failure);
+    }
+
+    [Fact]
+    public void Undefined_mock_scenarios_are_rejected_in_server_options()
+    {
+        var settings = CreateSettings();
+        settings.Connections[0].MockScenario = (MockAnalyticsScenario)999;
+
+        var failures = VercelAnalyticsSettingsValidator.Validate(
+            settings,
+            VercelAnalyticsValidationMode.ServerOptions);
+
+        var failure = Assert.Single(failures);
+        Assert.Contains("unsupported mock analytics scenario", failure);
+    }
+
+    [Theory]
+    [InlineData(MockAnalyticsScenario.Complete)]
+    [InlineData(MockAnalyticsScenario.Utm)]
+    [InlineData(MockAnalyticsScenario.Flags)]
+    [InlineData(MockAnalyticsScenario.Events)]
+    public void Defined_mock_scenarios_remain_valid(MockAnalyticsScenario scenario)
+    {
+        var settings = CreateSettings();
+        settings.Connections[0].ProjectId = string.Empty;
+        settings.Connections[0].MockScenario = scenario;
+
+        Assert.Empty(VercelAnalyticsSettingsValidator.Validate(settings));
+    }
+
+    [Fact]
+    public void Undefined_mock_scenarios_do_not_stop_other_connections_from_being_validated()
+    {
+        var settings = CreateSettings();
+        settings.Connections[0].MockScenario = (MockAnalyticsScenario)999;
+        settings.Connections.Add(new VercelAnalyticsConnectionSettings
+        {
+            Key = Guid.Parse("22222222-2222-2222-2222-222222222220"),
+            DisplayName = "Other",
+            ProjectId = "other-project",
+            EnabledDocumentTypeKeys = ["not-a-guid"]
+        });
+
+        var failures = VercelAnalyticsSettingsValidator.Validate(settings);
+
+        Assert.Contains(failures, failure => failure.Contains("unsupported mock analytics scenario"));
+        Assert.Contains(failures, failure => failure.Contains("invalid document type key"));
+    }
+
+    [Fact]
     public void Store_preserves_mock_identity_without_Vercel_metadata()
     {
         var store = new VercelAnalyticsSettingsStore(Options.Create(new VercelAnalyticsOptions()));

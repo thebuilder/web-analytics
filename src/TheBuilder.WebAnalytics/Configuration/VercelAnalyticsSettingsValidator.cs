@@ -37,6 +37,12 @@ public static class VercelAnalyticsSettingsValidator
         IDictionary<Guid, Guid> roots,
         bool requireConnectionMetadata)
     {
+        if (connection.MockScenario is { } mockScenario && !Enum.IsDefined(mockScenario))
+        {
+            failures.Add($"Connection '{connection.Key}' defines an unsupported mock analytics scenario.");
+            return;
+        }
+
         var label = connection.MockScenario?.ToString() ??
             (string.IsNullOrWhiteSpace(connection.ProjectId) ? connection.Key.ToString() : connection.ProjectId);
         if (connection.Key == Guid.Empty)

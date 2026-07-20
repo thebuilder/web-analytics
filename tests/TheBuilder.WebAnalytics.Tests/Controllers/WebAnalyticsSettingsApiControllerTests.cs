@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Moq;
 using Umbraco.Cms.Core.Models.Membership;
@@ -49,6 +50,42 @@ public sealed class WebAnalyticsSettingsApiControllerTests
         var connection = Assert.Single(response.Connections);
         Assert.Equal(MockAnalyticsScenario.Flags, connection.MockScenario);
         Assert.Equal(mockConnectionsEnabled, response.CanCreateMockConnections);
+    }
+
+    [Fact]
+    public async Task Save_settings_returns_bad_request_for_an_undefined_mock_scenario()
+    {
+        var options = Options.Create(new VercelAnalyticsOptions());
+        var store = new VercelAnalyticsSettingsStore(options);
+        var controller = new WebAnalyticsSettingsApiController(
+            CreateAdministratorSecurityAccessor(),
+            store,
+            new VercelAnalyticsConnectionRegistry(store, options, mockConnectionsEnabled: true),
+            options,
+            Mock.Of<IVercelAnalyticsClient>(MockBehavior.Strict),
+            Mock.Of<IVercelProjectNameService>(MockBehavior.Strict));
+        var request = new UpdateAnalyticsSettingsRequest(
+            true,
+            30,
+            "00:05:00",
+            [
+                new UpdateAnalyticsConnectionRequest(
+                    MockKey,
+                    "Unknown mock",
+                    string.Empty,
+                    null,
+                    (MockAnalyticsScenario)999,
+                    [],
+                    false,
+                    [])
+            ]);
+
+        var result = await controller.SaveSettings(request, CancellationToken.None);
+
+        var response = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
+        var problem = Assert.IsType<ProblemDetails>(response.Value);
+        Assert.Contains("unsupported mock analytics scenario", problem.Detail);
     }
 
     private static IBackOfficeSecurityAccessor CreateAdministratorSecurityAccessor()
