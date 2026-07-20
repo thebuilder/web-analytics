@@ -143,15 +143,23 @@ public sealed class AnalyticsReportCacheTests
         {
             var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var operationCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             using var firstCancellation = new CancellationTokenSource();
             using var lastCancellation = new CancellationTokenSource();
             var key = $"summary-{iteration}";
 
             var first = cache.GetOrCreateAsync(key, TimeSpan.FromMinutes(1), async operationToken =>
             {
-                started.SetResult();
-                await release.Task.WaitAsync(operationToken);
-                return 42;
+                try
+                {
+                    started.SetResult();
+                    await release.Task.WaitAsync(operationToken);
+                    return 42;
+                }
+                finally
+                {
+                    operationCompleted.SetResult();
+                }
             }, firstCancellation.Token);
 
             await started.Task;
@@ -175,6 +183,7 @@ public sealed class AnalyticsReportCacheTests
             Assert.True(
                 exception is null or OperationCanceledException,
                 $"Expected success or caller cancellation, but received {exception?.GetType().Name}: {exception?.Message}");
+            await operationCompleted.Task;
 
             async Task CompleteOperationAsync()
             {
