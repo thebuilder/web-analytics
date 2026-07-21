@@ -99,13 +99,29 @@ describe("loadDashboardReports", () => {
       new AbortController().signal,
       () => undefined,
       sdk,
-      { events: true, flags: true },
+      { events: true, flags: true, breakdownOrdering: true },
       "pageViews",
     );
 
     expect(sdk.breakdown).toHaveBeenCalledWith(expect.objectContaining({
       query: expect.objectContaining({ orderBy: "PageViews" }),
     }));
+  });
+
+  it("omits selectable ordering for providers that use their own breakdown ranking", async () => {
+    sdk.breakdown.mockResolvedValue(ok({ rows: [] }));
+
+    await loadDashboardBreakdowns(
+      query,
+      ["RequestPath"],
+      new AbortController().signal,
+      () => undefined,
+      sdk,
+      "pageViews",
+      false,
+    );
+
+    expect(sdk.breakdown.mock.calls[0]?.[0]?.query).not.toHaveProperty("orderBy");
   });
 
   it("loads only breakdown reports for a metric refresh", async () => {

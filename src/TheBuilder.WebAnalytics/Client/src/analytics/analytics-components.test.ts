@@ -45,7 +45,7 @@ beforeEach(() => {
       key: "11111111-1111-1111-1111-111111111111",
       displayName: "Main",
       provider: "Vercel",
-      capabilities: { dimensions: ["RequestPath", "Route", "ReferrerHostname", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName"], events: true, eventDetails: true, eventProperties: true, globalEventFiltering: false, flags: true },
+      capabilities: { dimensions: ["RequestPath", "Route", "ReferrerHostname", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName"], events: true, eventDetails: true, eventProperties: true, globalEventFiltering: false, flags: true, breakdownOrdering: false },
       isDefault: true,
       isConfigured: true,
       baseUrl: "https://example.com",
@@ -74,7 +74,7 @@ describe("analytics presentation components", () => {
     element.route = {
       connection: "11111111-1111-1111-1111-111111111111",
       provider: "Vercel",
-      capabilities: { dimensions: ["RequestPath"], events: true, eventDetails: true, eventProperties: true, globalEventFiltering: false, flags: true },
+      capabilities: { dimensions: ["RequestPath"], events: true, eventDetails: true, eventProperties: true, globalEventFiltering: false, flags: true, breakdownOrdering: false },
       culture: "en-US",
       hostname: "example.com",
       path: "/products/example",

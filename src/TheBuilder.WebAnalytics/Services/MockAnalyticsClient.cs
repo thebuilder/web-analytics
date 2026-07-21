@@ -98,7 +98,7 @@ public sealed class MockAnalyticsClient :
         int limit,
         string? search,
         CancellationToken cancellationToken,
-        AnalyticsTrafficMetric orderBy = AnalyticsTrafficMetric.Visitors)
+        AnalyticsTrafficMetric? orderBy = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var scenario = Scenario(connection);

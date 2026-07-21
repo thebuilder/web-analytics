@@ -9,6 +9,7 @@ import type {
   AnalyticsEventRow,
   AnalyticsEventsReport,
   AnalyticsFlagsReport,
+  AnalyticsProvider,
   AnalyticsSummary,
 } from "../api/types.gen.js";
 import { dashboardApi, type DashboardApi } from "./dashboard-api.js";
@@ -51,6 +52,7 @@ export type SelectedEvent = {
 export type DashboardState = {
   connections: AnalyticsConnectionSummary[];
   connection?: string;
+  provider?: AnalyticsProvider;
   route?: AnalyticsDocumentRoute;
   capabilities?: AnalyticsCapabilities;
   range: AnalyticsDateRange;
@@ -154,6 +156,7 @@ export class AnalyticsDashboardController {
     this.#eventPropertyRequest.cancel();
     this.#set({
       route: undefined,
+      provider: undefined,
       configurationError: undefined,
       summary: loadingState(),
       breakdowns: {},
@@ -242,10 +245,12 @@ export class AnalyticsDashboardController {
     // A report from one project must never remain visible while another project's
     // request is in flight. Other refreshes retain their previous value, but a
     // connection change crosses the data boundary and starts with empty state.
-    const capabilities = this.state.connections.find(({ key }) => key === connection)?.capabilities ?? unavailableCapabilities;
+    const selectedConnection = this.state.connections.find(({ key }) => key === connection);
+    const capabilities = selectedConnection?.capabilities ?? unavailableCapabilities;
     const selection = normalizeDashboardSelection(this.state, capabilities);
     this.#set({
       connection,
+      provider: selectedConnection?.provider,
       capabilities,
       ...selection,
       acquisitionView: "referrers",
@@ -424,7 +429,7 @@ export class AnalyticsDashboardController {
         return;
       }
       const selection = normalizeDashboardSelection(this.state, route.capabilities);
-      this.#set({ route, connection: route.connection, capabilities: route.capabilities, ...selection });
+      this.#set({ route, connection: route.connection, provider: route.provider, capabilities: route.capabilities, ...selection });
     } else {
       const result = await this.#initializationRequest.run((signal) => this.#api.connections({ signal }));
       if (result.status === "cancelled" || result.status === "stale") return;
@@ -447,11 +452,13 @@ export class AnalyticsDashboardController {
       const requested = data.connections.some(({ key }) => key === this.state.connection) ? this.state.connection : undefined;
       const storedValid = data.connections.some(({ key }) => key === stored) ? stored ?? undefined : undefined;
       const connection = requested ?? storedValid ?? data.connections[0]?.key;
-      const capabilities = data.connections.find(({ key }) => key === connection)?.capabilities ?? unavailableCapabilities;
+      const selectedConnection = data.connections.find(({ key }) => key === connection);
+      const capabilities = selectedConnection?.capabilities ?? unavailableCapabilities;
       const selection = normalizeDashboardSelection(this.state, capabilities);
       this.#set({
         connections: data.connections,
         connection,
+        provider: selectedConnection?.provider,
         capabilities,
         ...selection,
         preset,
@@ -493,6 +500,7 @@ export class AnalyticsDashboardController {
       (update) => this.#applyReportUpdate(update),
       this.#api,
       this.state.metric,
+      this.#capabilities().breakdownOrdering,
     ));
     if (result.status === "error") this.#failLoadingBreakdowns(reportErrorMessage(result.error), dimensions);
   }
@@ -556,6 +564,7 @@ export class AnalyticsDashboardController {
       signal,
       this.#api,
       this.state.metric,
+      this.#capabilities().breakdownOrdering,
     ));
     if (result.status === "cancelled" || result.status === "stale"
       || this.state.connection !== connection

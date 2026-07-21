@@ -402,7 +402,7 @@ public sealed class PlausibleAnalyticsClientTests
                 var value when value.Contains("event:props:title", StringComparison.Ordinal) =>
                     """{"results":[{"dimensions":["Read case","Case title"],"metrics":[15,12]}]}""",
                 var value when value.Contains("event:props:url", StringComparison.Ordinal) =>
-                    """{"results":[{"dimensions":["Outbound Link: Click","https://example.com"],"metrics":[4,3]}]}""",
+                    """{"results":[{"dimensions":["Outbound Link: Click","https://example.com"],"metrics":[4,3]},{"dimensions":["Read case","https://example.com/case"],"metrics":[2,2]}]}""",
                 var value when value.Contains("event:props:path", StringComparison.Ordinal) =>
                     """{"results":[{"dimensions":["404","/missing"],"metrics":[3,2]}]}""",
                 _ => throw new InvalidOperationException("Unexpected discovery query.")

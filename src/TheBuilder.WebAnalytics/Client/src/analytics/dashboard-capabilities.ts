@@ -9,6 +9,7 @@ export const unavailableCapabilities: AnalyticsCapabilities = {
   eventProperties: false,
   globalEventFiltering: false,
   flags: false,
+  breakdownOrdering: false,
 };
 
 type DashboardSelection = {

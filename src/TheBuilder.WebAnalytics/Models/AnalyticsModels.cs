@@ -67,7 +67,8 @@ public sealed record AnalyticsCapabilities(
     bool EventDetails,
     bool EventProperties,
     bool GlobalEventFiltering,
-    bool Flags);
+    bool Flags,
+    bool BreakdownOrdering);
 
 public sealed record AnalyticsQuery(
     Guid Connection,

@@ -195,6 +195,24 @@ public sealed class VercelAnalyticsClientTests
         Assert.Contains("by=country", handler.Request!.RequestUri!.Query);
     }
 
+    [Fact]
+    public async Task Breakdown_rejects_selectable_ordering_that_the_vercel_api_does_not_support()
+    {
+        var client = CreateClient(new RecordingHandler("""{"data":[]}"""));
+        var connection = CreateConnection();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => client.GetBreakdownAsync(
+            connection,
+            new AnalyticsQuery(connection.Key, new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 2), AnalyticsInterval.Day),
+            AnalyticsDimension.Country,
+            10,
+            null,
+            CancellationToken.None,
+            AnalyticsTrafficMetric.PageViews));
+
+        Assert.Equal("orderBy", exception.ParamName);
+    }
+
     [Theory]
     [InlineData(AnalyticsDimension.UtmTerm, "utmTerm")]
     [InlineData(AnalyticsDimension.UtmContent, "utmContent")]

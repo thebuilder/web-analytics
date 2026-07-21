@@ -30,12 +30,13 @@ export async function loadDashboardBreakdowns(
   onUpdate: (update: Extract<DashboardReportUpdate, { panel: "breakdown" }>) => void,
   api: BreakdownApi = dashboardApi,
   metric: DashboardMetric = "visitors",
+  breakdownOrdering = true,
 ): Promise<void> {
   const publish = (update: Extract<DashboardReportUpdate, { panel: "breakdown" }>) => {
     if (!signal.aborted) onUpdate(update);
   };
   await runWithConcurrency(
-    createBreakdownTasks(query, dimensions, signal, api, metric, ({ update }) => publish(update)),
+    createBreakdownTasks(query, dimensions, signal, api, metric, breakdownOrdering, ({ update }) => publish(update)),
     maximumConcurrentDashboardReports,
   );
 }
@@ -47,7 +48,7 @@ export async function loadDashboardReports(
   signal: AbortSignal,
   onUpdate: (update: DashboardReportUpdate) => void,
   api: ReportApi = dashboardApi,
-  capabilities: { events: boolean; flags: boolean } = { events: true, flags: true },
+  capabilities: { events: boolean; flags: boolean; breakdownOrdering: boolean } = { events: true, flags: true, breakdownOrdering: true },
   metric: DashboardMetric = "visitors",
 ): Promise<DashboardReportEvidence> {
   let baselineSucceeded = false;
@@ -67,7 +68,7 @@ export async function loadDashboardReports(
     ...(capabilities.flags ? [() => settleRequest(api.flags({ query: { ...visitQuery, limit: 10 }, signal })).then((result) => {
       publish({ panel: "flags", ...toLoadedReport<AnalyticsFlagsReport>(result) });
     })] : []),
-    ...createBreakdownTasks(visitQuery, dimensions, signal, api, metric, ({ update, responseStatus }) => {
+    ...createBreakdownTasks(visitQuery, dimensions, signal, api, metric, capabilities.breakdownOrdering, ({ update, responseStatus }) => {
       if (isUtmDimension(update.dimension)) {
         if (update.status === "success") utmSucceeded = true;
         else if (responseStatus !== undefined) utmStatuses.push(responseStatus);
@@ -86,10 +87,11 @@ function createBreakdownTasks(
   signal: AbortSignal,
   api: BreakdownApi,
   metric: DashboardMetric,
+  breakdownOrdering: boolean,
   onLoaded: (loaded: LoadedDashboardBreakdown) => void,
 ): ReadonlyArray<() => Promise<void>> {
   return dimensions.map((dimension) => async () => {
-    onLoaded(await loadDashboardBreakdown(query, dimension, signal, api, metric));
+    onLoaded(await loadDashboardBreakdown(query, dimension, signal, api, metric, breakdownOrdering));
   });
 }
 
@@ -99,10 +101,12 @@ export async function loadDashboardBreakdown(
   signal: AbortSignal,
   api: BreakdownApi = dashboardApi,
   metric: DashboardMetric = "visitors",
+  breakdownOrdering = true,
 ): Promise<LoadedDashboardBreakdown> {
+  const orderBy = breakdownOrdering ? (metric === "pageViews" ? "PageViews" : "Visitors") : undefined;
   const result = await settleRequest(api.breakdown({
     path: { dimension },
-    query: { ...query, limit: 11, orderBy: metric === "pageViews" ? "PageViews" : "Visitors" },
+    query: { ...query, limit: 11, ...(orderBy ? { orderBy } : {}) },
     signal,
   }));
   return {

@@ -81,7 +81,7 @@ public sealed class PlausibleAnalyticsClient(
         int limit,
         string? search,
         CancellationToken cancellationToken,
-        AnalyticsTrafficMetric orderBy = AnalyticsTrafficMetric.Visitors)
+        AnalyticsTrafficMetric? orderBy = null)
     {
         var plausibleDimension = ToApiDimension(dimension);
         var response = await QueryAsync(
@@ -92,7 +92,13 @@ public sealed class PlausibleAnalyticsClient(
             limit,
             string.IsNullOrWhiteSpace(search) ? null : (plausibleDimension, search.Trim()),
             cancellationToken,
-            orderBy: orderBy == AnalyticsTrafficMetric.PageViews ? "pageviews" : "visitors");
+            orderBy: orderBy switch
+            {
+                AnalyticsTrafficMetric.PageViews => "pageviews",
+                AnalyticsTrafficMetric.Visitors => "visitors",
+                null => "visitors",
+                _ => throw new ArgumentOutOfRangeException(nameof(orderBy))
+            });
         return response.Results!.Select(row => new AnalyticsBreakdownRow(
             Dimension(row, 0, plausibleDimension),
             Metric(row, 0, "pageviews"),
@@ -193,15 +199,17 @@ public sealed class PlausibleAnalyticsClient(
                 eventDataFilter: eventDataFilter);
             var propertiesByEvent = response.Results!
                 .Where(HasPropertyValue)
-                .GroupBy(row => Dimension(row, 0, "event:goal"), StringComparer.Ordinal)
+                .Select(row => (Row: row, EventName: Dimension(row, 0, "event:goal")))
+                .Where(item => SupportsEventProperty(connection, item.EventName, propertyName))
+                .GroupBy(item => item.EventName, StringComparer.Ordinal)
                 .ToDictionary(
                     group => group.Key,
                     group => new AnalyticsEventProperty(
                         propertyName,
-                        group.Select(row => new AnalyticsEventPropertyValue(
-                            Dimension(row, 1, propertyDimension),
-                            Metric(row, 0, "events"),
-                            Metric(row, 1, "visitors"))).ToArray()),
+                        group.Select(item => new AnalyticsEventPropertyValue(
+                            Dimension(item.Row, 1, propertyDimension),
+                            Metric(item.Row, 0, "events"),
+                            Metric(item.Row, 1, "visitors"))).ToArray()),
                     StringComparer.Ordinal);
             return propertiesByEvent;
         }));

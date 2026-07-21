@@ -28,7 +28,7 @@ public interface IAnalyticsProviderClient
         int limit,
         string? search,
         CancellationToken cancellationToken,
-        AnalyticsTrafficMetric orderBy = AnalyticsTrafficMetric.Visitors);
+        AnalyticsTrafficMetric? orderBy = null);
 
 }
 

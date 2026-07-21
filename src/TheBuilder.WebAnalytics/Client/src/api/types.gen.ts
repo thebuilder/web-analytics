@@ -16,6 +16,7 @@ export type AnalyticsBreakdownRow = {
 };
 
 export type AnalyticsCapabilities = {
+    breakdownOrdering: boolean;
     dimensions: Array<AnalyticsDimension>;
     events: boolean;
     eventDetails: boolean;

@@ -199,6 +199,20 @@ public sealed class MockAnalyticsClientTests
         Assert.Contains("No analytics client is registered for Plausible", exception.Message);
     }
 
+    [Fact]
+    public void Resolver_rejects_capabilities_without_matching_provider_interfaces()
+    {
+        var handler = new RejectingHttpMessageHandler();
+        var vercel = new VercelAnalyticsClient(new HttpClient(handler), new AnalyticsProviderRequestGate());
+
+        var exception = Assert.Throws<InvalidOperationException>(() => new AnalyticsProviderClientResolver(
+            [new CoreOnlyAnalyticsClient(vercel.Definition), new PlausibleAnalyticsClient(new HttpClient(handler), new AnalyticsProviderRequestGate())],
+            new MockAnalyticsClient()));
+
+        Assert.Contains("Vercel", exception.Message);
+        Assert.Contains("Events", exception.Message);
+    }
+
     private static AnalyticsQuery CreateQuery() => new(
         MockKey,
         new DateOnly(2026, 7, 1),
@@ -239,5 +253,28 @@ public sealed class MockAnalyticsClientTests
             RequestCount++;
             throw new InvalidOperationException("Mock connections must not contact Vercel.");
         }
+    }
+
+    private sealed class CoreOnlyAnalyticsClient(AnalyticsProviderDefinition definition) : IAnalyticsProviderClient
+    {
+        public AnalyticsProviderDefinition Definition { get; } = definition;
+
+        public Task<string> GetDisplayNameAsync(AnalyticsConnection connection, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<AnalyticsTotals> GetTotalsAsync(AnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<AnalyticsPoint>> GetTrendAsync(AnalyticsConnection connection, AnalyticsQuery query, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<AnalyticsBreakdownRow>> GetBreakdownAsync(
+            AnalyticsConnection connection,
+            AnalyticsQuery query,
+            AnalyticsDimension dimension,
+            int limit,
+            string? search,
+            CancellationToken cancellationToken,
+            AnalyticsTrafficMetric? orderBy = null) => throw new NotSupportedException();
     }
 }

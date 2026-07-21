@@ -11,6 +11,7 @@ const fullCapabilities: AnalyticsCapabilities = {
   eventProperties: true,
   globalEventFiltering: false,
   flags: true,
+  breakdownOrdering: false,
 };
 
 describe("AnalyticsDashboardController", () => {
@@ -79,6 +80,22 @@ describe("AnalyticsDashboardController", () => {
     await Promise.resolve();
     expect(controller.state.route?.path).toBe("/new");
     expect(controller.state.summary.status).toBe("success");
+  });
+
+  it("keeps the provider identity for document-scoped event details", async () => {
+    const api = dashboardApi();
+    api.documentRoutes.mockResolvedValue(ok([{
+      ...route("/case", "da-DK"),
+      provider: "Plausible",
+      capabilities: { ...fullCapabilities, flags: false, globalEventFiltering: true, breakdownOrdering: true },
+    }]));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+
+    controller.connect("document-id", "da-DK");
+
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    expect(controller.state.provider).toBe("Plausible");
+    expect(controller.state.connections).toEqual([]);
   });
 
   it("does not restore a breakdown after its dialog closes during a request", async () => {
@@ -248,9 +265,7 @@ describe("AnalyticsDashboardController", () => {
     controller.setMetric("pageViews");
 
     await vi.waitFor(() => expect(api.breakdown).toHaveBeenCalled());
-    expect(api.breakdown).toHaveBeenCalledWith(expect.objectContaining({
-      query: expect.objectContaining({ orderBy: "PageViews" }),
-    }));
+    expect(api.breakdown.mock.calls[0]?.[0]?.query).not.toHaveProperty("orderBy");
     expect(api.summary).not.toHaveBeenCalled();
     expect(api.events).not.toHaveBeenCalled();
     expect(api.flags).not.toHaveBeenCalled();
@@ -375,6 +390,7 @@ describe("AnalyticsDashboardController", () => {
           eventProperties: true,
           globalEventFiltering: true,
           flags: false,
+          breakdownOrdering: true,
         },
         isDefault: true,
         isConfigured: true,
@@ -423,6 +439,7 @@ describe("AnalyticsDashboardController", () => {
       eventProperties: true,
       globalEventFiltering: true,
       flags: false,
+      breakdownOrdering: true,
     };
     api.connections.mockResolvedValue(ok({
       enabled: true,

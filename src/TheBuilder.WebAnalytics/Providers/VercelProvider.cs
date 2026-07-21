@@ -27,7 +27,8 @@ internal static class VercelProvider
             EventDetails: true,
             EventProperties: true,
             GlobalEventFiltering: false,
-            Flags: true),
+            Flags: true,
+            BreakdownOrdering: false),
         AnalyticsConnectionIdentifier.ProjectId,
         supportsTeam: true,
         options => options.Providers.Vercel.AccessToken);

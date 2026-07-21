@@ -105,8 +105,10 @@ public sealed class VercelAnalyticsClient(
         int limit,
         string? search,
         CancellationToken cancellationToken,
-        AnalyticsTrafficMetric orderBy = AnalyticsTrafficMetric.Visitors)
+        AnalyticsTrafficMetric? orderBy = null)
     {
+        if (orderBy is not null)
+            throw new ArgumentException("Vercel Web Analytics does not support selecting a breakdown ordering metric.", nameof(orderBy));
         var apiDimension = ToApiValue(dimension);
         var parameters = BuildVisitParameters(connection, query);
         parameters["by"] = apiDimension;

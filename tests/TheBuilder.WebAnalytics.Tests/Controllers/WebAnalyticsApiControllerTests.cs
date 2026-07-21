@@ -248,6 +248,22 @@ public sealed class WebAnalyticsApiControllerTests
     }
 
     [Fact]
+    public async Task Breakdown_rejects_selectable_ordering_for_vercel()
+    {
+        var response = await CreateVercelBoundaryController().Breakdown(
+            AnalyticsDimension.Country,
+            MainKey,
+            UtcDate(2026, 7, 1),
+            UtcDate(2026, 7, 3),
+            AnalyticsInterval.Day,
+            orderBy: AnalyticsTrafficMetric.PageViews);
+
+        AssertInvalidQuery(response.Result);
+        var problem = Assert.IsType<AnalyticsProblemDetails>(Assert.IsType<ObjectResult>(response.Result).Value);
+        Assert.Contains("does not support selecting", problem.Detail);
+    }
+
+    [Fact]
     public async Task Summary_rejects_undefined_numeric_interval_before_dispatch()
     {
         var controller = CreateBoundaryOnlyController();
