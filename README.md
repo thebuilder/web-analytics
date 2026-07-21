@@ -58,7 +58,7 @@ Create a token in the account settings and scope it to the account or team that 
 
 #### Plausible
 
-Create a Stats API key from the Plausible account API Keys settings. The site ID must exactly match the domain registered in Plausible.
+Create a [Stats API](https://plausible.io/docs/stats-api) key from the Plausible account API Keys settings. The site ID must exactly match the domain registered in Plausible.
 
 ### 2. Add the credential to the Umbraco deployment
 
