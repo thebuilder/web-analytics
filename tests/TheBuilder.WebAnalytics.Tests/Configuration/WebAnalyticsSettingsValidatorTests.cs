@@ -112,7 +112,7 @@ public sealed class WebAnalyticsSettingsValidatorTests
 
         Assert.Contains(failures, failure => failure.Contains("unsupported mock analytics scenario"));
         Assert.Contains(failures, failure => failure.Contains("requires a valid key"));
-        Assert.Contains(failures, failure => failure.Contains("requires a project ID"));
+        Assert.Contains(failures, failure => failure.Contains("requires a Vercel project ID"));
         Assert.Contains(failures, failure => failure.Contains("invalid document root key"));
         Assert.Contains(failures, failure => failure.Contains("invalid document type key"));
     }
@@ -224,7 +224,7 @@ public sealed class WebAnalyticsSettingsValidatorTests
         settings.Connections[0].EventPropertyNames = Enumerable.Range(1, 21).Select(index => $"property-{index}").ToArray();
         var maximumFailures = WebAnalyticsSettingsValidator.Validate(settings);
 
-        Assert.Contains(vercelFailures, failure => failure.Contains("cannot define Plausible event properties"));
+        Assert.Contains(vercelFailures, failure => failure.Contains("cannot define event properties"));
         Assert.Contains(maximumFailures, failure => failure.Contains("cannot define more than 20 event properties"));
     }
 

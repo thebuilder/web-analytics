@@ -296,6 +296,15 @@ public sealed class MockAnalyticsClientTests
         new AnalyticsCapabilities([], events, eventDetails, eventProperties, false, flags, false),
         AnalyticsConnectionIdentifier.ProjectId,
         supportsTeam: true,
+        new(
+            "Test provider",
+            "test",
+            new("projectId", "project ID", "Test project identifier.", "a project ID"),
+            "project ID",
+            "site ID",
+            "team",
+            new("credential", "Test credential.", "https://example.test"),
+            null),
         _ => string.Empty);
 
     private static AnalyticsQuery CreateQuery() => new(

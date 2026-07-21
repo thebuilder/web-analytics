@@ -4,9 +4,6 @@ namespace TheBuilder.WebAnalytics.Configuration;
 
 public static class WebAnalyticsSettingsValidator
 {
-    private const int MaximumEventPropertyNames = 20;
-    private const int MaximumEventPropertyNameLength = 100;
-
     public static IReadOnlyList<string> Validate(WebAnalyticsSettings settings) =>
         Validate(settings, WebAnalyticsValidationMode.PersistedSettings);
 
@@ -56,33 +53,8 @@ public static class WebAnalyticsSettingsValidator
         var hasProvider = AnalyticsProviderCatalog.Default.TryGet(connection.Provider, out var provider);
         if (!hasProvider)
             failures.Add($"Connection '{label}' defines an unsupported analytics provider.");
-        if (requireConnectionMetadata && !hasSupportedMockScenario && hasProvider &&
-            string.IsNullOrWhiteSpace(provider.GetIdentifier(connection)))
-            failures.Add(provider.Identifier == AnalyticsConnectionIdentifier.ProjectId
-                ? $"Connection '{label}' requires a project ID."
-                : $"Connection '{label}' requires a Plausible site ID.");
-        if (!string.IsNullOrWhiteSpace(connection.ProjectId) &&
-            (!hasProvider || provider.Identifier != AnalyticsConnectionIdentifier.ProjectId))
-            failures.Add($"Connection '{label}' cannot define a Vercel project ID for {connection.Provider}.");
-        if (!string.IsNullOrWhiteSpace(connection.Team) && (!hasProvider || !provider.SupportsTeam))
-            failures.Add($"Connection '{label}' cannot define a Vercel team for {connection.Provider}.");
-        if (!string.IsNullOrWhiteSpace(connection.SiteId) &&
-            (!hasProvider || provider.Identifier != AnalyticsConnectionIdentifier.SiteId))
-            failures.Add($"Connection '{label}' cannot define a Plausible site ID for {connection.Provider}.");
-        if (hasSupportedMockScenario && !string.IsNullOrWhiteSpace(connection.ProjectId))
-            failures.Add($"Mock connection '{label}' cannot define a Vercel project ID.");
-        if (hasSupportedMockScenario && !string.IsNullOrWhiteSpace(connection.Team))
-            failures.Add($"Mock connection '{label}' cannot define a Vercel team.");
-        if (hasSupportedMockScenario && !string.IsNullOrWhiteSpace(connection.SiteId))
-            failures.Add($"Mock connection '{label}' cannot define a Plausible site ID.");
-        var eventPropertyNames = connection.EventPropertyNames ?? [];
-        if (eventPropertyNames.Count(value => !string.IsNullOrWhiteSpace(value)) > MaximumEventPropertyNames)
-            failures.Add($"Connection '{label}' cannot define more than {MaximumEventPropertyNames} event properties.");
-        if (eventPropertyNames.Any(value => value is null || value.Trim().Length > MaximumEventPropertyNameLength || value.Any(char.IsControl)))
-            failures.Add($"Connection '{label}' contains an invalid event property name.");
-        if (eventPropertyNames.Any(value => !string.IsNullOrWhiteSpace(value)) &&
-            (connection.Provider != AnalyticsProvider.Plausible || hasSupportedMockScenario))
-            failures.Add($"Connection '{label}' cannot define Plausible event properties for {connection.Provider}.");
+        if (hasProvider)
+            provider.ValidateConnection(connection, label, requireConnectionMetadata, hasSupportedMockScenario, failures);
         foreach (var value in connection.DocumentRootKeys)
         {
             if (!Guid.TryParse(value, out var key))

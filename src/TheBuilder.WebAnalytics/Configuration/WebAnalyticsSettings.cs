@@ -122,7 +122,7 @@ public sealed class WebAnalyticsSettingsStore
     private static AnalyticsConnectionSettings NormalizeConnection(AnalyticsConnectionSettings connection)
     {
         var definition = AnalyticsProviderCatalog.Default.Get(connection.Provider);
-        var isMock = connection.IsMock;
+        var fields = definition.Normalize(connection);
         return new AnalyticsConnectionSettings
         {
             Key = connection.Key == Guid.Empty ? Guid.NewGuid() : connection.Key,
@@ -130,16 +130,10 @@ public sealed class WebAnalyticsSettingsStore
             DisplayName = connection.MockScenario is { } scenario
                 ? MockAnalyticsScenarioMetadata.DisplayName(scenario)
                 : connection.DisplayName.Trim(),
-            ProjectId = !isMock && definition.Identifier == AnalyticsConnectionIdentifier.ProjectId
-                ? connection.ProjectId.Trim()
-                : string.Empty,
-            Team = !isMock && definition.SupportsTeam ? NullIfWhiteSpace(connection.Team) : null,
-            SiteId = !isMock && definition.Identifier == AnalyticsConnectionIdentifier.SiteId
-                ? connection.SiteId.Trim()
-                : string.Empty,
-            EventPropertyNames = !isMock && connection.Provider == AnalyticsProvider.Plausible
-                ? NormalizeNames(connection.EventPropertyNames ?? [])
-                : [],
+            ProjectId = fields.ProjectId,
+            Team = fields.Team,
+            SiteId = fields.SiteId,
+            EventPropertyNames = fields.EventPropertyNames,
             MockScenario = connection.MockScenario,
             DocumentRootKeys = NormalizeGuidValues(connection.DocumentRootKeys),
             EnableAllDocumentTypes = connection.EnableAllDocumentTypes,
@@ -152,9 +146,6 @@ public sealed class WebAnalyticsSettingsStore
         };
     }
 
-    private static string? NullIfWhiteSpace(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
     private static long ComputeRevision(string json) =>
         BinaryPrimitives.ReadInt64LittleEndian(SHA256.HashData(Encoding.UTF8.GetBytes(json))) & long.MaxValue;
 
@@ -164,11 +155,6 @@ public sealed class WebAnalyticsSettingsStore
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
-    private static string[] NormalizeNames(IEnumerable<string> values) => values
-        .Select(value => value.Trim())
-        .Where(value => value.Length > 0)
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToArray();
 }
 
 internal sealed record WebAnalyticsSettingsSnapshot(
