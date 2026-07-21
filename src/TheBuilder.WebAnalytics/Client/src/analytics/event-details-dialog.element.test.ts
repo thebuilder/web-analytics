@@ -23,19 +23,17 @@ describe("event details dialog layout", () => {
     expect(dialog.shadowRoot?.querySelector(".loading")?.textContent).toContain("Loading event details");
   });
 
-  it("keeps the report height and explains Plausible property configuration", async () => {
+  it("keeps the report height and explains missing property data", async () => {
     const dialog = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
     dialog.eventName = "Read case";
-    dialog.provider = "Plausible";
     dialog.propertiesEnabled = true;
     dialog.details = { eventName: "Read case", totals: { count: 15, visitors: 12 }, properties: [] };
     document.body.append(dialog);
     await dialog.updateComplete;
 
     expect(dialog.shadowRoot?.querySelector(".dialog-content")?.classList.contains("no-properties")).toBe(false);
-    expect(dialog.shadowRoot?.querySelector("umb-empty-state")?.getAttribute("headline")).toBe("No properties configured");
-    expect(dialog.shadowRoot?.textContent).toContain("Add the Plausible custom property names");
-    expect(dialog.shadowRoot?.querySelector('uui-button[href="/umbraco/section/settings/dashboard/web-analytics"]')).not.toBeNull();
+    expect(dialog.shadowRoot?.querySelector("umb-empty-state")?.getAttribute("headline")).toBe("No property data");
+    expect(dialog.shadowRoot?.textContent).toContain("No custom property values were found");
   });
 
   it("renders property tabs as the first table heading without repeating the active property", async () => {

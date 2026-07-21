@@ -2,12 +2,11 @@ import { LitElement, css, customElement, html, property, state } from "@umbraco-
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { UUIInputElement } from "@umbraco-cms/backoffice/external/uui";
-import type { AnalyticsEventDetails, AnalyticsEventProperty, AnalyticsProvider } from "../api/types.gen.js";
+import type { AnalyticsEventDetails, AnalyticsEventProperty } from "../api/types.gen.js";
 
 @customElement("web-analytics-event-details-dialog")
 export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitElement) {
   @property() eventName = "Event";
-  @property() provider?: AnalyticsProvider;
   @property({ type: Boolean }) propertiesEnabled = false;
   @property({ type: Boolean }) loading = false;
   @property() unavailable?: string;
@@ -174,16 +173,10 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
   }
 
   #renderNoProperties() {
-    const plausible = this.provider === "Plausible";
     return html`
       <div class="no-properties-state">
-        <umb-empty-state headline=${plausible ? "No properties configured" : "No property data"}>
-          <p>${plausible
-            ? "Add the Plausible custom property names used by this site to the connection before exploring their values."
-            : "No property values were recorded for this event in the selected period."}</p>
-          ${plausible ? html`
-            <uui-button href="/umbraco/section/settings/dashboard/web-analytics" look="secondary" label="Open Web Analytics settings">Open settings</uui-button>
-          ` : ""}
+        <umb-empty-state headline="No property data">
+          <p>No custom property values were found for this event in the selected period.</p>
         </umb-empty-state>
       </div>
     `;

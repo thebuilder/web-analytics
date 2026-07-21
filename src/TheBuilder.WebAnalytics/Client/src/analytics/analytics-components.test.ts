@@ -342,7 +342,6 @@ describe("analytics presentation components", () => {
     });
     const element = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
     element.eventName = "Read article";
-    element.provider = "Plausible";
     element.propertiesEnabled = true;
     element.details = {
       eventName: "Read article",
@@ -355,8 +354,8 @@ describe("analytics presentation components", () => {
     expect(element.shadowRoot?.querySelector("uui-dialog-layout")?.getAttribute("headline")).toBe("Read article event");
     expect(element.shadowRoot?.querySelector(".event-totals")).toBeNull();
     expect(element.shadowRoot?.querySelector(".dialog-content")?.classList.contains("no-properties")).toBe(false);
-    expect(element.shadowRoot?.querySelector("umb-empty-state")?.getAttribute("headline")).toBe("No properties configured");
-    expect(element.shadowRoot?.querySelector(".no-properties-state")?.textContent).toContain("Add the Plausible custom property names");
+    expect(element.shadowRoot?.querySelector("umb-empty-state")?.getAttribute("headline")).toBe("No property data");
+    expect(element.shadowRoot?.querySelector(".no-properties-state")?.textContent).toContain("No custom property values were found");
   });
 
   it("places event property search above the results table", async () => {
