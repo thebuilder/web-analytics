@@ -158,6 +158,22 @@ public sealed class AnalyticsDocumentRouteServiceTests
         Assert.Equal("https://charlietango.dk", baseUrl);
     }
 
+    [Fact]
+    public async Task Provider_without_a_fallback_and_document_root_has_no_base_url()
+    {
+        var registry = CreateRegistry(Connection("site"));
+        var service = new AnalyticsDocumentRouteService(
+            Mock.Of<IContentService>(),
+            Mock.Of<IAnalyticsPublishedContentAccessor>(),
+            registry);
+
+        var baseUrl = await service.GetConnectionBaseUrlAsync(
+            registry.Get(SiteConnectionKey)!,
+            CancellationToken.None);
+
+        Assert.Null(baseUrl);
+    }
+
     private static Mock<IContentService> CreateContentTree(Guid rootKey, Guid documentKey)
     {
         var root = new Mock<IContent>();
