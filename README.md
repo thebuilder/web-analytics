@@ -246,29 +246,16 @@ The generated API client is checked in with the package source. The example host
 Run the example host against the Umbraco version whose document you want to use:
 
 ```sh
-# Umbraco 17
 dotnet run \
   --project samples/TheBuilder.WebAnalytics.Example \
   -p:UmbracoVersion=17.4.0
-
-# Umbraco 18
-dotnet run \
-  --project samples/TheBuilder.WebAnalytics.Example \
-  -p:UmbracoVersion=18.0.0
 ```
-
-Use a separate database for each major when switching the example host between versions. Umbraco upgrades its database schema and does not support downgrading that database to an earlier major.
 
 Then regenerate the client from the matching development endpoint:
 
 ```sh
 cd src/TheBuilder.WebAnalytics/Client
 
-# Umbraco 17
-corepack pnpm generate-client -- \
+pnpm generate-client -- \
   https://localhost:44389/umbraco/swagger/thebuilderwebanalytics/swagger.json
-
-# Umbraco 18
-corepack pnpm generate-client -- \
-  https://localhost:44389/umbraco/openapi/thebuilderwebanalytics.json
 ```
