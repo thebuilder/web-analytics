@@ -25,6 +25,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
   @property() utmDimension: UtmDimension = "UtmSource";
   @property() baseUrl?: string;
   @property({ type: Boolean }) supportsEvents = true;
+  @property({ type: Boolean }) supportsGlobalEventFiltering = false;
   @property({ type: Boolean }) supportsEventDetails = true;
   @property({ type: Boolean }) supportsFlags = true;
 
@@ -190,7 +191,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
     return html`
       <uui-box class="breakdown-card wide">
         <div class=${`breakdown-card-layout${empty ? " empty-card-layout" : ""}`}>
-          <web-analytics-event-table .rows=${rows} .filters=${this.filters} .loading=${loading} .detailsEnabled=${this.supportsEventDetails}></web-analytics-event-table>
+          <web-analytics-event-table .rows=${rows} .filters=${this.filters} .loading=${loading} .detailsEnabled=${this.supportsEventDetails} .filteringEnabled=${this.supportsGlobalEventFiltering}></web-analytics-event-table>
           ${empty ? "" : html`<footer class="breakdown-footer">
             ${!loading && rows.length ? html`<uui-button look="secondary" label="View all events" @click=${() => this.#dispatch("view-events")}>View all</uui-button>` : ""}
           </footer>`}

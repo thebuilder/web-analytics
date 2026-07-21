@@ -26,6 +26,7 @@ internal static class VercelProvider
             Events: true,
             EventDetails: true,
             EventProperties: true,
+            GlobalEventFiltering: false,
             Flags: true),
         AnalyticsConnectionIdentifier.ProjectId,
         supportsTeam: true,

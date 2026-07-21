@@ -20,6 +20,7 @@ export type AnalyticsCapabilities = {
     events: boolean;
     eventDetails: boolean;
     eventProperties: boolean;
+    globalEventFiltering: boolean;
     flags: boolean;
 };
 
@@ -30,6 +31,7 @@ export type AnalyticsConnectionSettingsResponse = {
     projectId: string;
     team?: string | null;
     siteId: string;
+    eventPropertyNames: Array<string>;
     documentRootKeys: Array<string>;
     enableAllDocumentTypes: boolean;
     enabledDocumentTypeKeys: Array<string>;
@@ -163,6 +165,7 @@ export type UpdateAnalyticsConnectionRequest = {
     projectId: string;
     team?: string | null;
     siteId: string;
+    eventPropertyNames: Array<string>;
     mockScenario?: MockAnalyticsScenario | null;
     documentRootKeys: Array<string>;
     enableAllDocumentTypes: boolean;

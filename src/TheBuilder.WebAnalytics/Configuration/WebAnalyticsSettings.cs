@@ -33,6 +33,8 @@ public sealed class AnalyticsConnectionSettings
 
     public string SiteId { get; set; } = string.Empty;
 
+    public string[] EventPropertyNames { get; set; } = [];
+
     public MockAnalyticsScenario? MockScenario { get; set; }
 
     [JsonIgnore]
@@ -135,6 +137,9 @@ public sealed class WebAnalyticsSettingsStore
             SiteId = !isMock && definition.Identifier == AnalyticsConnectionIdentifier.SiteId
                 ? connection.SiteId.Trim()
                 : string.Empty,
+            EventPropertyNames = !isMock && connection.Provider == AnalyticsProvider.Plausible
+                ? NormalizeNames(connection.EventPropertyNames ?? [])
+                : [],
             MockScenario = connection.MockScenario,
             DocumentRootKeys = NormalizeGuidValues(connection.DocumentRootKeys),
             EnableAllDocumentTypes = connection.EnableAllDocumentTypes,
@@ -158,6 +163,12 @@ public sealed class WebAnalyticsSettingsStore
         .OfType<string>()
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
+
+    private static string[] NormalizeNames(IEnumerable<string> values) => values
+        .Select(value => value.Trim())
+        .Where(value => value.Length > 0)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
 }
 
 internal sealed record WebAnalyticsSettingsSnapshot(
@@ -176,6 +187,7 @@ internal static class WebAnalyticsSettingsMapper
             ProjectId = connection.ProjectId,
             Team = connection.Team,
             SiteId = connection.SiteId,
+            EventPropertyNames = connection.EventPropertyNames,
             MockScenario = connection.MockScenario,
             DocumentRootKeys = connection.DocumentRootKeys,
             EnableAllDocumentTypes = connection.EnableAllDocumentTypes,

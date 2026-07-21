@@ -7,6 +7,7 @@ export const unavailableCapabilities: AnalyticsCapabilities = {
   events: false,
   eventDetails: false,
   eventProperties: false,
+  globalEventFiltering: false,
   flags: false,
 };
 
@@ -36,7 +37,8 @@ export function normalizeDashboardSelection(
     audienceDimension,
     acquisitionView: supportsUtm ? selection.acquisitionView : "referrers",
     utmDimension,
-    filters: selection.filters.filter(({ dimension }) => supported.has(dimension)),
+    filters: selection.filters.filter(({ dimension }) =>
+      supported.has(dimension) && (dimension !== "EventName" || capabilities.globalEventFiltering)),
   };
 }
 

@@ -11,6 +11,7 @@ export class WebAnalyticsEventTableElement extends UmbElementMixin(LitElement) {
   @property({ attribute: false }) rows: AnalyticsEventRow[] = [];
   @property({ attribute: false }) filters: AnalyticsFilter[] = [];
   @property({ type: Boolean }) detailsEnabled = true;
+  @property({ type: Boolean }) filteringEnabled = false;
 
   #select(eventName: string): void {
     this.dispatchEvent(new CustomEvent("select-event", {
@@ -45,7 +46,7 @@ export class WebAnalyticsEventTableElement extends UmbElementMixin(LitElement) {
                     : html`<span class="event-name">${row.eventName}</span>`}
                 </th>
                 <td><span class="metric-cell">
-                  <button
+                  ${this.filteringEnabled ? html`<button
                     class="filter-action"
                     type="button"
                     aria-label=${filterLabel}
@@ -57,7 +58,7 @@ export class WebAnalyticsEventTableElement extends UmbElementMixin(LitElement) {
                       detail: { dimension: "EventName", value: row.eventName },
                     }))}>
                     <uui-icon name="icon-filter" aria-hidden="true"></uui-icon>
-                  </button>
+                  </button>` : ""}
                   <span>${this.localize.number(row.visitors)}</span>
                 </span></td>
                 <td>${this.localize.number(row.count)}</td>

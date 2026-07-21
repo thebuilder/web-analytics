@@ -4,7 +4,7 @@ import type {
   UpdateAnalyticsSettingsRequest,
 } from "../api/types.gen.js";
 
-export type ConnectionValidationErrors = Partial<Record<"projectId" | "siteId" | "team", string>>;
+export type ConnectionValidationErrors = Partial<Record<"projectId" | "siteId" | "team" | "eventPropertyNames", string>>;
 
 export function teamReference(connection: AnalyticsConnectionSettingsResponse): string {
   return connection.team?.trim() || "";
@@ -18,6 +18,8 @@ export function validateConnection(connection: AnalyticsConnectionSettingsRespon
   const errors: ConnectionValidationErrors = {};
   if (connection.mockScenario == null && connection.provider === "Vercel" && !connection.projectId.trim()) errors.projectId = "Enter the Vercel project ID.";
   if (connection.mockScenario == null && connection.provider === "Plausible" && !connection.siteId.trim()) errors.siteId = "Enter the Plausible site ID.";
+  if (connection.provider === "Plausible" && connection.eventPropertyNames.length > 20) errors.eventPropertyNames = "Add no more than 20 event properties.";
+  else if (connection.provider === "Plausible" && connection.eventPropertyNames.some((name) => name.length > 100)) errors.eventPropertyNames = "Event property names must be 100 characters or fewer.";
   return errors;
 }
 
@@ -27,6 +29,7 @@ export function validateEditableSettings(settings: AnalyticsSettingsResponse): s
     if (errors.projectId) return `Complete the required fields for “${connection.displayName || connection.projectId || "New connection"}”.`;
     if (errors.siteId) return `Complete the required fields for “${connection.displayName || connection.siteId || "New connection"}”.`;
     if (errors.team) return `Fix the team ownership for “${connection.displayName || connection.projectId || "New connection"}”.`;
+    if (errors.eventPropertyNames) return `Fix the event properties for “${connection.displayName || connection.siteId || "New connection"}”.`;
   }
   return undefined;
 }
@@ -43,6 +46,7 @@ export function createSettingsUpdate(settings: AnalyticsSettingsResponse): Updat
       projectId: connection.projectId,
       team: connection.team,
       siteId: connection.siteId,
+      eventPropertyNames: connection.eventPropertyNames,
       mockScenario: connection.mockScenario,
       documentRootKeys: connection.documentRootKeys,
       enableAllDocumentTypes: connection.enableAllDocumentTypes,

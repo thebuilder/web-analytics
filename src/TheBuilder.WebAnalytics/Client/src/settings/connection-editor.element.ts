@@ -78,6 +78,19 @@ export class AnalyticsConnectionEditorElement extends UmbElementMixin(LitElement
     this.#update(parseTeamReference(String((event.target as UUIInputElement).value ?? "")));
   }
 
+  #eventPropertyNames(event: Event): void {
+    const names = String((event.target as HTMLElement & { value?: string }).value ?? "")
+      .split(/\r?\n/)
+      .map((name) => name.trim())
+      .filter((name, index, values) => name && values.findIndex((candidate) => candidate.toLocaleLowerCase() === name.toLocaleLowerCase()) === index);
+    this.#update({ eventPropertyNames: names });
+  }
+
+  #eventPropertySummary(): string {
+    const count = this.connection.eventPropertyNames.length;
+    return count ? `${count} custom propert${count === 1 ? "y" : "ies"}` : "Built-in properties only";
+  }
+
   #mappingSummary(): string {
     const roots = this.connection.documentRootKeys.length;
     return roots ? `${roots} document root${roots === 1 ? "" : "s"}` : "Global analytics only";
@@ -210,6 +223,31 @@ export class AnalyticsConnectionEditorElement extends UmbElementMixin(LitElement
                 </span>
               </div>
             </details>`}
+
+            ${!isMock && connection.provider === "Plausible" ? html`
+              <details class="config-section">
+                <summary><span>Event properties</span><small>${this.#eventPropertySummary()}</small></summary>
+                <div class="config-content event-properties-content">
+                  <p class="section-intro">Optional. Add custom property names configured for this Plausible site, one per line. The standard <code>url</code> and <code>path</code> properties are included automatically for matching events.</p>
+                  <uui-form-layout-item>
+                    <uui-label slot="label" for=${`${connection.key}-event-properties`}>Custom property names</uui-label>
+                    <div class="field-control">
+                      <uui-textarea
+                        id=${`${connection.key}-event-properties`}
+                        label="Custom event property names"
+                        .value=${connection.eventPropertyNames.join("\n")}
+                        rows="5"
+                        aria-invalid=${this.errors.eventPropertyNames ? "true" : "false"}
+                        aria-describedby=${`${connection.key}-event-properties-${this.errors.eventPropertyNames ? "error" : "description"}`}
+                        @input=${this.#eventPropertyNames}></uui-textarea>
+                      <span id=${`${connection.key}-event-properties-${this.errors.eventPropertyNames ? "error" : "description"}`} class=${this.errors.eventPropertyNames ? "field-error" : "field-description"}>
+                        ${this.errors.eventPropertyNames ? html`<uui-icon name="icon-alert" aria-hidden="true"></uui-icon>${this.errors.eventPropertyNames}` : "Up to 20 names. Properties are queried only when an editor opens an event."}
+                      </span>
+                    </div>
+                  </uui-form-layout-item>
+                </div>
+              </details>
+            ` : ""}
 
             <details class="config-section">
               <summary><span>Page analytics</span><small>${this.#mappingSummary()}</small></summary>
@@ -345,13 +383,14 @@ export class AnalyticsConnectionEditorElement extends UmbElementMixin(LitElement
     .copy-feedback.error { color: var(--uui-color-danger-standalone); }
     code { font-family: var(--uui-font-monospace); overflow-wrap: anywhere; }
     .mapping-content .fields { max-inline-size: 32rem; }
+    .event-properties-content > uui-form-layout-item { margin-top: 0; max-inline-size: 32rem; }
     .document-types { margin-top: var(--uui-size-space-4); }
     .toggle-help { margin-bottom: 0; }
     .field-control { display: grid; gap: var(--uui-size-space-2); }
     .field-description { color: var(--uui-color-text); font-size: var(--uui-type-small-size); }
     .field-error { align-items: center; color: var(--uui-color-danger-standalone); display: flex; gap: var(--uui-size-space-1); }
-    uui-input { inline-size: 100%; }
-    uui-input[aria-invalid="true"] { --uui-color-border: var(--uui-color-danger); }
+    uui-input, uui-textarea { inline-size: 100%; }
+    uui-input[aria-invalid="true"], uui-textarea[aria-invalid="true"] { --uui-color-border: var(--uui-color-danger); }
     @container (max-width: 48rem) {
       .two-columns { grid-template-columns: 1fr; }
       .connection-summary { align-items: start; }

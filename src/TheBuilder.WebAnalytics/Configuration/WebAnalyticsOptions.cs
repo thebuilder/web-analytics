@@ -53,6 +53,8 @@ public sealed class AnalyticsConnectionOptions
 
     public string SiteId { get; set; } = string.Empty;
 
+    public string[] EventPropertyNames { get; set; } = [];
+
     public MockAnalyticsScenario? MockScenario { get; set; }
 
     public string[] DocumentRootKeys { get; set; } = [];

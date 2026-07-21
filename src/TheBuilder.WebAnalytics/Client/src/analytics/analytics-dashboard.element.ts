@@ -129,6 +129,7 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
           .baseUrl=${this.#controller.linkBaseUrl()}
           .supportsEvents=${capabilities?.events ?? false}
           .supportsEventDetails=${capabilities?.eventDetails ?? false}
+          .supportsGlobalEventFiltering=${capabilities?.globalEventFiltering ?? false}
           .supportsFlags=${capabilities?.flags ?? false}
           @view-breakdown=${(event: CustomEvent<{ dimension: AnalyticsDimension; headline: string }>) => this.#controller.openBreakdown(event.detail.dimension, event.detail.headline)}
           @view-events=${() => this.#controller.openEvents()}
@@ -158,6 +159,7 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
             .rows=${stateData(expandedEvents) ?? []}
             .filters=${state.filters}
             .detailsEnabled=${capabilities?.eventDetails ?? false}
+            .filteringEnabled=${capabilities?.globalEventFiltering ?? false}
             .loading=${expandedEvents.status === "loading"}
             .unavailable=${this.#error(expandedEvents)}
             @search-events=${(event: CustomEvent<{ search: string }>) => this.#controller.openEvents(event.detail.search, true)}

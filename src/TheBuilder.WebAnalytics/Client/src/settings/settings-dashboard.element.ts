@@ -112,6 +112,7 @@ export class WebAnalyticsSettingsDashboardElement extends UmbElementMixin(LitEle
       projectId: "",
       team: null,
       siteId: "",
+      eventPropertyNames: [],
       documentRootKeys: [],
       enableAllDocumentTypes: false,
       enabledDocumentTypeKeys: [],

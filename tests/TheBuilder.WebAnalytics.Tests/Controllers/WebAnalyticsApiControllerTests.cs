@@ -269,7 +269,7 @@ public sealed class WebAnalyticsApiControllerTests
     [Fact]
     public async Task Summary_rejects_event_name_filter_in_visit_scope_before_dispatch()
     {
-        var controller = CreateBoundaryOnlyController();
+        var controller = CreateVercelBoundaryController();
 
         var response = await controller.Summary(
             MainKey,
@@ -284,7 +284,7 @@ public sealed class WebAnalyticsApiControllerTests
 
         AssertInvalidQuery(response.Result);
         var problem = Assert.IsType<AnalyticsProblemDetails>(Assert.IsType<ObjectResult>(response.Result).Value);
-        Assert.Contains("only supported by the event list report", problem.Detail);
+        Assert.Contains("does not support event filters for this report", problem.Detail);
     }
 
     [Fact]
@@ -341,38 +341,9 @@ public sealed class WebAnalyticsApiControllerTests
     }
 
     [Fact]
-    public async Task Event_details_with_property_filter_rejects_a_provider_without_event_property_capabilities()
-    {
-        var response = await CreatePlausibleBoundaryController().EventDetails(
-            MainKey,
-            UtcDate(2026, 7, 1),
-            UtcDate(2026, 7, 3),
-            AnalyticsInterval.Day,
-            "Signup",
-            "plan",
-            "Pro");
-
-        AssertInvalidQuery(response.Result);
-    }
-
-    [Fact]
-    public async Task Event_property_values_rejects_a_provider_without_event_property_capabilities()
-    {
-        var response = await CreatePlausibleBoundaryController().EventPropertyValues(
-            MainKey,
-            UtcDate(2026, 7, 1),
-            UtcDate(2026, 7, 3),
-            AnalyticsInterval.Day,
-            "Signup",
-            "plan");
-
-        AssertInvalidQuery(response.Result);
-    }
-
-    [Fact]
     public async Task Event_details_rejects_event_name_filter_from_the_shared_query()
     {
-        var controller = CreateBoundaryOnlyController();
+        var controller = CreateVercelBoundaryController();
 
         var response = await controller.EventDetails(
             MainKey,
@@ -388,7 +359,7 @@ public sealed class WebAnalyticsApiControllerTests
     [Fact]
     public async Task Event_property_values_reject_event_name_filter_from_the_shared_query()
     {
-        var controller = CreateBoundaryOnlyController();
+        var controller = CreateVercelBoundaryController();
 
         var response = await controller.EventPropertyValues(
             MainKey,
@@ -404,6 +375,13 @@ public sealed class WebAnalyticsApiControllerTests
 
     private static WebAnalyticsApiController CreateBoundaryOnlyController() =>
         new(null!, null!, null!, null!, null!);
+
+    private static WebAnalyticsApiController CreateVercelBoundaryController()
+    {
+        var authorization = new Mock<IAnalyticsAuthorizationService>(MockBehavior.Strict);
+        authorization.Setup(service => service.HasAnalyticsSectionAccess()).Returns(true);
+        return new(authorization.Object, EnabledRegistry(), null!, null!, null!);
+    }
 
     private static WebAnalyticsApiController CreatePlausibleBoundaryController()
     {

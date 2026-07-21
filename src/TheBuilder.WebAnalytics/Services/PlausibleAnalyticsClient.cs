@@ -11,7 +11,7 @@ namespace TheBuilder.WebAnalytics.Services;
 
 public sealed class PlausibleAnalyticsClient(
     HttpClient httpClient,
-    AnalyticsProviderRequestGate requestGate) : IAnalyticsProviderClient, IAnalyticsEventsProviderClient, IAnalyticsEventDetailsProviderClient
+    AnalyticsProviderRequestGate requestGate) : IAnalyticsProviderClient, IAnalyticsEventsProviderClient, IAnalyticsEventPropertiesProviderClient
 {
     private const string QueryPath = "api/v2/query";
 
@@ -140,6 +140,64 @@ public sealed class PlausibleAnalyticsClient(
         return new AnalyticsEventTotals(Metric(row, 0, "events"), Metric(row, 1, "visitors"));
     }
 
+    public async Task<AnalyticsEventTotals> CountFilteredEventsAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        string eventName,
+        AnalyticsEventDataFilter eventDataFilter,
+        CancellationToken cancellationToken)
+    {
+        if (!SupportsEventProperty(connection, eventName, eventDataFilter.Property)) return new(0, 0);
+        var response = await QueryAsync(
+            connection,
+            query,
+            ["events", "visitors"],
+            [],
+            null,
+            null,
+            cancellationToken,
+            eventName,
+            eventDataFilter: eventDataFilter);
+        var row = SingleRow(response);
+        return new AnalyticsEventTotals(Metric(row, 0, "events"), Metric(row, 1, "visitors"));
+    }
+
+    public Task<IReadOnlyList<string>> GetEventPropertyNamesAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        string eventName,
+        AnalyticsEventDataFilter? eventDataFilter,
+        CancellationToken cancellationToken) => Task.FromResult(EventPropertyNames(connection, eventName));
+
+    public async Task<IReadOnlyList<AnalyticsEventPropertyValue>> GetEventPropertyValuesAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        string eventName,
+        string propertyName,
+        int limit,
+        string? search,
+        AnalyticsEventDataFilter? eventDataFilter,
+        CancellationToken cancellationToken)
+    {
+        if (!SupportsEventProperty(connection, eventName, propertyName)) return [];
+        var dimension = PropertyDimension(propertyName);
+        var response = await QueryAsync(
+            connection,
+            query,
+            ["events", "visitors"],
+            [dimension],
+            limit,
+            string.IsNullOrWhiteSpace(search) ? null : (dimension, search.Trim()),
+            cancellationToken,
+            eventName,
+            orderBy: "events",
+            eventDataFilter: eventDataFilter);
+        return response.Results!.Select(row => new AnalyticsEventPropertyValue(
+            Dimension(row, 0, dimension),
+            Metric(row, 0, "events"),
+            Metric(row, 1, "visitors"))).ToArray();
+    }
+
     private async Task<PlausibleResponse> QueryAsync(
         AnalyticsConnection connection,
         AnalyticsQuery query,
@@ -150,9 +208,10 @@ public sealed class PlausibleAnalyticsClient(
         CancellationToken cancellationToken,
         string? eventName = null,
         bool includeTimeLabels = false,
-        string? orderBy = null)
+        string? orderBy = null,
+        AnalyticsEventDataFilter? eventDataFilter = null)
     {
-        var filters = BuildFilters(query, eventName);
+        var filters = BuildFilters(query, eventName, eventDataFilter);
         if (search is { } searchFilter)
         {
             filters.Add(new PlausibleFilter("contains", searchFilter.Dimension, [searchFilter.Value]));
@@ -195,7 +254,10 @@ public sealed class PlausibleAnalyticsClient(
         return payload;
     }
 
-    private static List<PlausibleFilter> BuildFilters(AnalyticsQuery query, string? eventName)
+    private static List<PlausibleFilter> BuildFilters(
+        AnalyticsQuery query,
+        string? eventName,
+        AnalyticsEventDataFilter? eventDataFilter)
     {
         var filters = new List<PlausibleFilter>();
         if (!string.IsNullOrWhiteSpace(query.RequestPath))
@@ -206,12 +268,37 @@ public sealed class PlausibleAnalyticsClient(
         {
             filters.Add(new PlausibleFilter("is", ToApiDimension(filter.Dimension), [filter.Value]));
         }
-        if (!string.IsNullOrWhiteSpace(eventName))
+        if (!string.IsNullOrWhiteSpace(eventName) &&
+            query.Filters?.Any(filter =>
+                filter.Dimension == AnalyticsDimension.EventName &&
+                string.Equals(filter.Value, eventName, StringComparison.Ordinal)) is not true)
         {
             filters.Add(new PlausibleFilter("is", "event:goal", [eventName]));
         }
+        if (eventDataFilter is not null)
+        {
+            filters.Add(new PlausibleFilter("is", PropertyDimension(eventDataFilter.Property), [eventDataFilter.Value]));
+        }
         return filters;
     }
+
+    private static IReadOnlyList<string> EventPropertyNames(AnalyticsConnection connection, string eventName)
+    {
+        var builtIn = eventName switch
+        {
+            "Outbound Link: Click" or "File Download" => "url",
+            "404" => "path",
+            _ => null
+        };
+        return (builtIn is null ? connection.EventPropertyNames : [builtIn, .. connection.EventPropertyNames])
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static bool SupportsEventProperty(AnalyticsConnection connection, string eventName, string propertyName) =>
+        EventPropertyNames(connection, eventName).Contains(propertyName.Trim(), StringComparer.OrdinalIgnoreCase);
+
+    private static string PropertyDimension(string propertyName) => $"event:props:{propertyName.Trim()}";
 
     internal static string ToApiDimension(AnalyticsDimension dimension) => dimension switch
     {

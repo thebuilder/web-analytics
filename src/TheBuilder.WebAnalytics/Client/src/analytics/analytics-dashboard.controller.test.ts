@@ -9,6 +9,7 @@ const fullCapabilities: AnalyticsCapabilities = {
   events: true,
   eventDetails: true,
   eventProperties: true,
+  globalEventFiltering: false,
   flags: true,
 };
 
@@ -341,7 +342,7 @@ describe("AnalyticsDashboardController", () => {
     expect(api.summary).not.toHaveBeenCalled();
   });
 
-  it("uses provider capabilities to load Plausible event details without property exploration", async () => {
+  it("uses Plausible capabilities for event details and global event filtering", async () => {
     const api = dashboardApi();
     api.connections.mockResolvedValue(ok({
       enabled: true,
@@ -354,7 +355,8 @@ describe("AnalyticsDashboardController", () => {
           dimensions: ["RequestPath", "Referrer", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName"],
           events: true,
           eventDetails: true,
-          eventProperties: false,
+          eventProperties: true,
+          globalEventFiltering: true,
           flags: false,
         },
         isDefault: true,
@@ -367,6 +369,10 @@ describe("AnalyticsDashboardController", () => {
 
     controller.connect();
     await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    api.summary.mockClear();
+    controller.toggleFilter("EventName", "Signup");
+    await vi.waitFor(() => expect(api.summary).toHaveBeenCalled());
+    expect(api.summary.mock.calls[0]?.[0]?.query?.filter).toEqual(["EventName:Signup"]);
     await controller.selectEvent("Signup");
 
     expect(api.events).toHaveBeenCalled();
@@ -374,6 +380,19 @@ describe("AnalyticsDashboardController", () => {
     expect(api.eventDetails).toHaveBeenCalled();
     expect(api.eventPropertyValues).not.toHaveBeenCalled();
     expect(controller.cards().some((card) => card.kind === "tabbed-breakdown" && card.id === "utm")).toBe(true);
+  });
+
+  it("does not create a global event filter for providers that do not support it", async () => {
+    const api = dashboardApi();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    api.summary.mockClear();
+
+    controller.toggleFilter("EventName", "Signup");
+
+    expect(controller.state.filters).toEqual([]);
+    expect(api.summary).not.toHaveBeenCalled();
   });
 
   it("removes unsupported filters when switching providers", async () => {
@@ -384,7 +403,8 @@ describe("AnalyticsDashboardController", () => {
         .concat("Referrer"),
       events: true,
       eventDetails: true,
-      eventProperties: false,
+      eventProperties: true,
+      globalEventFiltering: true,
       flags: false,
     };
     api.connections.mockResolvedValue(ok({

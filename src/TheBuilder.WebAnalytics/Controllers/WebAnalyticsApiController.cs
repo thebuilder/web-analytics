@@ -316,11 +316,6 @@ public sealed class WebAnalyticsApiController(
         {
             return (null, ValidationProblem(filterError!));
         }
-        if (filters.Any(filter => filter.Dimension == AnalyticsDimension.EventName) &&
-            reportScope != ReportScope.EventList)
-        {
-            return (null, ValidationProblem("EventName filters are only supported by the event list report."));
-        }
         if (!registry.Settings.Enabled)
         {
             return (null, WebAnalyticsProblemFactory.CreateResult(
@@ -335,7 +330,7 @@ public sealed class WebAnalyticsApiController(
             var selectedConnection = registry.Get(connection);
             if (selectedConnection is null)
                 return (null, NotFoundProblem("The selected analytics connection does not exist."));
-            var capabilityError = ValidateCapabilities(filters, reportRequirement, selectedConnection.Capabilities);
+            var capabilityError = ValidateCapabilities(filters, reportScope, reportRequirement, selectedConnection.Capabilities);
             return capabilityError is null
                 ? (new AnalyticsQuery(connection, from, to, interval, Filters: filters), null)
                 : (null, capabilityError);
@@ -352,7 +347,7 @@ public sealed class WebAnalyticsApiController(
             string.Equals(route.Path, path, StringComparison.Ordinal));
         if (selectedRoute is null)
             return (null, ValidationProblem("The selected path is not a published route for this document and connection."));
-        var documentCapabilityError = ValidateCapabilities(filters, reportRequirement, selectedRoute.Capabilities);
+        var documentCapabilityError = ValidateCapabilities(filters, reportScope, reportRequirement, selectedRoute.Capabilities);
         return documentCapabilityError is null
             ? (new AnalyticsQuery(connection, from, to, interval, selectedRoute.Path, filters), null)
             : (null, documentCapabilityError);
@@ -360,12 +355,17 @@ public sealed class WebAnalyticsApiController(
 
     private ActionResult? ValidateCapabilities(
         IReadOnlyList<AnalyticsFilter> filters,
+        ReportScope reportScope,
         ReportRequirement requirement,
         AnalyticsCapabilities capabilities)
     {
         var unsupported = filters.FirstOrDefault(filter => !capabilities.Dimensions.Contains(filter.Dimension));
         if (unsupported is not null)
             return ValidationProblem($"The selected analytics provider does not support {unsupported.Dimension} filters.");
+        if (reportScope != ReportScope.EventList &&
+            !capabilities.GlobalEventFiltering &&
+            filters.Any(filter => filter.Dimension == AnalyticsDimension.EventName))
+            return ValidationProblem("The selected analytics provider does not support event filters for this report.");
 
         var supported = requirement.Capability switch
         {

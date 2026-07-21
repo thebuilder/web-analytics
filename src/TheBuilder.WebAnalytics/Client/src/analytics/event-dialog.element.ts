@@ -13,6 +13,7 @@ export class WebAnalyticsEventDialogElement extends UmbElementMixin(LitElement) 
   @property({ attribute: false }) rows: AnalyticsEventRow[] = [];
   @property({ attribute: false }) filters: AnalyticsFilter[] = [];
   @property({ type: Boolean }) detailsEnabled = true;
+  @property({ type: Boolean }) filteringEnabled = false;
   @state() private _search = "";
 
   protected firstUpdated(): void { this.shadowRoot?.querySelector("dialog")?.showModal(); }
@@ -35,7 +36,7 @@ export class WebAnalyticsEventDialogElement extends UmbElementMixin(LitElement) 
             ${!this.loading && this.unavailable ? html`<umb-empty-state headline="Events unavailable"><p>${this.unavailable}</p></umb-empty-state>` : ""}
             ${!this.loading && !this.unavailable && this._search && this.rows.length === 0 ? html`<umb-empty-state headline="No matching events"><p>Try a different search.</p></umb-empty-state>` : ""}
             ${this.loading || (!this.unavailable && (!this._search || this.rows.length > 0)) ? html`
-              <web-analytics-event-table .rows=${this.rows} .filters=${this.filters} .loading=${this.loading} .detailsEnabled=${this.detailsEnabled}></web-analytics-event-table>
+              <web-analytics-event-table .rows=${this.rows} .filters=${this.filters} .loading=${this.loading} .detailsEnabled=${this.detailsEnabled} .filteringEnabled=${this.filteringEnabled}></web-analytics-event-table>
             ` : ""}
           </div>
           <uui-button slot="actions" look="secondary" label="Close events" @click=${this.#close}>Close</uui-button>

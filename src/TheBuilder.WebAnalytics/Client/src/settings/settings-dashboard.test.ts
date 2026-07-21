@@ -150,6 +150,7 @@ function connection(): AnalyticsConnectionSettingsResponse {
     projectId: "prj_example",
     team: null,
     siteId: "",
+    eventPropertyNames: [],
     documentRootKeys: [],
     enableAllDocumentTypes: false,
     enabledDocumentTypeKeys: [],

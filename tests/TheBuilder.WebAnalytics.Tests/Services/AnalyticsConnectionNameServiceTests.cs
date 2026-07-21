@@ -83,6 +83,7 @@ public sealed class AnalyticsConnectionNameServiceTests
         "team_123",
         string.Empty,
         [],
+        [],
         true,
         new HashSet<Guid>(),
         new HashSet<string>());

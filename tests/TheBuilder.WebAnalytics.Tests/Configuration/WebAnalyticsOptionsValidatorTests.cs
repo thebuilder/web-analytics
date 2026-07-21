@@ -133,7 +133,8 @@ public sealed class WebAnalyticsOptionsValidatorTests
             {
                 Key = key,
                 Provider = AnalyticsProvider.Plausible,
-                SiteId = "example.com"
+                SiteId = "example.com",
+                EventPropertyNames = ["locale", "title"]
             }
         ];
 
@@ -144,9 +145,11 @@ public sealed class WebAnalyticsOptionsValidatorTests
         Assert.Equal("plausible-token", connection.AccessToken);
         Assert.True(connection.IsConfigured);
         Assert.False(connection.Capabilities.Flags);
-        Assert.False(connection.Capabilities.EventProperties);
+        Assert.True(connection.Capabilities.EventProperties);
         Assert.True(connection.Capabilities.EventDetails);
         Assert.True(connection.Capabilities.Events);
+        Assert.True(connection.Capabilities.GlobalEventFiltering);
+        Assert.Equal(["locale", "title"], connection.EventPropertyNames);
     }
 
     [Fact]

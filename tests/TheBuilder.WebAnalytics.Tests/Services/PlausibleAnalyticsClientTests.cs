@@ -26,6 +26,26 @@ public sealed class PlausibleAnalyticsClientTests
     }
 
     [Fact]
+    public async Task Count_applies_a_global_event_name_filter()
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[15,12]}]}""");
+        var client = CreateClient(handler);
+        var query = CreateQuery() with
+        {
+            Filters = [new AnalyticsFilter(AnalyticsDimension.EventName, "Read case")]
+        };
+
+        var result = await client.CountAsync(CreateConnection(), query, CancellationToken.None);
+
+        Assert.Equal(new AnalyticsTotals(15, 12), result);
+        using var body = JsonDocument.Parse(handler.Body!);
+        var filter = Assert.Single(body.RootElement.GetProperty("filters").EnumerateArray());
+        Assert.Equal("is", filter[0].GetString());
+        Assert.Equal("event:goal", filter[1].GetString());
+        Assert.Equal("Read case", filter[2][0].GetString());
+    }
+
+    [Fact]
     public async Task Breakdown_maps_common_dimension_filters_and_search()
     {
         var handler = new RecordingHandler("""{"results":[{"dimensions":["Google"],"metrics":[12,8]}]}""");
@@ -96,6 +116,91 @@ public sealed class PlausibleAnalyticsClientTests
         Assert.Equal("is", body.RootElement.GetProperty("filters")[0][0].GetString());
         Assert.Equal("event:goal", body.RootElement.GetProperty("filters")[0][1].GetString());
         Assert.Equal("Read article", body.RootElement.GetProperty("filters")[0][2][0].GetString());
+    }
+
+    [Fact]
+    public async Task Event_properties_include_configured_names_and_event_specific_defaults()
+    {
+        var client = CreateClient(new RecordingHandler("{}"));
+        var connection = CreateConnection(["locale", "title", "URL"]);
+
+        var custom = await client.GetEventPropertyNamesAsync(
+            connection, CreateQuery(), "Read case", null, CancellationToken.None);
+        var outbound = await client.GetEventPropertyNamesAsync(
+            connection, CreateQuery(), "Outbound Link: Click", null, CancellationToken.None);
+        var notFound = await client.GetEventPropertyNamesAsync(
+            connection, CreateQuery(), "404", null, CancellationToken.None);
+
+        Assert.Equal(["locale", "title", "URL"], custom);
+        Assert.Equal(["url", "locale", "title"], outbound);
+        Assert.Equal(["path", "locale", "title", "URL"], notFound);
+    }
+
+    [Fact]
+    public async Task Event_property_values_query_the_named_dimension_lazily()
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":["da-DK"],"metrics":[15,12]}]}""");
+        var client = CreateClient(handler);
+
+        var values = await client.GetEventPropertyValuesAsync(
+            CreateConnection(["locale"]),
+            CreateQuery(),
+            "Read case",
+            "locale",
+            20,
+            "da",
+            null,
+            CancellationToken.None);
+
+        Assert.Equal(new AnalyticsEventPropertyValue("da-DK", 15, 12), Assert.Single(values));
+        using var body = JsonDocument.Parse(handler.Body!);
+        Assert.Equal("event:props:locale", body.RootElement.GetProperty("dimensions")[0].GetString());
+        Assert.Equal("events", body.RootElement.GetProperty("order_by")[0][0].GetString());
+        Assert.Contains(body.RootElement.GetProperty("filters").EnumerateArray(), filter =>
+            filter[0].GetString() == "is" && filter[1].GetString() == "event:goal");
+        Assert.Contains(body.RootElement.GetProperty("filters").EnumerateArray(), filter =>
+            filter[0].GetString() == "contains" && filter[1].GetString() == "event:props:locale");
+    }
+
+    [Fact]
+    public async Task Event_property_filter_is_applied_to_event_totals()
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[8,6]}]}""");
+        var client = CreateClient(handler);
+
+        var totals = await client.CountFilteredEventsAsync(
+            CreateConnection(["locale"]),
+            CreateQuery(),
+            "Read case",
+            new AnalyticsEventDataFilter("locale", "da-DK"),
+            CancellationToken.None);
+
+        Assert.Equal(new AnalyticsEventTotals(8, 6), totals);
+        using var body = JsonDocument.Parse(handler.Body!);
+        Assert.Contains(body.RootElement.GetProperty("filters").EnumerateArray(), filter =>
+            filter[0].GetString() == "is" &&
+            filter[1].GetString() == "event:props:locale" &&
+            filter[2][0].GetString() == "da-DK");
+    }
+
+    [Fact]
+    public async Task Unconfigured_event_property_is_not_queried()
+    {
+        var handler = new RecordingHandler("""{"results":[]}""");
+        var client = CreateClient(handler);
+
+        var values = await client.GetEventPropertyValuesAsync(
+            CreateConnection(["locale"]),
+            CreateQuery(),
+            "Read case",
+            "private-property",
+            20,
+            null,
+            null,
+            CancellationToken.None);
+
+        Assert.Empty(values);
+        Assert.Null(handler.Request);
     }
 
     [Fact]
@@ -223,7 +328,7 @@ public sealed class PlausibleAnalyticsClientTests
     private static PlausibleAnalyticsClient CreateClient(HttpMessageHandler handler) =>
         new(new HttpClient(handler) { BaseAddress = new Uri("https://plausible.io/") }, new AnalyticsProviderRequestGate());
 
-    private static AnalyticsConnection CreateConnection() => new(
+    private static AnalyticsConnection CreateConnection(IReadOnlyList<string>? eventPropertyNames = null) => new(
         Guid.Parse("11111111-1111-1111-1111-111111111110"),
         "Plausible",
         AnalyticsProvider.Plausible,
@@ -231,6 +336,7 @@ public sealed class PlausibleAnalyticsClientTests
         string.Empty,
         null,
         "example.com",
+        eventPropertyNames ?? [],
         [],
         false,
         new HashSet<Guid>(),

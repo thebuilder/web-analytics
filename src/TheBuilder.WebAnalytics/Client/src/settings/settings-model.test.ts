@@ -21,6 +21,7 @@ const settings = (): AnalyticsSettingsResponse => ({
     projectId: "project",
     team: null,
     siteId: "",
+    eventPropertyNames: [],
     documentRootKeys: [],
     enableAllDocumentTypes: false,
     enabledDocumentTypeKeys: [],
@@ -95,5 +96,20 @@ describe("analytics settings model", () => {
     const model = settings();
 
     expect(createSettingsUpdate(model).connections[0].key).toBe(model.connections[0].key);
+  });
+
+  it("validates and serializes Plausible event property names", () => {
+    const model = settings();
+    const connection = model.connections[0];
+    connection.provider = "Plausible";
+    connection.projectId = "";
+    connection.siteId = "example.com";
+    connection.eventPropertyNames = ["locale", "title"];
+
+    expect(validateConnection(connection)).toEqual({});
+    expect(createSettingsUpdate(model).connections[0].eventPropertyNames).toEqual(["locale", "title"]);
+
+    connection.eventPropertyNames = Array.from({ length: 21 }, (_, index) => `property-${index}`);
+    expect(validateConnection(connection).eventPropertyNames).toBe("Add no more than 20 event properties.");
   });
 });

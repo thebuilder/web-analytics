@@ -45,7 +45,7 @@ beforeEach(() => {
       key: "11111111-1111-1111-1111-111111111111",
       displayName: "Main",
       provider: "Vercel",
-      capabilities: { dimensions: ["RequestPath", "Route", "ReferrerHostname", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName"], events: true, eventDetails: true, eventProperties: true, flags: true },
+      capabilities: { dimensions: ["RequestPath", "Route", "ReferrerHostname", "Country", "DeviceType", "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName"], events: true, eventDetails: true, eventProperties: true, globalEventFiltering: false, flags: true },
       isDefault: true,
       isConfigured: true,
       baseUrl: "https://example.com",
@@ -74,7 +74,7 @@ describe("analytics presentation components", () => {
     element.route = {
       connection: "11111111-1111-1111-1111-111111111111",
       provider: "Vercel",
-      capabilities: { dimensions: ["RequestPath"], events: true, eventDetails: true, eventProperties: true, flags: true },
+      capabilities: { dimensions: ["RequestPath"], events: true, eventDetails: true, eventProperties: true, globalEventFiltering: false, flags: true },
       culture: "en-US",
       hostname: "example.com",
       path: "/products/example",
@@ -317,6 +317,22 @@ describe("analytics presentation components", () => {
     expect(element.shadowRoot?.querySelector(".empty strong")?.textContent).toBe("No events");
     expect(element.shadowRoot?.querySelector(".empty-icon uui-icon")?.getAttribute("name")).toBe("icon-lightning");
     expect(element.shadowRoot?.querySelector(".empty a")).toBeNull();
+  });
+
+  it("only offers global event filtering when the provider supports it", async () => {
+    const element = document.createElement("web-analytics-event-table") as HTMLElement & {
+      rows: Array<{ eventName: string; visitors: number; count: number }>;
+      filteringEnabled: boolean;
+      updateComplete: Promise<unknown>;
+    };
+    element.rows = [{ eventName: "Read case", visitors: 12, count: 15 }];
+    document.body.append(element);
+    await element.updateComplete;
+    expect(element.shadowRoot?.querySelector(".filter-action")).toBeNull();
+
+    element.filteringEnabled = true;
+    await element.updateComplete;
+    expect(element.shadowRoot?.querySelector(".filter-action")?.getAttribute("aria-label")).toBe("Filter analytics by Read case event");
   });
 
   it("shows Plausible event totals when property exploration is unavailable", async () => {

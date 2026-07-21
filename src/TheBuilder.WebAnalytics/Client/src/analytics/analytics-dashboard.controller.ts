@@ -294,6 +294,7 @@ export class AnalyticsDashboardController {
 
   toggleFilter(dimension: AnalyticsDimension | undefined, value: string): void {
     if (!dimension || !value || !supportsDimension(this.#capabilities(), dimension)) return;
+    if (dimension === "EventName" && !this.#capabilities().globalEventFiltering) return;
     const active = this.state.filters.some((filter) => filter.dimension === dimension && filter.value === value);
     const filters = active
       ? this.state.filters.filter((filter) => filter.dimension !== dimension)
@@ -638,7 +639,9 @@ export class AnalyticsDashboardController {
   }
 
   #visitFilterQuery(): { filter?: string[] } {
-    return this.#serializedFilters(this.state.filters.filter(({ dimension }) => dimension !== "EventName"));
+    return this.#serializedFilters(this.#capabilities().globalEventFiltering
+      ? this.state.filters
+      : this.state.filters.filter(({ dimension }) => dimension !== "EventName"));
   }
 
   #eventListFilterQuery(): { filter?: string[] } { return this.#serializedFilters(this.state.filters); }

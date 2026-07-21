@@ -196,6 +196,55 @@ public sealed class WebAnalyticsSettingsValidatorTests
     }
 
     [Fact]
+    public void Store_normalizes_plausible_event_property_names()
+    {
+        var store = new WebAnalyticsSettingsStore(Options.Create(new WebAnalyticsOptions()));
+        var settings = CreateSettings();
+        var connection = settings.Connections[0];
+        connection.Provider = AnalyticsProvider.Plausible;
+        connection.ProjectId = string.Empty;
+        connection.SiteId = "example.com";
+        connection.EventPropertyNames = [" locale ", "title", "LOCALE", ""];
+
+        store.Save(settings);
+
+        Assert.Equal(["locale", "title"], Assert.Single(store.Get().Connections).EventPropertyNames);
+    }
+
+    [Fact]
+    public void Event_property_names_are_bounded_and_plausible_only()
+    {
+        var settings = CreateSettings();
+        settings.Connections[0].EventPropertyNames = ["locale"];
+        var vercelFailures = WebAnalyticsSettingsValidator.Validate(settings);
+
+        settings.Connections[0].Provider = AnalyticsProvider.Plausible;
+        settings.Connections[0].ProjectId = string.Empty;
+        settings.Connections[0].SiteId = "example.com";
+        settings.Connections[0].EventPropertyNames = Enumerable.Range(1, 21).Select(index => $"property-{index}").ToArray();
+        var maximumFailures = WebAnalyticsSettingsValidator.Validate(settings);
+
+        Assert.Contains(vercelFailures, failure => failure.Contains("cannot define Plausible event properties"));
+        Assert.Contains(maximumFailures, failure => failure.Contains("cannot define more than 20 event properties"));
+    }
+
+    [Fact]
+    public void Null_event_property_names_from_external_json_are_normalized()
+    {
+        var settings = CreateSettings();
+        var connection = settings.Connections[0];
+        connection.Provider = AnalyticsProvider.Plausible;
+        connection.ProjectId = string.Empty;
+        connection.SiteId = "example.com";
+        connection.EventPropertyNames = null!;
+        var store = new WebAnalyticsSettingsStore(Options.Create(new WebAnalyticsOptions()));
+
+        store.Save(settings);
+
+        Assert.Empty(Assert.Single(store.Get().Connections).EventPropertyNames);
+    }
+
+    [Fact]
     public void Store_generates_and_preserves_a_missing_connection_key()
     {
         var store = new WebAnalyticsSettingsStore(Options.Create(new WebAnalyticsOptions()));

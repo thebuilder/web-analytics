@@ -66,6 +66,7 @@ public sealed record AnalyticsCapabilities(
     bool Events,
     bool EventDetails,
     bool EventProperties,
+    bool GlobalEventFiltering,
     bool Flags);
 
 public sealed record AnalyticsQuery(
@@ -182,6 +183,7 @@ public sealed class AnalyticsConnectionSettingsResponse
     public required string ProjectId { get; init; }
     public string? Team { get; init; }
     public required string SiteId { get; init; }
+    public IReadOnlyList<string> EventPropertyNames { get; init; } = [];
     public required IReadOnlyList<string> DocumentRootKeys { get; init; }
     public required bool EnableAllDocumentTypes { get; init; }
     public required IReadOnlyList<string> EnabledDocumentTypeKeys { get; init; }
@@ -204,6 +206,7 @@ public sealed class UpdateAnalyticsConnectionRequest
     public required string ProjectId { get; init; }
     public string? Team { get; init; }
     public required string SiteId { get; init; }
+    public IReadOnlyList<string> EventPropertyNames { get; init; } = [];
     public MockAnalyticsScenario? MockScenario { get; init; }
     public required IReadOnlyList<string> DocumentRootKeys { get; init; }
     public required bool EnableAllDocumentTypes { get; init; }
