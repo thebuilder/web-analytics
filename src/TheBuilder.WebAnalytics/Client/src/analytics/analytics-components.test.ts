@@ -343,6 +343,7 @@ describe("analytics presentation components", () => {
     const element = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
     element.eventName = "Read article";
     element.provider = "Plausible";
+    element.propertiesEnabled = true;
     element.details = {
       eventName: "Read article",
       totals: { count: 9, visitors: 7 },
@@ -361,6 +362,7 @@ describe("analytics presentation components", () => {
   it("places event property search above the results table", async () => {
     const element = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
     element.eventName = "Read article";
+    element.propertiesEnabled = true;
     element.details = {
       eventName: "Read article",
       totals: { count: 9, visitors: 7 },

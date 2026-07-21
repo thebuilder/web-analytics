@@ -396,13 +396,13 @@ export class AnalyticsDashboardController {
 
   toggleEventPropertyFilter(property: string, value: string): void {
     const selected = this.state.selectedEvent;
-    if (!selected) return;
+    if (!selected || !this.#capabilities().eventProperties) return;
     const active = selected.eventProperty === property && selected.eventValue === value;
     void this.#loadEventDetails(selected.eventName, active ? undefined : property, active ? undefined : value);
   }
 
   searchEventProperty(propertyName: string, search: string): void {
-    if (this.state.selectedEvent) void this.#loadEventPropertyValues(propertyName, search.trim(), true);
+    if (this.state.selectedEvent && this.#capabilities().eventProperties) void this.#loadEventPropertyValues(propertyName, search.trim(), true);
   }
 
   closeEventDetails(): void {
@@ -598,13 +598,15 @@ export class AnalyticsDashboardController {
     }
     this.#set({ selectedEvent: { ...this.state.selectedEvent, details: successState(data) } });
     const firstProperty = data.properties[0];
-    if (firstProperty && !firstProperty.values.length) void this.#loadEventPropertyValues(firstProperty.name, "");
+    if (this.#capabilities().eventProperties && firstProperty && !firstProperty.values.length) {
+      void this.#loadEventPropertyValues(firstProperty.name, "");
+    }
   }
 
   async #loadEventPropertyValues(propertyName: string, search: string, debounce = false): Promise<void> {
     const connection = this.state.connection;
     const selected = this.state.selectedEvent;
-    if (!connection || !selected) return;
+    if (!connection || !selected || !this.#capabilities().eventProperties) return;
     const previous = selected.property;
     this.#set({ selectedEvent: { ...selected, propertyName, propertySearch: search, property: loadingState(previous) } });
     const run = (signal: AbortSignal) => this.#api.eventPropertyValues({

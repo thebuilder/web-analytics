@@ -149,6 +149,39 @@ describe("AnalyticsDashboardController", () => {
     expect(controller.state.selectedEvent?.details.status).toBe("success");
   });
 
+  it("loads event details without fetching property values when the capability is unavailable", async () => {
+    const api = dashboardApi();
+    api.connections.mockResolvedValue(ok({
+      enabled: true,
+      defaultRangeDays: 30,
+      connections: [{
+        key: "11111111-1111-1111-1111-111111111111",
+        displayName: "Details only",
+        provider: "Vercel",
+        capabilities: { ...fullCapabilities, eventProperties: false },
+        isDefault: true,
+        isConfigured: true,
+        baseUrl: "https://example.com",
+        warnings: [],
+      }],
+    }));
+    api.eventDetails.mockResolvedValue(ok({
+      eventName: "Signup",
+      totals: { count: 20, visitors: 10 },
+      properties: [{ name: "plan", values: [] }],
+    }));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+
+    await controller.selectEvent("Signup");
+    controller.searchEventProperty("plan", "Pro");
+
+    expect(api.eventDetails).toHaveBeenCalledOnce();
+    expect(api.eventPropertyValues).not.toHaveBeenCalled();
+    expect(controller.state.selectedEvent?.details.status).toBe("success");
+  });
+
   it("atomically clears document and dialog state when scope changes", async () => {
     const api = dashboardApi();
     api.documentRoutes.mockResolvedValue(ok([route("/old", "en-US")]));

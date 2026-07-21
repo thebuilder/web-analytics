@@ -27,6 +27,7 @@ describe("event details dialog layout", () => {
     const dialog = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
     dialog.eventName = "Read case";
     dialog.provider = "Plausible";
+    dialog.propertiesEnabled = true;
     dialog.details = { eventName: "Read case", totals: { count: 15, visitors: 12 }, properties: [] };
     document.body.append(dialog);
     await dialog.updateComplete;
@@ -40,6 +41,7 @@ describe("event details dialog layout", () => {
   it("renders property tabs as the first table heading without repeating the active property", async () => {
     const dialog = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
     dialog.eventName = "Read case";
+    dialog.propertiesEnabled = true;
     dialog.details = {
       eventName: "Read case",
       totals: { count: 15, visitors: 12 },
@@ -56,5 +58,24 @@ describe("event details dialog layout", () => {
     expect(heading?.querySelectorAll('[role="tab"]')).toHaveLength(2);
     expect(dialog.shadowRoot?.querySelectorAll("thead th")).toHaveLength(3);
     expect(dialog.shadowRoot?.querySelector("thead")?.textContent?.match(/title/g)).toHaveLength(1);
+  });
+
+  it("does not render property controls when properties are unavailable", async () => {
+    const dialog = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
+    dialog.eventName = "Read case";
+    dialog.filterProperty = "title";
+    dialog.filterValue = "A case study";
+    dialog.details = {
+      eventName: "Read case",
+      totals: { count: 15, visitors: 12 },
+      properties: [{ name: "title", values: [{ value: "A case study", count: 15, visitors: 12 }] }],
+    };
+    document.body.append(dialog);
+    await dialog.updateComplete;
+
+    expect(dialog.shadowRoot?.querySelector('[role="tablist"]')).toBeNull();
+    expect(dialog.shadowRoot?.querySelector('uui-input[type="search"]')).toBeNull();
+    expect(dialog.shadowRoot?.querySelector(".filter-button")).toBeNull();
+    expect(dialog.shadowRoot?.querySelector(".active-filter")).toBeNull();
   });
 });

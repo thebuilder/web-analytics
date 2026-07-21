@@ -170,6 +170,7 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
           <web-analytics-event-details-dialog
             .eventName=${selected.eventName}
             .provider=${state.provider}
+            .propertiesEnabled=${capabilities?.eventProperties ?? false}
             .details=${stateData(selected.details)}
             .loading=${selected.details.status === "loading"}
             .unavailable=${this.#error(selected.details)}

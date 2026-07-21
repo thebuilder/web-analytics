@@ -8,6 +8,7 @@ import type { AnalyticsEventDetails, AnalyticsEventProperty, AnalyticsProvider }
 export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitElement) {
   @property() eventName = "Event";
   @property() provider?: AnalyticsProvider;
+  @property({ type: Boolean }) propertiesEnabled = false;
   @property({ type: Boolean }) loading = false;
   @property() unavailable?: string;
   @property({ attribute: false }) details?: AnalyticsEventDetails;
@@ -195,9 +196,10 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
         <uui-dialog-layout headline=${`${this.eventName} event`}>
           <div class="dialog-content" aria-busy=${this.loading}>
             ${this.details ? html`
-              ${activeProperty ? html`
-                ${this.#renderProperty(activeProperty)}
-              ` : this.#renderNoProperties()}
+              ${this.propertiesEnabled ? activeProperty ? html`
+                  ${this.#renderProperty(activeProperty)}
+                ` : this.#renderNoProperties()
+                : ""}
               ${this.loading ? html`<div class="loading-overlay" role="status">Updating event details…</div>` : ""}
               ${this.unavailable ? html`<div class="error-overlay" role="alert">${this.unavailable}</div>` : ""}
             ` : this.loading ? html`<div class="loading" role="status">Loading event details…</div>` : this.unavailable ? html`<div class="state-message"><umb-empty-state headline="Event details unavailable"><p>${this.unavailable}</p></umb-empty-state></div>` : ""}
