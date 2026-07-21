@@ -424,6 +424,7 @@ export class WebAnalyticsSettingsDashboardElement extends UmbElementMixin(LitEle
   static styles = [UmbTextStyles, css`
     :host {
       --analytics-z-sticky-action: 10;
+      --settings-actions-inline-inset: var(--uui-size-space-4);
       --settings-column-max: 76rem;
       --settings-inline-gutter: var(--uui-size-layout-1);
       container-type: inline-size;
@@ -434,7 +435,7 @@ export class WebAnalyticsSettingsDashboardElement extends UmbElementMixin(LitEle
     .section-heading > div { min-inline-size: 0; }
     .settings-actions {
       align-items: center;
-      background: var(--uui-color-surface);
+      background: var(--uui-color-surface-alt);
       border-radius: var(--uui-border-radius);
       box-shadow: var(--uui-shadow-depth-3);
       box-sizing: border-box;
@@ -443,23 +444,26 @@ export class WebAnalyticsSettingsDashboardElement extends UmbElementMixin(LitEle
       gap: var(--uui-size-space-4);
       justify-content: flex-end;
       inset-block-end: var(--uui-size-layout-1);
-      inset-inline-end: var(--settings-inline-gutter);
-      max-inline-size: calc(100vw - 2 * var(--settings-inline-gutter));
+      inset-inline-end: calc(var(--settings-inline-gutter) + var(--settings-actions-inline-inset));
+      max-inline-size: calc(100vw - 2 * var(--settings-inline-gutter) - 2 * var(--settings-actions-inline-inset));
       min-block-size: var(--uui-size-14);
       padding: var(--uui-size-space-3) var(--uui-size-space-4);
       position: fixed;
-      width: min(var(--settings-column-max), calc(100vw - 2 * var(--settings-inline-gutter)));
+      width: min(
+        calc(var(--settings-column-max) - 2 * var(--settings-actions-inline-inset)),
+        calc(100vw - 2 * var(--settings-inline-gutter) - 2 * var(--settings-actions-inline-inset))
+      );
       z-index: var(--analytics-z-sticky-action);
     }
     @supports (width: 1cqi) {
       .settings-actions {
         inset-inline-end: max(
-          var(--settings-inline-gutter),
-          calc((100cqi - var(--settings-column-max)) / 2)
+          calc(var(--settings-inline-gutter) + var(--settings-actions-inline-inset)),
+          calc((100cqi - var(--settings-column-max)) / 2 + var(--settings-actions-inline-inset))
         );
         width: min(
-          var(--settings-column-max),
-          calc(100cqi - 2 * var(--settings-inline-gutter))
+          calc(var(--settings-column-max) - 2 * var(--settings-actions-inline-inset)),
+          calc(100cqi - 2 * var(--settings-inline-gutter) - 2 * var(--settings-actions-inline-inset))
         );
       }
     }
