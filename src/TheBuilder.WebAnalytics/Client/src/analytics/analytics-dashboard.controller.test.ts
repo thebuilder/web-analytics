@@ -115,6 +115,23 @@ describe("AnalyticsDashboardController", () => {
     expect(controller.state.selectedEvent).toBeUndefined();
   });
 
+  it("reuses property values returned with event details", async () => {
+    const api = dashboardApi();
+    api.eventDetails.mockResolvedValue(ok({
+      eventName: "Signup",
+      totals: { count: 20, visitors: 10 },
+      properties: [{ name: "plan", values: [{ value: "Pro", count: 20, visitors: 10 }] }],
+    }));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+
+    await controller.selectEvent("Signup");
+
+    expect(api.eventPropertyValues).not.toHaveBeenCalled();
+    expect(controller.state.selectedEvent?.details.status).toBe("success");
+  });
+
   it("atomically clears document and dialog state when scope changes", async () => {
     const api = dashboardApi();
     api.documentRoutes.mockResolvedValue(ok([route("/old", "en-US")]));

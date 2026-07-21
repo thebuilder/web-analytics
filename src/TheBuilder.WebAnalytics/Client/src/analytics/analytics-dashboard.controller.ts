@@ -588,8 +588,8 @@ export class AnalyticsDashboardController {
       return;
     }
     this.#set({ selectedEvent: { ...this.state.selectedEvent, details: successState(data) } });
-    const firstProperty = data.properties[0]?.name;
-    if (firstProperty) void this.#loadEventPropertyValues(firstProperty, "");
+    const firstProperty = data.properties[0];
+    if (firstProperty && !firstProperty.values.length) void this.#loadEventPropertyValues(firstProperty.name, "");
   }
 
   async #loadEventPropertyValues(propertyName: string, search: string, debounce = false): Promise<void> {

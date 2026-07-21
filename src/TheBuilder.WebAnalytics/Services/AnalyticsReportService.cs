@@ -112,20 +112,51 @@ public sealed class AnalyticsReportService(
                 ? client.CountEventsAsync(connection, query, normalizedEventName, operationCancellationToken)
                 : propertiesClient?.CountFilteredEventsAsync(connection, query, normalizedEventName, eventDataFilter, operationCancellationToken)
                     ?? throw new InvalidOperationException($"{connection.Provider} does not support event property filters.");
-            var propertyNamesTask = propertiesClient?.GetEventPropertyNamesAsync(
-                    connection,
-                    query,
-                    normalizedEventName,
-                    eventDataFilter,
-                    operationCancellationToken)
-                ?? Task.FromResult<IReadOnlyList<string>>([]);
-            await Task.WhenAll(totals, propertyNamesTask);
-            var propertyNames = await propertyNamesTask;
-            var properties = propertyNames
-                .Select(propertyName => new AnalyticsEventProperty(propertyName, []))
-                .ToArray();
-            return new AnalyticsEventDetails(normalizedEventName, await totals, properties);
+            var propertiesTask = GetEventPropertiesAsync(
+                connection,
+                snapshot.Revision,
+                snapshot.Settings.CacheDuration,
+                query,
+                normalizedEventName,
+                propertiesClient,
+                eventDataFilter,
+                operationCancellationToken);
+            await Task.WhenAll(totals, propertiesTask);
+            return new AnalyticsEventDetails(normalizedEventName, await totals, await propertiesTask);
         }, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<AnalyticsEventProperty>> GetEventPropertiesAsync(
+        AnalyticsConnection connection,
+        long revision,
+        TimeSpan cacheDuration,
+        AnalyticsQuery query,
+        string eventName,
+        IAnalyticsEventPropertiesProviderClient? client,
+        AnalyticsEventDataFilter? eventDataFilter,
+        CancellationToken cancellationToken)
+    {
+        if (client is null) return [];
+        if (client is not IAnalyticsEventPropertyDiscoveryProviderClient discoveryClient)
+        {
+            var propertyNames = await client.GetEventPropertyNamesAsync(connection, query, eventName, eventDataFilter, cancellationToken);
+            return propertyNames.Select(propertyName => new AnalyticsEventProperty(propertyName, [])).ToArray();
+        }
+
+        var eventDataCacheKey = eventDataFilter is null
+            ? string.Empty
+            : $":{EncodeCachePart(eventDataFilter.Property)}:{EncodeCachePart(eventDataFilter.Value)}";
+        var cacheKey = $"web-analytics:{connection.Provider}:{revision}:event-property-discovery{eventDataCacheKey}:{Normalize(query)}";
+        var propertiesByEvent = await GetOrCreateAsync(
+            cacheKey,
+            cacheDuration,
+            operationCancellationToken => discoveryClient.DiscoverEventPropertiesAsync(
+                connection,
+                query,
+                eventDataFilter,
+                operationCancellationToken),
+            cancellationToken);
+        return propertiesByEvent.TryGetValue(eventName, out var properties) ? properties : [];
     }
 
     public async Task<AnalyticsEventProperty?> GetEventPropertyValuesAsync(

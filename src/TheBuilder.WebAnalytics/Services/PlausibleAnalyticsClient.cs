@@ -11,7 +11,7 @@ namespace TheBuilder.WebAnalytics.Services;
 
 public sealed class PlausibleAnalyticsClient(
     HttpClient httpClient,
-    AnalyticsProviderRequestGate requestGate) : IAnalyticsProviderClient, IAnalyticsEventsProviderClient, IAnalyticsEventPropertiesProviderClient
+    AnalyticsProviderRequestGate requestGate) : IAnalyticsProviderClient, IAnalyticsEventsProviderClient, IAnalyticsEventPropertyDiscoveryProviderClient
 {
     private const string QueryPath = "api/v2/query";
 
@@ -169,6 +169,52 @@ public sealed class PlausibleAnalyticsClient(
         AnalyticsEventDataFilter? eventDataFilter,
         CancellationToken cancellationToken) => Task.FromResult(EventPropertyNames(connection, eventName));
 
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<AnalyticsEventProperty>>> DiscoverEventPropertiesAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        AnalyticsEventDataFilter? eventDataFilter,
+        CancellationToken cancellationToken)
+    {
+        var propertyNames = connection.EventPropertyNames
+            .Concat(["url", "path"])
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var discoveries = await Task.WhenAll(propertyNames.Select(async propertyName =>
+        {
+            var propertyDimension = PropertyDimension(propertyName);
+            var response = await QueryAsync(
+                connection,
+                query,
+                ["events", "visitors"],
+                ["event:goal", propertyDimension],
+                null,
+                null,
+                cancellationToken,
+                eventDataFilter: eventDataFilter);
+            var propertiesByEvent = response.Results!
+                .Where(HasPropertyValue)
+                .GroupBy(row => Dimension(row, 0, "event:goal"), StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => new AnalyticsEventProperty(
+                        propertyName,
+                        group.Select(row => new AnalyticsEventPropertyValue(
+                            Dimension(row, 1, propertyDimension),
+                            Metric(row, 0, "events"),
+                            Metric(row, 1, "visitors"))).ToArray()),
+                    StringComparer.Ordinal);
+            return propertiesByEvent;
+        }));
+
+        return discoveries
+            .SelectMany(discovery => discovery.Select(item => (EventName: item.Key, Property: item.Value)))
+            .GroupBy(item => item.EventName, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<AnalyticsEventProperty>)group.Select(item => item.Property).ToArray(),
+                StringComparer.Ordinal);
+    }
+
     public async Task<IReadOnlyList<AnalyticsEventPropertyValue>> GetEventPropertyValuesAsync(
         AnalyticsConnection connection,
         AnalyticsQuery query,
@@ -299,6 +345,12 @@ public sealed class PlausibleAnalyticsClient(
         EventPropertyNames(connection, eventName).Contains(propertyName.Trim(), StringComparer.OrdinalIgnoreCase);
 
     private static string PropertyDimension(string propertyName) => $"event:props:{propertyName.Trim()}";
+
+    private static bool HasPropertyValue(PlausibleRow row) =>
+        row.Dimensions is not null &&
+        row.Dimensions.Count > 1 &&
+        row.Dimensions[1] is { Length: > 0 } value &&
+        !string.Equals(value, "(none)", StringComparison.OrdinalIgnoreCase);
 
     internal static string ToApiDimension(AnalyticsDimension dimension) => dimension switch
     {

@@ -137,6 +137,28 @@ public sealed class PlausibleAnalyticsClientTests
     }
 
     [Fact]
+    public async Task Event_property_discovery_groups_only_non_empty_properties_by_event()
+    {
+        var handler = new DiscoveryHandler();
+        var client = CreateClient(handler);
+
+        var result = await client.DiscoverEventPropertiesAsync(
+            CreateConnection(["locale", "title"]), CreateQuery(), null, CancellationToken.None);
+
+        Assert.Equal(["locale", "title"], result["Read case"].Select(property => property.Name));
+        Assert.Equal(["url"], result["Outbound Link: Click"].Select(property => property.Name));
+        Assert.Equal(["path"], result["404"].Select(property => property.Name));
+        Assert.Equal(new AnalyticsEventPropertyValue("da-DK", 15, 12), Assert.Single(result["Read case"][0].Values));
+        Assert.DoesNotContain("Download", result.Keys);
+        Assert.All(handler.Bodies, body =>
+        {
+            using var request = JsonDocument.Parse(body);
+            Assert.Equal("event:goal", request.RootElement.GetProperty("dimensions")[0].GetString());
+            Assert.StartsWith("event:props:", request.RootElement.GetProperty("dimensions")[1].GetString());
+        });
+    }
+
+    [Fact]
     public async Task Event_property_values_query_the_named_dimension_lazily()
     {
         var handler = new RecordingHandler("""{"results":[{"dimensions":["da-DK"],"metrics":[15,12]}]}""");
@@ -360,6 +382,34 @@ public sealed class PlausibleAnalyticsClientTests
             return new HttpResponseMessage(statusCode)
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/json")
+            };
+        }
+    }
+
+    private sealed class DiscoveryHandler : HttpMessageHandler
+    {
+        private readonly List<string> bodies = [];
+        public IReadOnlyList<string> Bodies => bodies;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var body = await request.Content!.ReadAsStringAsync(cancellationToken);
+            lock (bodies) bodies.Add(body);
+            var responseBody = body switch
+            {
+                var value when value.Contains("event:props:locale", StringComparison.Ordinal) =>
+                    """{"results":[{"dimensions":["Read case","da-DK"],"metrics":[15,12]},{"dimensions":["Download","(none)"],"metrics":[2,2]}]}""",
+                var value when value.Contains("event:props:title", StringComparison.Ordinal) =>
+                    """{"results":[{"dimensions":["Read case","Case title"],"metrics":[15,12]}]}""",
+                var value when value.Contains("event:props:url", StringComparison.Ordinal) =>
+                    """{"results":[{"dimensions":["Outbound Link: Click","https://example.com"],"metrics":[4,3]}]}""",
+                var value when value.Contains("event:props:path", StringComparison.Ordinal) =>
+                    """{"results":[{"dimensions":["404","/missing"],"metrics":[3,2]}]}""",
+                _ => throw new InvalidOperationException("Unexpected discovery query.")
+            };
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
             };
         }
     }

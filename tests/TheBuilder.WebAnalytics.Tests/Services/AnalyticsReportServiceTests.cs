@@ -248,7 +248,7 @@ public sealed class AnalyticsReportServiceTests
     }
 
     [Fact]
-    public async Task Event_details_return_property_names_without_eagerly_loading_values()
+    public async Task Event_details_reuse_discovered_property_values()
     {
         var client = new CountingClient();
         using var cache = new AnalyticsReportCache();
@@ -262,10 +262,26 @@ public sealed class AnalyticsReportServiceTests
         Assert.Equal(new AnalyticsEventTotals(30, 12), first.Totals);
         var property = Assert.Single(first.Properties);
         Assert.Equal("plan", property.Name);
-        Assert.Empty(property.Values);
+        Assert.Equal(new AnalyticsEventPropertyValue("Pro", 20, 10), Assert.Single(property.Values));
         Assert.Equal(1, client.EventCountCalls);
         Assert.Equal(1, client.EventPropertyNameCalls);
         Assert.Equal(0, client.EventPropertyValueCalls);
+    }
+
+    [Fact]
+    public async Task Event_property_discovery_is_cached_across_event_details()
+    {
+        var client = new CountingClient();
+        using var cache = new AnalyticsReportCache();
+        var service = CreateService(CreateRegistry(), client, cache);
+
+        var signup = await service.GetEventDetailsAsync(CreateQuery(), "Signup", null, CancellationToken.None);
+        var purchase = await service.GetEventDetailsAsync(CreateQuery(), "Purchase", null, CancellationToken.None);
+
+        Assert.Equal("plan", Assert.Single(signup!.Properties).Name);
+        Assert.Empty(purchase!.Properties);
+        Assert.Equal(1, client.EventPropertyNameCalls);
+        Assert.Equal(2, client.EventCountCalls);
     }
 
     [Fact]
@@ -417,7 +433,7 @@ public sealed class AnalyticsReportServiceTests
     private sealed class CountingClient :
         IAnalyticsProviderClient,
         IAnalyticsEventsProviderClient,
-        IAnalyticsEventPropertiesProviderClient,
+        IAnalyticsEventPropertyDiscoveryProviderClient,
         IAnalyticsFlagsProviderClient
     {
         public AnalyticsProviderDefinition Definition => AnalyticsProviderCatalog.Default.Get(AnalyticsProvider.Vercel);
@@ -530,6 +546,17 @@ public sealed class AnalyticsReportServiceTests
             cancellationToken.ThrowIfCancellationRequested();
             EventPropertyNameCalls++;
             return Task.FromResult<IReadOnlyList<string>>(["plan"]);
+        }
+
+        public Task<IReadOnlyDictionary<string, IReadOnlyList<AnalyticsEventProperty>>> DiscoverEventPropertiesAsync(AnalyticsConnection connection, AnalyticsQuery query, AnalyticsEventDataFilter? eventDataFilter, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            EventPropertyNameCalls++;
+            return Task.FromResult<IReadOnlyDictionary<string, IReadOnlyList<AnalyticsEventProperty>>>(
+                new Dictionary<string, IReadOnlyList<AnalyticsEventProperty>>(StringComparer.Ordinal)
+                {
+                    ["Signup"] = [new AnalyticsEventProperty("plan", [new("Pro", 20, 10)])]
+                });
         }
 
         public Task<IReadOnlyList<AnalyticsEventPropertyValue>> GetEventPropertyValuesAsync(AnalyticsConnection connection, AnalyticsQuery query, string eventName, string propertyName, int limit, string? search, AnalyticsEventDataFilter? eventDataFilter, CancellationToken cancellationToken)

@@ -78,6 +78,15 @@ public interface IAnalyticsEventPropertiesProviderClient : IAnalyticsEventDetail
         CancellationToken cancellationToken);
 }
 
+public interface IAnalyticsEventPropertyDiscoveryProviderClient : IAnalyticsEventPropertiesProviderClient
+{
+    Task<IReadOnlyDictionary<string, IReadOnlyList<AnalyticsEventProperty>>> DiscoverEventPropertiesAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        AnalyticsEventDataFilter? eventDataFilter,
+        CancellationToken cancellationToken);
+}
+
 public interface IAnalyticsFlagsProviderClient
 {
     Task<IReadOnlyList<AnalyticsFlagRow>> GetFlagsAsync(
