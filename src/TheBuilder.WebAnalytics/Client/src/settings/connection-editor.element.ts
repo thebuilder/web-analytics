@@ -246,7 +246,7 @@ export class AnalyticsConnectionEditorElement extends UmbElementMixin(LitElement
             <details class="config-section">
               <summary><span>Page analytics</span><small>${this.#mappingSummary()}</small></summary>
               <div class="config-content mapping-content">
-                <p class="section-intro">Optional. Select the Umbraco site roots that use this analytics connection. Leave empty for global analytics only.</p>
+                <p class="section-intro">Select the Umbraco site roots that use this analytics connection. Leave empty for global analytics only.</p>
                 <div class="fields">
                   <uui-form-layout-item>
                     <uui-label slot="label">Document roots</uui-label>
