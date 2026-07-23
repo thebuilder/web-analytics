@@ -31,7 +31,7 @@ describe("breakdown dialog", () => {
     await dialog.updateComplete;
 
     expect(dialog.shadowRoot?.querySelector("dialog")?.getAttribute("aria-label")).toBe("Traffic sources");
-    expect(dialog.shadowRoot?.querySelector(".analytics-dialog-headline h2")?.textContent).toBe("Traffic sources");
+    expect(dialog.shadowRoot?.querySelector(".analytics-dialog-headline h2")).toBeNull();
     expect(dialog.shadowRoot?.querySelector(".analytics-dialog-close")?.getAttribute("aria-label")).toBe("Close Traffic sources");
     expect(dialog.shadowRoot?.querySelector(".analytics-dialog-headline-controls uui-input")?.getAttribute("label")).toBe("Search UTM media");
     expect(dialog.shadowRoot?.querySelector(".analytics-dialog-controls")).toBeNull();
@@ -61,7 +61,9 @@ describe("breakdown dialog", () => {
     document.body.append(dialog);
     await dialog.updateComplete;
 
-    expect(dialog.shadowRoot?.querySelector(".analytics-dialog-headline h2")?.textContent).toBe("Countries");
+    expect(dialog.shadowRoot?.querySelector("dialog")?.getAttribute("aria-label")).toBe("Countries");
+    expect(dialog.shadowRoot?.querySelector(".analytics-dialog-headline h2")).toBeNull();
+    expect(dialog.shadowRoot?.querySelector("uui-input")?.getAttribute("label")).toBe("Search Countries");
     const table = dialog.shadowRoot?.querySelector<WebAnalyticsBreakdownTableElement>("web-analytics-breakdown-table")!;
     await table.updateComplete;
     expect(table.rowLabel).toBe("Country");
@@ -109,7 +111,7 @@ describe("breakdown dialog", () => {
     const table = dialog.shadowRoot?.querySelector<WebAnalyticsBreakdownTableElement>("web-analytics-breakdown-table")!;
     await table.updateComplete;
 
-    expect(dialog.shadowRoot?.querySelector(".analytics-dialog-headline h2")?.textContent).toBe("Audience");
+    expect(dialog.shadowRoot?.querySelector(".analytics-dialog-headline h2")).toBeNull();
     const tabs = [...table.shadowRoot?.querySelectorAll<HTMLButtonElement>('.report-tabs.primary [role="tab"]') ?? []];
     expect(tabs.map((tab) => tab.textContent?.trim())).toEqual(["Devices", "Browsers"]);
     expect(tabs[0]?.getAttribute("aria-controls")).toBe("breakdown-report-panel");

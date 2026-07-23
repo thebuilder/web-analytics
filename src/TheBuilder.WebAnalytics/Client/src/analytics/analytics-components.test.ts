@@ -308,6 +308,57 @@ describe("analytics presentation components", () => {
     expect([...element.shadowRoot?.querySelectorAll(".metric-number") ?? []].map((value) => value.textContent)).toEqual(["22,304", "30,000", "1", "1"]);
   });
 
+  it("renders local browser marks and a globe for unrecognised browser values", async () => {
+    const element = document.createElement("web-analytics-breakdown-table") as WebAnalyticsBreakdownTableElement;
+    element.dimension = "BrowserName";
+    element.rows = [
+      { value: "Chrome", visitors: 22_304, pageViews: 30_000 },
+      { value: "Mobile App", visitors: 1, pageViews: 1 },
+    ];
+    document.body.append(element);
+    await element.updateComplete;
+
+    const icons = element.shadowRoot?.querySelectorAll<HTMLElement>(".breakdown-value-icon");
+    expect(icons).toHaveLength(2);
+    expect(icons?.[0]?.tagName).toBe("IMG");
+    expect((icons?.[0] as HTMLImageElement | undefined)?.getAttribute("src")).toBe("/App_Plugins/TheBuilder.WebAnalytics/icons/browsers/chrome.svg");
+    expect(icons?.[1]?.tagName).toBe("UUI-ICON");
+    expect(icons?.[1]?.getAttribute("name")).toBe("icon-globe");
+  });
+
+  it("renders local operating system marks and a globe for unrecognised values", async () => {
+    const element = document.createElement("web-analytics-breakdown-table") as WebAnalyticsBreakdownTableElement;
+    element.dimension = "OsName";
+    element.rows = [
+      { value: "Windows", visitors: 22_304, pageViews: 30_000 },
+      { value: "iOS", visitors: 2_304, pageViews: 3_000 },
+      { value: "(not set)", visitors: 1, pageViews: 1 },
+    ];
+    document.body.append(element);
+    await element.updateComplete;
+
+    const icons = element.shadowRoot?.querySelectorAll<HTMLElement>(".breakdown-value-icon");
+    expect(icons).toHaveLength(3);
+    expect((icons?.[0] as HTMLImageElement | undefined)?.getAttribute("src")).toBe("/App_Plugins/TheBuilder.WebAnalytics/icons/operating-systems/windows.svg");
+    expect((icons?.[1] as HTMLImageElement | undefined)?.getAttribute("src")).toBe("/App_Plugins/TheBuilder.WebAnalytics/icons/operating-systems/ios.svg");
+    expect(icons?.[2]?.getAttribute("name")).toBe("icon-globe");
+  });
+
+  it("renders native Umbraco icons for device categories", async () => {
+    const element = document.createElement("web-analytics-breakdown-table") as WebAnalyticsBreakdownTableElement;
+    element.dimension = "DeviceType";
+    element.rows = [
+      { value: "Desktop", visitors: 22_304, pageViews: 30_000 },
+      { value: "Mobile", visitors: 1_204, pageViews: 2_000 },
+      { value: "Tablet", visitors: 304, pageViews: 500 },
+    ];
+    document.body.append(element);
+    await element.updateComplete;
+
+    const icons = [...element.shadowRoot?.querySelectorAll(".breakdown-value-icon") ?? []];
+    expect(icons.map((icon) => icon.getAttribute("name"))).toEqual(["icon-desktop", "icon-mobile", "icon-ipad"]);
+  });
+
   it("keeps document traffic breakdowns ahead of optional reports", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
     element.cards = dashboardCards(true, "unavailable");
@@ -495,7 +546,7 @@ describe("analytics presentation components", () => {
     document.body.append(element);
     await element.updateComplete;
 
-    expect(element.shadowRoot?.querySelector(".analytics-dialog-headline h2")?.textContent).toBe("Read article event");
+    expect(element.shadowRoot?.querySelector(".analytics-dialog-headline h2 .analytics-dialog-back")?.textContent?.trim()).toBe("Read article");
     expect(element.shadowRoot?.querySelector(".analytics-dialog-close")?.getAttribute("aria-label")).toBe("Close event details");
     expect(element.shadowRoot?.querySelector(".event-totals")).toBeNull();
     expect(element.shadowRoot?.querySelector(".dialog-content")?.classList.contains("no-properties")).toBe(false);
@@ -564,6 +615,35 @@ describe("analytics presentation components", () => {
     expect(summary?.metric).toBe("pageViews");
   });
 
+  it("replaces the Events dialog with event details while preserving back navigation", async () => {
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: vi.fn() });
+    sdk.events.mockResolvedValue(apiOk({ rows: [{ eventName: "Signup completed", visitors: 12, count: 18 }] }));
+    sdk.eventDetails.mockResolvedValue(apiOk({
+      eventName: "Signup completed",
+      totals: { visitors: 12, count: 18 },
+      properties: [],
+    }));
+    const dashboard = document.createElement("web-analytics-dashboard") as WebAnalyticsDashboardElement;
+    document.body.append(dashboard);
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector<WebAnalyticsBreakdownGridElement>("web-analytics-breakdown-grid")?.events.status).toBe("success"));
+
+    dashboard.shadowRoot?.querySelector<WebAnalyticsBreakdownGridElement>("web-analytics-breakdown-grid")?.dispatchEvent(new CustomEvent("view-events", { bubbles: true, composed: true }));
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector("web-analytics-event-dialog")).not.toBeNull());
+    const eventsDialog = dashboard.shadowRoot?.querySelector<HTMLElement>("web-analytics-event-dialog");
+    eventsDialog?.dispatchEvent(new CustomEvent("select-event", {
+      bubbles: true,
+      composed: true,
+      detail: { eventName: "Signup completed" },
+    }));
+
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector("web-analytics-event-details-dialog")).not.toBeNull());
+    expect(dashboard.shadowRoot?.querySelector("web-analytics-event-dialog")).toBeNull();
+
+    dashboard.shadowRoot?.querySelector<HTMLElement>("web-analytics-event-details-dialog")?.dispatchEvent(new CustomEvent("back-to-events", { bubbles: true, composed: true }));
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector("web-analytics-event-dialog")).not.toBeNull());
+    expect(dashboard.shadowRoot?.querySelector("web-analytics-event-details-dialog")).toBeNull();
+  });
+
   it("clears every active filter from the mounted dashboard and URL", async () => {
     window.history.replaceState({}, "", "/umbraco/section/analytics?filter=RequestPath%3A%2F&filter=Country%3ADK");
     const dashboard = document.createElement("web-analytics-dashboard") as WebAnalyticsDashboardElement;
@@ -574,6 +654,18 @@ describe("analytics presentation components", () => {
 
     await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector(".active-filters")).toBeNull());
     expect(new URL(window.location.href).searchParams.has("filter")).toBe(false);
+  });
+
+  it("renders relevant identity icons for active filters", async () => {
+    window.history.replaceState({}, "", "/umbraco/section/analytics?filter=Country%3ADK&filter=OsName%3AmacOS&filter=DeviceType%3ADesktop");
+    const dashboard = document.createElement("web-analytics-dashboard") as WebAnalyticsDashboardElement;
+    document.body.append(dashboard);
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelectorAll(".filter-badge")).toHaveLength(3));
+
+    const badges = [...dashboard.shadowRoot?.querySelectorAll(".filter-badge") ?? []];
+    expect((badges[0]?.querySelector(".filter-icon") as HTMLImageElement | null)?.getAttribute("src")).toBe("https://flag.vercel.app/s/DK.svg");
+    expect((badges[1]?.querySelector(".filter-icon") as HTMLImageElement | null)?.getAttribute("src")).toBe("/App_Plugins/TheBuilder.WebAnalytics/icons/operating-systems/apple.svg");
+    expect(badges[2]?.querySelector(".filter-icon")?.getAttribute("name")).toBe("icon-desktop");
   });
 });
 

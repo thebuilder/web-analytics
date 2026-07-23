@@ -4,7 +4,7 @@ import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { UUIInputElement } from "@umbraco-cms/backoffice/external/uui";
 import type { AnalyticsEventRow } from "../api/types.gen.js";
 import { renderAnalyticsDialogHeadline } from "./analytics-dialog-headline.js";
-import { analyticsDialogStyles } from "./analytics-dialog.styles.js";
+import { analyticsDialogStyles, analyticsEventDialogStyles } from "./analytics-dialog.styles.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
 import "./event-table.element.js";
 
@@ -35,7 +35,7 @@ export class WebAnalyticsEventDialogElement extends UmbElementMixin(LitElement) 
             <uui-input type="search" label="Search events" maxlength="200" placeholder="Search" .value=${this._search} @input=${this.#onSearch}>
               <uui-icon name="icon-search" slot="prepend"></uui-icon>
             </uui-input>
-          `)}
+          `, false)}
           <div class="results analytics-dialog-body" aria-busy=${this.loading} aria-live="polite">
             ${!this.loading && this.unavailable ? html`<umb-empty-state headline="Events unavailable"><p>${this.unavailable}</p></umb-empty-state>` : ""}
             ${!this.loading && !this.unavailable && this._search && this.rows.length === 0 ? html`<umb-empty-state headline="No matching events"><p>Try a different search.</p></umb-empty-state>` : ""}
@@ -48,8 +48,7 @@ export class WebAnalyticsEventDialogElement extends UmbElementMixin(LitElement) 
     `;
   }
 
-  static styles = [UmbTextStyles, analyticsDialogStyles, css`
-    dialog { --analytics-dialog-max-width: 58rem; }
+  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsEventDialogStyles, css`
     uui-input { box-sizing: border-box; width: 100%; }
     uui-input [slot="prepend"] { align-items: center; display: flex; margin-inline: var(--uui-size-space-3) var(--uui-size-space-2); }
     .results { overflow: auto; scrollbar-gutter: stable; }

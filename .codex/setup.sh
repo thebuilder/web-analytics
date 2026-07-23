@@ -4,7 +4,7 @@ set -euo pipefail
 
 worktree_root="$(git rev-parse --show-toplevel)"
 source_worktree="$(git worktree list --porcelain | awk '/^worktree / { print substr($0, 10); exit }')"
-database_relative_path="samples/Umbraco.VercelAnalytics.Example/umbraco/Data/Umbraco.sqlite.db"
+database_relative_path="samples/TheBuilder.WebAnalytics.Example/umbraco/Data/Umbraco.sqlite.db"
 source_database="$source_worktree/$database_relative_path"
 worktree_database="$worktree_root/$database_relative_path"
 
@@ -15,7 +15,8 @@ if [[ "$source_database" != "$worktree_database" ]]; then
   fi
 
   mkdir -p "$(dirname "$worktree_database")"
-  cp "$source_database" "$worktree_database"
+  sqlite3 "$source_database" ".backup '$worktree_database'"
+  [[ "$(sqlite3 "$worktree_database" 'PRAGMA integrity_check;')" == "ok" ]]
 fi
 
 pushd "$worktree_root/src/TheBuilder.WebAnalytics/Client" >/dev/null

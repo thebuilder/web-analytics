@@ -4,7 +4,8 @@ import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { UUIInputElement } from "@umbraco-cms/backoffice/external/uui";
 import type { AnalyticsEventDetails, AnalyticsEventProperty } from "../api/types.gen.js";
 import { renderAnalyticsDialogHeadline } from "./analytics-dialog-headline.js";
-import { analyticsDialogStyles } from "./analytics-dialog.styles.js";
+import { analyticsDialogStyles, analyticsEventDialogStyles } from "./analytics-dialog.styles.js";
+import { analyticsTableSkeletonStyles, renderAnalyticsTableSkeletonRows } from "./analytics-table-skeleton.js";
 import { renderReportTabs, reportTabsStyles } from "./report-tabs.js";
 
 @customElement("web-analytics-event-details-dialog")
@@ -27,6 +28,7 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
   #close(): void { this.shadowRoot?.querySelector("dialog")?.close(); }
   #notifyClosed(): void { this.dispatchEvent(new CustomEvent("close-event-details", { bubbles: true, composed: true })); }
   #onCancel(event: Event): void { event.preventDefault(); this.#close(); }
+  #backToEvents(): void { this.dispatchEvent(new CustomEvent("back-to-events", { bubbles: true, composed: true })); }
 
   #activeProperty(): AnalyticsEventProperty | undefined {
     return this.details?.properties.find((property) => property.name === this._propertyName)
@@ -82,8 +84,9 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     const maximum = Math.max(...values.map((value) => value.count), 1);
     return html`
       <div id="event-property-panel" role="tabpanel" aria-labelledby=${`event-property-tab-${this.details?.properties.indexOf(property) ?? 0}`}>
-        <div class="property-controls">
-          ${property.values.length ? html`
+        ${property.values.length || (this.filterProperty !== undefined && this.filterValue !== undefined) ? html`
+          <div class="property-controls">
+            ${property.values.length ? html`
             <uui-input
               type="search"
               label=${`Search ${property.name} values`}
@@ -93,17 +96,19 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
               @input=${this.#onSearch}>
               <uui-icon name="icon-search" slot="prepend"></uui-icon>
             </uui-input>
-          ` : ""}
-          ${this.filterProperty !== undefined && this.filterValue !== undefined ? html`
-            <button type="button" class="active-filter" @click=${() => this.#toggleFilter(this.filterProperty!, this.filterValue!)}>
-              <uui-icon name="icon-filter"></uui-icon>
-              <span>${this.filterProperty}: ${this.filterValue || "(empty)"}</span>
-              <uui-icon name="icon-delete"></uui-icon>
-            </button>
-          ` : ""}
-        </div>
+            ` : ""}
+            ${this.filterProperty !== undefined && this.filterValue !== undefined ? html`
+              <button type="button" class="active-filter" @click=${() => this.#toggleFilter(this.filterProperty!, this.filterValue!)}>
+                <uui-icon name="icon-filter"></uui-icon>
+                <span>${this.filterProperty}: ${this.filterValue || "(empty)"}</span>
+                <uui-icon name="icon-delete"></uui-icon>
+              </button>
+            ` : ""}
+          </div>
+        ` : ""}
         <div class="property-table">
-          <table>
+          ${this.searchLoading ? html`<span class="visually-hidden" role="status">Loading ${property.name} values</span>` : ""}
+          <table aria-busy=${this.searchLoading ? "true" : "false"}>
             <caption>${property.name} values for ${this.eventName}</caption>
             <thead>
               <tr class="metric-headings">
@@ -113,7 +118,7 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
               </tr>
             </thead>
             <tbody>${this.searchLoading ? html`
-            <tr class="empty-row"><td colspan="3"><umb-empty-state headline="Searching"><p>Looking up matching values…</p></umb-empty-state></td></tr>
+            ${renderAnalyticsTableSkeletonRows(6)}
           ` : this.searchUnavailable ? html`
             <tr class="empty-row"><td colspan="3"><umb-empty-state headline="Search unavailable"><p>${this.searchUnavailable}</p></umb-empty-state></td></tr>
           ` : values.length ? values.map((value) => {
@@ -135,10 +140,10 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
                       @click=${() => this.#toggleFilter(property.name, value.value)}>
                       <uui-icon name=${activeFilter ? "icon-delete" : "icon-filter"}></uui-icon>
                     </button>
-                    <span>${this.localize.number(value.visitors)}</span>
+                    <strong>${this.localize.number(value.visitors)}</strong>
                   </span>
                 </td>
-                <td>${this.localize.number(value.count)}</td>
+                <td><strong>${this.localize.number(value.count)}</strong></td>
               </tr>
             `;
             }) : html`<tr class="empty-row"><td colspan="3"><umb-empty-state headline=${search ? "No matching values" : "No values"}><p>${search ? "Try a different search." : "No values were recorded for this property in the selected period."}</p></umb-empty-state></td></tr>`}</tbody>
@@ -163,7 +168,12 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     return html`
       <dialog aria-label=${`${this.eventName} event details`} @cancel=${this.#onCancel} @close=${this.#notifyClosed}>
         <div class="analytics-dialog-layout">
-          ${renderAnalyticsDialogHeadline(`${this.eventName} event`, "Close event details", () => this.#close())}
+          ${renderAnalyticsDialogHeadline(html`
+            <button type="button" class="analytics-dialog-back" aria-label=${`Back to all events from ${this.eventName}`} title="Back to all events" @click=${this.#backToEvents}>
+              <uui-icon name="icon-navigation-left" aria-hidden="true"></uui-icon>
+              <span>${this.eventName}</span>
+            </button>
+          `, "Close event details", () => this.#close())}
           <div class="dialog-content analytics-dialog-body" aria-busy=${this.loading}>
             ${this.details ? html`
               ${this.propertiesEnabled ? activeProperty ? html`
@@ -179,8 +189,8 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     `;
   }
 
-  static styles = [UmbTextStyles, analyticsDialogStyles, reportTabsStyles, css`
-    .dialog-content { --analytics-dialog-body-height: min(28rem, 52dvh); display: flex; flex-direction: column; position: relative; }
+  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsEventDialogStyles, analyticsTableSkeletonStyles, reportTabsStyles, css`
+    .dialog-content { display: flex; flex-direction: column; position: relative; }
     .property-controls { border-bottom: 1px solid var(--uui-color-border); display: grid; flex: 0 0 auto; gap: var(--uui-size-space-3); padding: 0 var(--analytics-dialog-inline-padding) var(--uui-size-space-4); }
     .property-controls uui-input { box-sizing: border-box; width: 100%; }
     .property-controls uui-input [slot="prepend"] { align-items: center; display: flex; margin-inline: var(--uui-size-space-3) var(--uui-size-space-2); }

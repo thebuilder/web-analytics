@@ -14,6 +14,7 @@ import {
   type TrafficMetric,
 } from "./breakdown-rows.js";
 import { countryDisplayName, countryFlagUrl, normalizeCountryCode } from "./country-display.js";
+import { breakdownValueIcon } from "./breakdown-value-icon.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
 import { googleFaviconUrl } from "./favicon.js";
 import { renderReportTabs, reportTabsStyles, selectedReportTabId, type ReportTabGroup } from "./report-tabs.js";
@@ -82,6 +83,8 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
               : undefined;
           const countryCode = this.dimension === "Country" ? normalizeCountryCode(row.value) : undefined;
           const faviconUrl = isReferrer && href ? googleFaviconUrl(row.value) : undefined;
+          const valueIcon = breakdownValueIcon(this.dimension, row.value);
+          const hasValueIconFallback = this.dimension === "BrowserName" || this.dimension === "DeviceType" || this.dimension === "OsName";
           const displayValue = countryCode
             ? countryDisplayName(countryCode, navigator.languages)
             : breakdownDisplayValue(row.value, this.dimension);
@@ -125,6 +128,13 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
               <span class="row-value">
                 ${countryCode ? html`<img class="country-flag" src=${countryFlagUrl(countryCode)} alt="" width="20" height="15" loading="lazy" referrerpolicy="no-referrer" @error=${(event: Event) => ((event.currentTarget as HTMLImageElement).style.visibility = "hidden")}>` : ""}
                 ${faviconUrl ? html`<img class="referrer-favicon" src=${faviconUrl} alt="" width="20" height="20" loading="lazy" referrerpolicy="no-referrer" @error=${(event: Event) => ((event.currentTarget as HTMLImageElement).hidden = true)}>` : ""}
+                ${valueIcon?.kind === "asset"
+                  ? html`<img class="breakdown-value-icon" src=${valueIcon.src} alt="" width="20" height="20" loading="lazy">`
+                  : valueIcon?.kind === "native"
+                    ? html`<uui-icon class="breakdown-value-icon" name=${valueIcon.name} aria-hidden="true"></uui-icon>`
+                  : hasValueIconFallback
+                    ? html`<uui-icon class="breakdown-value-icon breakdown-value-icon-fallback" name="icon-globe" aria-hidden="true"></uui-icon>`
+                    : nothing}
                 <span class="row-label" title=${displayValue}>${href
                   ? html`<a href=${href} target="_blank" rel="noopener noreferrer"><span class="link-label">${displayValue}</span><uui-icon class="external-indicator" name="icon-out" aria-hidden="true"></uui-icon><span class="visually-hidden"> (opens in a new tab)</span></a>`
                   : displayValue}</span>
@@ -230,6 +240,8 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
     .row-label a:hover .external-indicator, .row-label a:focus-visible .external-indicator { opacity: 1; }
     .country-flag { border-radius: var(--uui-border-radius); flex: 0 0 auto; object-fit: cover; }
     .referrer-favicon { border-radius: var(--uui-border-radius); flex: 0 0 auto; object-fit: contain; }
+    .breakdown-value-icon { block-size: 1.25rem; flex: 0 0 auto; font-size: var(--uui-size-5); inline-size: 1.25rem; object-fit: contain; }
+    .breakdown-value-icon-fallback { color: var(--uui-color-text-alt); }
     .percentage-value { display: inline-block; font-weight: 700; outline: none; position: relative; }
     .percentage-value:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
     .percentage-tooltip {

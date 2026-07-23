@@ -171,7 +171,7 @@ export class WebAnalyticsBreakdownDialogElement extends UmbElementMixin(LitEleme
               @input=${this.#onSearch}>
               <uui-icon name="icon-search" slot="prepend"></uui-icon>
             </uui-input>
-          `)}
+          `, false)}
           <div class="results analytics-dialog-body" aria-busy=${this.loading} aria-live="polite">
             <web-analytics-breakdown-table
               .headline=${this.headline}

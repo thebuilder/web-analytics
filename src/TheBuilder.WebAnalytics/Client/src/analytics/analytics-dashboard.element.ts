@@ -1,7 +1,8 @@
-import { LitElement, customElement, html, property, state } from "@umbraco-cms/backoffice/external/lit";
+import { LitElement, customElement, html, nothing, property, state } from "@umbraco-cms/backoffice/external/lit";
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import type { AnalyticsDimension } from "../api/types.gen.js";
-import { countryDisplayName, normalizeCountryCode } from "./country-display.js";
+import { countryDisplayName, countryFlagUrl, normalizeCountryCode } from "./country-display.js";
+import { breakdownValueIcon } from "./breakdown-value-icon.js";
 import type { AnalyticsDateRangeChangeDetail } from "./date-range-picker.element.js";
 import type { AnalyticsFilter, AudienceDimension, DashboardMetric, UtmDimension } from "./dashboard-url-state.js";
 import type { AcquisitionView } from "./dashboard-cards.js";
@@ -48,6 +49,22 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
     return filter.value;
   }
 
+  #renderFilterIcon(filter: AnalyticsFilter) {
+    const countryCode = filter.dimension === "Country" ? normalizeCountryCode(filter.value) : undefined;
+    if (countryCode) {
+      return html`<img class="filter-icon filter-flag" src=${countryFlagUrl(countryCode)} alt="" width="16" height="12" loading="lazy" referrerpolicy="no-referrer">`;
+    }
+
+    const valueIcon = breakdownValueIcon(filter.dimension, filter.value);
+    if (valueIcon?.kind === "asset") {
+      return html`<img class="filter-icon" src=${valueIcon.src} alt="" width="16" height="16" loading="lazy">`;
+    }
+    if (valueIcon?.kind === "native") {
+      return html`<uui-icon class="filter-icon" name=${valueIcon.name} aria-hidden="true"></uui-icon>`;
+    }
+    return nothing;
+  }
+
   #renderFilters(filters: AnalyticsFilter[]) {
     if (!filters.length) return "";
     return html`
@@ -60,6 +77,7 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
               class="filter-badge"
               aria-label=${`Remove filter ${this.#filterLabel(filter)}`}
               @click=${() => this.#controller.removeFilter(filter.dimension)}>
+              ${this.#renderFilterIcon(filter)}
               <span class="filter-value">${this.#filterLabel(filter)}</span><span class="filter-remove" aria-hidden="true">×</span>
             </button>
           `)}
@@ -185,7 +203,7 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
             @breakdown-dimension-change=${(event: CustomEvent<{ dimension: AnalyticsDimension; headline: string }>) => this.#controller.openBreakdown(event.detail.dimension, event.detail.headline)}
             @close-breakdown=${() => this.#controller.closeBreakdown()}></web-analytics-breakdown-dialog>
         ` : ""}
-        ${expandedEvents ? html`
+        ${expandedEvents && !selected ? html`
           <web-analytics-event-dialog
             .rows=${stateData(expandedEvents) ?? []}
             .filters=${state.filters}
@@ -214,7 +232,8 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
             .searchUnavailable=${this.#error(selected.property)}
             @search-event-property=${(event: CustomEvent<{ propertyName: string; search: string }>) => this.#controller.searchEventProperty(event.detail.propertyName, event.detail.search)}
             @toggle-event-property-filter=${(event: CustomEvent<{ property: string; value: string }>) => this.#controller.toggleEventPropertyFilter(event.detail.property, event.detail.value)}
-            @close-event-details=${() => this.#controller.closeEventDetails()}></web-analytics-event-details-dialog>
+            @back-to-events=${() => this.#controller.backToEvents()}
+            @close-event-details=${() => this.#controller.closeEventFlow()}></web-analytics-event-details-dialog>
         ` : ""}
       </main>
     `;

@@ -17,6 +17,10 @@ export const analyticsDashboardStyles = [UmbTextStyles, css`
   .filter-badge { align-items: center; appearance: none; background: var(--uui-color-surface); border: 1px solid var(--uui-color-border); border-radius: var(--uui-border-radius); color: var(--uui-color-text); cursor: pointer; display: inline-flex; font: inherit; gap: var(--uui-size-space-2); max-inline-size: min(32rem, 100%); min-block-size: 2rem; min-inline-size: 0; padding: var(--uui-size-space-1) var(--uui-size-space-2); }
   .filter-badge:hover { background: color-mix(in srgb, var(--uui-color-interactive) 6%, var(--uui-color-surface)); border-color: var(--uui-color-interactive); }
   .filter-badge:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
+  .filter-icon { flex: 0 0 auto; }
+  img.filter-icon { object-fit: contain; }
+  img.filter-flag { border-radius: var(--uui-border-radius); object-fit: cover; }
+  uui-icon.filter-icon { font-size: var(--uui-type-default-size); }
   .filter-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .filter-remove { color: var(--uui-color-text-alt); flex: 0 0 auto; font-size: 1.1em; line-height: 1; }
   .clear-filters { flex: 0 0 auto; }

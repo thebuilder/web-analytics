@@ -40,6 +40,7 @@ export type ExpandedBreakdown = {
   headline: string;
   search: string;
   report: AsyncState<AnalyticsBreakdown["rows"]>;
+  cache: Readonly<Record<string, AnalyticsBreakdown["rows"]>>;
 };
 export type SelectedEvent = {
   eventName: string;
@@ -49,6 +50,7 @@ export type SelectedEvent = {
   propertyName?: string;
   propertySearch?: string;
   property: AsyncState<AnalyticsEventProperty>;
+  propertyCache: Readonly<Record<string, AnalyticsEventProperty>>;
 };
 export type DashboardState = {
   connections: AnalyticsConnectionSummary[];
@@ -341,26 +343,32 @@ export class AnalyticsDashboardController {
     const connection = this.state.connection;
     if (!connection) return;
     const search = options.search ?? "";
-    const current = this.state.expandedBreakdown;
-    const previous = current?.dimension === dimension && current.search === search ? current.report : undefined;
-    this.#set({ expandedBreakdown: { dimension, headline, search, report: loadingState(previous) } });
+    const query = { ...this.#reportQuery(connection, this.#visitFilterQuery()), limit: 100, search: search || undefined };
+    const cacheKey = breakdownCacheKey(dimension, search);
+    const cache = this.state.expandedBreakdown?.cache ?? {};
+    const previousRows = cache[cacheKey];
+    const previous = previousRows === undefined ? undefined : successState(previousRows);
+    this.#set({ expandedBreakdown: { dimension, headline, search, cache, report: loadingState(previous) } });
     const run = (signal: AbortSignal) => this.#api.breakdown({
       path: { dimension },
-      query: { ...this.#reportQuery(connection, this.#visitFilterQuery()), limit: 100, search: search || undefined },
+      query,
       signal,
     });
     const result = await (options.debounce ? this.#expandedRequest.schedule(run) : this.#expandedRequest.run(run));
+    const active = this.state.expandedBreakdown;
     if (result.status === "cancelled" || result.status === "stale"
-      || this.state.expandedBreakdown?.dimension !== dimension
-      || this.state.expandedBreakdown.search !== search) return;
+      || active?.dimension !== dimension
+      || active.search !== search) return;
     if (result.status === "error") {
-      this.#set({ expandedBreakdown: { dimension, headline, search, report: errorState(reportErrorMessage(result.error), previous) } });
+      this.#set({ expandedBreakdown: { dimension, headline, search, cache: active.cache, report: errorState(reportErrorMessage(result.error), previous) } });
       return;
     }
     const { data, error, response } = result.value;
-    this.#set({ expandedBreakdown: { dimension, headline, search, report: error
+    const rows = data?.rows ?? [];
+    const nextCache = error ? active.cache : { ...active.cache, [cacheKey]: rows };
+    this.#set({ expandedBreakdown: { dimension, headline, search, cache: nextCache, report: error
       ? errorState(apiErrorMessage(error, response?.status ?? 0), previous)
-      : successState(data?.rows ?? []) } });
+      : successState(rows) } });
   }
 
   searchBreakdown(search: string): void {
@@ -416,7 +424,6 @@ export class AnalyticsDashboardController {
 
   async selectEvent(eventName: string): Promise<void> {
     if (!this.#capabilities().eventDetails) return;
-    this.closeEvents();
     await this.#loadEventDetails(eventName);
   }
 
@@ -428,13 +435,28 @@ export class AnalyticsDashboardController {
   }
 
   searchEventProperty(propertyName: string, search: string): void {
-    if (this.state.selectedEvent && this.#capabilities().eventProperties) void this.#loadEventPropertyValues(propertyName, search.trim(), true);
+    if (!this.state.selectedEvent || !this.#capabilities().eventProperties) return;
+    const normalizedSearch = search.trim();
+    void this.#loadEventPropertyValues(propertyName, normalizedSearch, normalizedSearch.length > 0);
   }
 
   closeEventDetails(): void {
     this.#eventPropertyRequest.cancel();
     this.#eventDetailsRequest.cancel();
     this.#set({ selectedEvent: undefined });
+  }
+
+  async backToEvents(): Promise<void> {
+    const eventsAreOpen = this.state.expandedEvents !== undefined;
+    this.closeEventDetails();
+    if (!eventsAreOpen) await this.openEvents();
+  }
+
+  closeEventFlow(): void {
+    this.#eventPropertyRequest.cancel();
+    this.#eventDetailsRequest.cancel();
+    this.#eventSearchRequest.cancel();
+    this.#set({ selectedEvent: undefined, expandedEvents: undefined });
   }
 
   #set(patch: Partial<DashboardState>): void { this.state = { ...this.state, ...patch }; this.#notify(); }
@@ -608,7 +630,7 @@ export class AnalyticsDashboardController {
     if (!connection) return;
     this.#eventPropertyRequest.cancel();
     const previous = this.state.selectedEvent?.eventName === eventName ? this.state.selectedEvent.details : undefined;
-    this.#set({ selectedEvent: { eventName, eventProperty, eventValue, details: loadingState(previous), property: idleState() } });
+    this.#set({ selectedEvent: { eventName, eventProperty, eventValue, details: loadingState(previous), property: idleState(), propertyCache: {} } });
     const result = await this.#eventDetailsRequest.run((signal) => this.#api.eventDetails({
       query: { ...this.#reportQuery(connection, this.#visitFilterQuery()), eventName, eventProperty, eventValue }, signal,
     }));
@@ -622,7 +644,10 @@ export class AnalyticsDashboardController {
       this.#set({ selectedEvent: { ...this.state.selectedEvent, details: errorState(apiErrorMessage(error, response?.status ?? 0), previous) } });
       return;
     }
-    this.#set({ selectedEvent: { ...this.state.selectedEvent, details: successState(data) } });
+    const propertyCache = Object.fromEntries(data.properties
+      .filter((property) => property.values.length > 0)
+      .map((property) => [eventPropertyCacheKey(property.name, ""), property]));
+    this.#set({ selectedEvent: { ...this.state.selectedEvent, details: successState(data), propertyCache } });
     const firstProperty = data.properties[0];
     if (this.#capabilities().eventProperties && firstProperty && !firstProperty.values.length) {
       void this.#loadEventPropertyValues(firstProperty.name, "");
@@ -633,8 +658,10 @@ export class AnalyticsDashboardController {
     const connection = this.state.connection;
     const selected = this.state.selectedEvent;
     if (!connection || !selected || !this.#capabilities().eventProperties) return;
-    const previous = selected.property;
-    this.#set({ selectedEvent: { ...selected, propertyName, propertySearch: search, property: loadingState(previous) } });
+    const cacheKey = eventPropertyCacheKey(propertyName, search);
+    const cached = selected.propertyCache[cacheKey];
+    const property = cached ? loadingState(successState(cached)) : loadingState<AnalyticsEventProperty>();
+    this.#set({ selectedEvent: { ...selected, propertyName, propertySearch: search, property } });
     const run = (signal: AbortSignal) => this.#api.eventPropertyValues({
       query: {
         ...this.#reportQuery(connection, this.#visitFilterQuery()),
@@ -651,13 +678,13 @@ export class AnalyticsDashboardController {
     const current = this.state.selectedEvent;
     if (result.status === "cancelled" || result.status === "stale" || current?.eventName !== selected.eventName || current.propertyName !== propertyName) return;
     if (result.status === "error") {
-      this.#set({ selectedEvent: { ...current, property: errorState(reportErrorMessage(result.error), previous) } });
+      this.#set({ selectedEvent: { ...current, property: errorState(reportErrorMessage(result.error), property) } });
       return;
     }
     const { data, error, response } = result.value;
     this.#set({ selectedEvent: { ...current, property: error || !data
-      ? errorState(apiErrorMessage(error, response?.status ?? 0), previous)
-      : successState(data) } });
+      ? errorState(apiErrorMessage(error, response?.status ?? 0), property)
+      : successState(data), propertyCache: !error && data ? { ...current.propertyCache, [cacheKey]: data } : current.propertyCache } });
   }
 
   #reportQuery(connection: string, filter: { filter?: string[] }): DashboardReportQuery {
@@ -724,6 +751,14 @@ export class AnalyticsDashboardController {
     this.#eventPropertyRequest.cancel();
     this.#set({ expandedBreakdown: undefined, expandedEvents: undefined, selectedEvent: undefined, selectedFlag: undefined });
   }
+}
+
+function eventPropertyCacheKey(propertyName: string, search: string): string {
+  return JSON.stringify([propertyName, search]);
+}
+
+function breakdownCacheKey(dimension: AnalyticsDimension, search: string): string {
+  return JSON.stringify([dimension, search]);
 }
 
 function apiErrorMessage(error: unknown, status: number): string {
