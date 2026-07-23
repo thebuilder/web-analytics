@@ -125,7 +125,7 @@ describe("AnalyticsDashboardController", () => {
     });
   });
 
-  it("does not reuse rows from a different breakdown query", async () => {
+  it("retains rows while switching breakdown tabs", async () => {
     const api = dashboardApi();
     const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
     controller.connect();
@@ -140,7 +140,10 @@ describe("AnalyticsDashboardController", () => {
 
     const switching = controller.openBreakdown("UtmSource", "UTM sources");
 
-    expect(controller.state.expandedBreakdown?.report).toEqual({ status: "loading" });
+    expect(controller.state.expandedBreakdown?.report).toEqual({
+      status: "loading",
+      previous: [{ value: "example.com", visitors: 12, pageViews: 18 }],
+    });
     pending.resolve(ok({ dimension: "UtmSource", rows: [] }));
     await switching;
   });
@@ -168,7 +171,7 @@ describe("AnalyticsDashboardController", () => {
     await refreshing;
   });
 
-  it("does not reuse unfiltered rows for a searched breakdown", async () => {
+  it("retains rows while filtering a breakdown", async () => {
     const api = dashboardApi();
     const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
     controller.connect();
@@ -183,7 +186,10 @@ describe("AnalyticsDashboardController", () => {
 
     const searching = controller.openBreakdown("Country", "Countries", { search: "denmark" });
 
-    expect(controller.state.expandedBreakdown?.report).toEqual({ status: "loading" });
+    expect(controller.state.expandedBreakdown?.report).toEqual({
+      status: "loading",
+      previous: [{ value: "DK", visitors: 12, pageViews: 18 }],
+    });
     pending.resolve(ok({ dimension: "Country", rows: [] }));
     await searching;
   });

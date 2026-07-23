@@ -342,7 +342,7 @@ export class AnalyticsDashboardController {
     if (!connection) return;
     const search = options.search ?? "";
     const current = this.state.expandedBreakdown;
-    const previous = current?.dimension === dimension && current.search === search ? current.report : undefined;
+    const previous = current?.report;
     this.#set({ expandedBreakdown: { dimension, headline, search, report: loadingState(previous) } });
     const run = (signal: AbortSignal) => this.#api.breakdown({
       path: { dimension },
