@@ -12,10 +12,6 @@ export class RequestCoordinator {
   #generation = 0;
   #abort?: AbortController;
 
-  get signal(): AbortSignal | undefined {
-    return this.#abort?.signal;
-  }
-
   async run<T>(request: (signal: AbortSignal) => Promise<T>): Promise<RequestResult<T>> {
     this.#abort?.abort();
     const generation = ++this.#generation;

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": [
+    "src/bundle.manifests.ts",
+    "scripts/**/*.js",
+    "vite.config.ts"
+  ],
+  "dynamicallyLoaded": [
+    "src/entrypoints/entrypoint.ts",
+    "src/section/analytics-enabled.condition.ts",
+    "src/section/analytics-section.element.ts",
+    "src/settings/settings-dashboard.element.ts",
+    "src/workspace/analytics-workspace.element.ts",
+    "src/workspace/document-analytics.condition.ts"
+  ],
+  "ignorePatterns": [
+    "src/api/**/*.gen.ts",
+    "src/api/index.ts",
+    "src/api/client/index.ts"
+  ],
+  "ignoreDependencies": [
+    // Build-time generator dependencies and the Umbraco-provided runtime peer
+    // intentionally remain devDependencies; production code is bundled.
+    "@hey-api/openapi-ts",
+    "@umbraco-cms/backoffice",
+    "chalk",
+    "node-fetch"
+  ],
+  "usedClassMembers": [
+    "connectedCallback",
+    "disconnectedCallback",
+    "focusFirstInvalid",
+    "styles"
+  ],
+  "duplicates": {
+    // Pair-only similarities are reviewed locally; the gate targets patterns
+    // copied across three or more locations.
+    "minOccurrences": 3,
+    "ignore": [
+      "src/api/**/*.gen.ts",
+      "src/api/index.ts",
+      "src/api/client/index.ts"
+    ]
+  },
+  "health": {
+    // Lit templates count every conditional binding and optional chain as a
+    // branch. These ceilings still catch structural hotspots without treating
+    // declarative rendering as equivalent to imperative control flow.
+    "maxCyclomatic": 35,
+    "maxCognitive": 40,
+    // Until CI produces Istanbul coverage, Fallow's static CRAP estimate
+    // overstates tested Lit and controller code. Gate structural complexity now.
+    "maxCrap": 1000,
+    "ignore": [
+      "src/api/**/*.gen.ts",
+      "src/api/index.ts",
+      "src/api/client/index.ts",
+      "**/*.test.ts"
+    ],
+    "thresholdOverrides": [
+      {
+        "files": ["src/settings/connection-editor.element.ts"],
+        "functions": ["render"],
+        "maxCyclomatic": 65,
+        "maxCognitive": 95,
+        "reason": "The connection editor is a single declarative Lit form whose conditional bindings mirror independent provider capabilities; extracting them would fragment the form contract without reducing runtime decision-making."
+      }
+    ]
+  },
+  "rules": {
+    "unused-dev-dependencies": "error",
+    "dev-dependencies-in-production": "error"
+  }
+}

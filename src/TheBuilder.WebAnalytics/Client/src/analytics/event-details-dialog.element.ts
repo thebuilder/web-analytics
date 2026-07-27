@@ -6,6 +6,7 @@ import type { AnalyticsEventDetails, AnalyticsEventProperty } from "../api/types
 import { renderAnalyticsDialogHeadline } from "./analytics-dialog-headline.js";
 import { analyticsDialogStyles, analyticsEventDialogStyles } from "./analytics-dialog.styles.js";
 import { analyticsTableSkeletonStyles, renderAnalyticsTableSkeletonRows } from "./analytics-table-skeleton.js";
+import { cancelDialog, closeDialog, notifyDialogClosed, openDialog } from "./dialog-lifecycle.js";
 import { renderReportTabs, reportTabsStyles } from "./report-tabs.js";
 
 @customElement("web-analytics-event-details-dialog")
@@ -24,10 +25,10 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
   @state() private _propertyName?: string;
   @state() private _search = "";
 
-  protected firstUpdated(): void { this.shadowRoot?.querySelector("dialog")?.showModal(); }
-  #close(): void { this.shadowRoot?.querySelector("dialog")?.close(); }
-  #notifyClosed(): void { this.dispatchEvent(new CustomEvent("close-event-details", { bubbles: true, composed: true })); }
-  #onCancel(event: Event): void { event.preventDefault(); this.#close(); }
+  protected firstUpdated(): void { openDialog(this); }
+  #close(): void { closeDialog(this); }
+  #notifyClosed(): void { notifyDialogClosed(this, "close-event-details"); }
+  #onCancel(event: Event): void { cancelDialog(event, this); }
   #backToEvents(): void { this.dispatchEvent(new CustomEvent("back-to-events", { bubbles: true, composed: true })); }
 
   #activeProperty(): AnalyticsEventProperty | undefined {

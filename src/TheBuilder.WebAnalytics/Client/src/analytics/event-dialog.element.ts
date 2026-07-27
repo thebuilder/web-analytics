@@ -6,6 +6,7 @@ import type { AnalyticsEventRow } from "../api/types.gen.js";
 import { renderAnalyticsDialogHeadline } from "./analytics-dialog-headline.js";
 import { analyticsDialogStyles, analyticsEventDialogStyles } from "./analytics-dialog.styles.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
+import { cancelDialog, closeDialog, notifyDialogClosed, openDialog } from "./dialog-lifecycle.js";
 import "./event-table.element.js";
 
 @customElement("web-analytics-event-dialog")
@@ -18,10 +19,10 @@ export class WebAnalyticsEventDialogElement extends UmbElementMixin(LitElement) 
   @property({ type: Boolean }) filteringEnabled = false;
   @state() private _search = "";
 
-  protected firstUpdated(): void { this.shadowRoot?.querySelector("dialog")?.showModal(); }
-  #close(): void { this.shadowRoot?.querySelector("dialog")?.close(); }
-  #notifyClosed(): void { this.dispatchEvent(new CustomEvent("close-events", { bubbles: true, composed: true })); }
-  #onCancel(event: Event): void { event.preventDefault(); this.#close(); }
+  protected firstUpdated(): void { openDialog(this); }
+  #close(): void { closeDialog(this); }
+  #notifyClosed(): void { notifyDialogClosed(this, "close-events"); }
+  #onCancel(event: Event): void { cancelDialog(event, this); }
   #onSearch(event: Event): void {
     this._search = String((event.target as UUIInputElement).value ?? "");
     this.dispatchEvent(new CustomEvent("search-events", { bubbles: true, composed: true, detail: { search: this._search.trim() } }));

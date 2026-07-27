@@ -1,4 +1,4 @@
-export const manifests: Array<UmbExtensionManifest> = [
+export const extensionManifests: Array<UmbExtensionManifest> = [
   {
     type: "condition",
     alias: "TheBuilder.WebAnalytics.Condition.AnalyticsEnabled",

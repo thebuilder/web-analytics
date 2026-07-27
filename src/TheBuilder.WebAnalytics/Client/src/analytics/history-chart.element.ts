@@ -24,7 +24,7 @@ import { formatAnalyticsDate, formatAnalyticsTooltipDate, isAnalyticsPeriodInPro
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip);
 
 @customElement("web-analytics-history-chart")
-export class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
+class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
   @property({ attribute: false }) points: Array<{ timestamp: string; visitors: number; pageViews?: number; count?: number }> = [];
   @property() metric: "visitors" | "pageViews" | "count" = "visitors";
   @property() interval: AnalyticsInterval = "Day";
