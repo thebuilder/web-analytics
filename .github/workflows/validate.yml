@@ -31,17 +31,17 @@ jobs:
         run: corepack enable
 
       - name: Install dependencies
-        run: corepack pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Audit changed client code
         if: github.event_name == 'pull_request'
-        run: corepack pnpm run audit -- --base '${{ github.event.pull_request.base.sha }}' --format github-annotations
+        run: pnpm run audit --base '${{ github.event.pull_request.base.sha }}' --format github-annotations
 
       - name: Test client
-        run: corepack pnpm test
+        run: pnpm test
 
       - name: Build client
-        run: corepack pnpm build
+        run: pnpm build
 
   dotnet:
     name: .NET (Umbraco ${{ matrix.umbraco-version }})
@@ -90,7 +90,7 @@ jobs:
 
       - name: Install backoffice dependencies
         working-directory: src/TheBuilder.WebAnalytics/Client
-        run: corepack pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Pack NuGet package
         run: >-
