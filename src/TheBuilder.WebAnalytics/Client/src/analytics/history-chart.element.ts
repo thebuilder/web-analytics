@@ -55,10 +55,7 @@ class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
     const borderColor = style.getPropertyValue("--uui-color-border").trim() || "#d8d7d9";
     const gridColor = `color-mix(in srgb, ${borderColor} 42%, transparent)`;
     const label = this.#metricLabel();
-    const latestPoint = this.points[this.points.length - 1];
-    const latestPeriodInProgress = latestPoint
-      ? isAnalyticsPeriodInProgress(latestPoint.timestamp, this.interval, new Date(), this.timeZone)
-      : false;
+    const latestPeriodInProgress = this.#latestPeriodInProgress();
     const hoverGuide: Plugin<"line"> = {
       id: "webAnalyticsHoverGuide",
       afterDatasetsDraw: (chart) => {
@@ -162,10 +159,7 @@ class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
 
   render() {
     const label = this.#metricLabel();
-    const latestPoint = this.points[this.points.length - 1];
-    const latestPeriodInProgress = latestPoint
-      ? isAnalyticsPeriodInProgress(latestPoint.timestamp, this.interval, new Date(), this.timeZone)
-      : false;
+    const latestPeriodInProgress = this.#latestPeriodInProgress();
     const progressDescription = latestPeriodInProgress ? ". The final period is still in progress" : "";
     return html`
       <div class="chart" role="img" aria-label="${label} history for ${this.points.length} periods${progressDescription}">
@@ -177,6 +171,13 @@ class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
   #metricLabel(): string {
     if (this.metric === "visitors") return "Visitors";
     return this.metric === "pageViews" ? "Page views" : "Total events";
+  }
+
+  #latestPeriodInProgress(): boolean {
+    const latestPoint = this.points[this.points.length - 1];
+    return latestPoint
+      ? isAnalyticsPeriodInProgress(latestPoint.timestamp, this.interval, new Date(), this.timeZone)
+      : false;
   }
 
   static styles = css`

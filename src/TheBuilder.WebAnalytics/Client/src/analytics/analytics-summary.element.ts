@@ -6,6 +6,7 @@ import { inclusiveRangeDays, type AnalyticsDateRange } from "./date-range.js";
 import { metricComparison } from "./metric-comparison.js";
 import type { DashboardMetric } from "./dashboard-url-state.js";
 import { isInitialLoading, stateData, type AsyncState } from "./async-state.js";
+import { targetTabIndex } from "./tab-keyboard.js";
 import "./history-chart.element.js";
 
 @customElement("web-analytics-summary")
@@ -30,14 +31,7 @@ export class WebAnalyticsSummaryElement extends UmbElementMixin(LitElement) {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
     const tabs = Array.from(this.shadowRoot?.querySelectorAll<HTMLButtonElement>("[role=tab]") ?? []);
-    const currentIndex = tabs.indexOf(event.currentTarget as HTMLButtonElement);
-    const targetIndex = event.key === "Home"
-      ? 0
-      : event.key === "End"
-        ? tabs.length - 1
-        : event.key === "ArrowLeft"
-          ? (currentIndex - 1 + tabs.length) % tabs.length
-          : (currentIndex + 1) % tabs.length;
+    const targetIndex = targetTabIndex(event, tabs);
     tabs[targetIndex]?.click();
     tabs[targetIndex]?.focus();
   }

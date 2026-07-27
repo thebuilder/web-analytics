@@ -29,7 +29,7 @@ import {
 import { loadDashboardBreakdown, loadDashboardBreakdowns, loadDashboardReports, type DashboardReportQuery, type DashboardReportUpdate } from "./dashboard-report-loader.js";
 import { visibleEventRows } from "./event-rows.js";
 import { reportErrorMessage } from "./report-error.js";
-import { DebouncedRequest, RequestCoordinator } from "./request-coordinator.js";
+import { DebouncedRequest, RequestCoordinator, type RequestResult } from "./request-coordinator.js";
 import { detectUtmCapability, type UtmCapability } from "./utm-capability.js";
 import { errorState, idleState, loadingState, successState, type AsyncState } from "./async-state.js";
 import { normalizeDashboardSelection, supportsDimension, unavailableCapabilities } from "./dashboard-capabilities.js";
@@ -475,11 +475,7 @@ export class AnalyticsDashboardController {
     const result = await this.#initializationRequest.run((signal) => this.#api.documentRoutes({
       path: { documentId }, query: { culture: this.#culture }, signal,
     }));
-    if (result.status === "cancelled" || result.status === "stale") return false;
-    if (result.status === "error") {
-      this.#set({ configurationError: reportErrorMessage(result.error), summary: idleState() });
-      return false;
-    }
+    if (!this.#initializationSucceeded(result)) return false;
     const { data, error } = result.value;
     const route = !error && data?.length ? activeDocumentRoute(data, this.#culture) : undefined;
     if (!route) {
@@ -493,11 +489,7 @@ export class AnalyticsDashboardController {
 
   async #initializeGlobal(): Promise<boolean> {
     const result = await this.#initializationRequest.run((signal) => this.#api.connections({ signal }));
-    if (result.status === "cancelled" || result.status === "stale") return false;
-    if (result.status === "error") {
-      this.#set({ configurationError: reportErrorMessage(result.error), summary: idleState() });
-      return false;
-    }
+    if (!this.#initializationSucceeded(result)) return false;
     const { data, error } = result.value;
     if (error || !data?.enabled) {
       this.#set({ configurationError: "Web Analytics is disabled or unavailable. Ask an administrator to configure a connection.", summary: idleState() });
@@ -529,6 +521,13 @@ export class AnalyticsDashboardController {
       range,
     });
     return true;
+  }
+
+  #initializationSucceeded<T>(result: RequestResult<T>): result is Extract<RequestResult<T>, { status: "success" }> {
+    if (result.status === "error") {
+      this.#set({ configurationError: reportErrorMessage(result.error), summary: idleState() });
+    }
+    return result.status === "success";
   }
 
   #applyReportUpdate(update: DashboardReportUpdate): void {

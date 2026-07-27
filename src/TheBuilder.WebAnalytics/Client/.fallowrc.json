@@ -33,9 +33,7 @@
     "styles"
   ],
   "duplicates": {
-    // Pair-only similarities are reviewed locally; the gate targets patterns
-    // copied across three or more locations.
-    "minOccurrences": 3,
+    "minOccurrences": 2,
     "ignore": [
       "src/api/**/*.gen.ts",
       "src/api/index.ts",
@@ -46,11 +44,12 @@
     // Lit templates count every conditional binding and optional chain as a
     // branch. These ceilings still catch structural hotspots without treating
     // declarative rendering as equivalent to imperative control flow.
-    "maxCyclomatic": 35,
-    "maxCognitive": 40,
+    "maxCyclomatic": 30,
+    "maxCognitive": 35,
     // Until CI produces Istanbul coverage, Fallow's static CRAP estimate
-    // overstates tested Lit and controller code. Gate structural complexity now.
-    "maxCrap": 1000,
+    // overstates tested Lit and controller code. Keep a finite ceiling while
+    // structural complexity remains the primary gate.
+    "maxCrap": 300,
     "ignore": [
       "src/api/**/*.gen.ts",
       "src/api/index.ts",
@@ -59,10 +58,17 @@
     ],
     "thresholdOverrides": [
       {
+        "files": ["src/analytics/analytics-dashboard.element.ts"],
+        "functions": ["render"],
+        "maxCyclomatic": 35,
+        "reason": "The dashboard render method composes independent optional panels and dialog states; its declarative Lit bindings are kept under a narrow render-only ceiling."
+      },
+      {
         "files": ["src/settings/connection-editor.element.ts"],
         "functions": ["render"],
         "maxCyclomatic": 65,
         "maxCognitive": 95,
+        "maxCrap": 900,
         "reason": "The connection editor is a single declarative Lit form whose conditional bindings mirror independent provider capabilities; extracting them would fragment the form contract without reducing runtime decision-making."
       }
     ]

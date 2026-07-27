@@ -66,6 +66,22 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
     };
   }
 
+  #renderBreakdownFooter(
+    loading: boolean,
+    unavailable: string | undefined,
+    hasRows: boolean,
+    selected: ReturnType<typeof selectedCardDimension>,
+  ) {
+    if (!loading && hasRows && !unavailable) {
+      return html`
+        <uui-button class="view-all" compact look="default" label=${`View all ${selected.headline}`} @click=${() => this.#dispatch("view-breakdown", selected)}>View all</uui-button>
+      `;
+    }
+    return !loading && unavailable
+      ? html`<uui-button look="secondary" label=${`Retry ${selected.headline} report`} @click=${() => this.#dispatch("retry-reports")}>Retry</uui-button>`
+      : "";
+  }
+
   #renderCard(card: DashboardCard) {
     const selected = selectedCardDimension(card, this.audienceDimension, this.utmDimension);
     const state = this.breakdowns[selected.dimension];
@@ -97,11 +113,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
           </web-analytics-breakdown-table>
           ${planLimited && unavailable ? html`<p class="hint breakdown-hint">UTM reporting availability depends on your analytics plan and reporting window.</p>` : ""}
           <footer class="breakdown-footer">
-            ${!loading && !unavailable && rows.length ? html`
-              <uui-button class="view-all" compact look="default" label=${`View all ${selected.headline}`} @click=${() => this.#dispatch("view-breakdown", selected)}>View all</uui-button>
-            ` : !loading && unavailable ? html`
-              <uui-button look="secondary" label=${`Retry ${selected.headline} report`} @click=${() => this.#dispatch("retry-reports")}>Retry</uui-button>
-            ` : ""}
+            ${this.#renderBreakdownFooter(loading, unavailable, rows.length > 0, selected)}
           </footer>
         </div>
       </uui-box>
@@ -139,11 +151,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
             @heading-tab-change=${(event: CustomEvent<{ value: AcquisitionView }>) => this.#dispatch("acquisition-change", { view: event.detail.value })}
             @subheading-tab-change=${(event: CustomEvent<{ value: UtmDimension }>) => this.#dispatch("utm-change", { dimension: event.detail.value })}></web-analytics-breakdown-table>
           <footer class="breakdown-footer">
-            ${!loading && !unavailable && rows.length ? html`
-              <uui-button class="view-all" compact look="default" label=${`View all ${selected.headline}`} @click=${() => this.#dispatch("view-breakdown", selected)}>View all</uui-button>
-            ` : !loading && unavailable ? html`
-              <uui-button look="secondary" label=${`Retry ${selected.headline} report`} @click=${() => this.#dispatch("retry-reports")}>Retry</uui-button>
-            ` : ""}
+            ${this.#renderBreakdownFooter(loading, unavailable, rows.length > 0, selected)}
           </footer>
         </div>
       </uui-box>

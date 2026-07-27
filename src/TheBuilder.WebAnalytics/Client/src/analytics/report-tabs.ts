@@ -1,4 +1,5 @@
 import { css, html, nothing } from "@umbraco-cms/backoffice/external/lit";
+import { targetTabIndex } from "./tab-keyboard.js";
 
 export type ReportTabOption<TValue extends string = string> = {
   value: TValue;
@@ -30,10 +31,7 @@ export function renderReportTabs<TValue extends string>(
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
     const tabs = Array.from((event.currentTarget as HTMLElement).parentElement?.querySelectorAll<HTMLButtonElement>("[role=tab]") ?? []);
-    const currentIndex = tabs.indexOf(event.currentTarget as HTMLButtonElement);
-    const targetIndex = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1
-      : event.key === "ArrowLeft" ? (currentIndex - 1 + tabs.length) % tabs.length
-        : (currentIndex + 1) % tabs.length;
+    const targetIndex = targetTabIndex(event, tabs);
     const option = group.options[targetIndex];
     if (!option) return;
     select(option.value);

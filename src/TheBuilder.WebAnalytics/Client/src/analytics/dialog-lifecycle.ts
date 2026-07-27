@@ -14,3 +14,15 @@ export function cancelDialog(event: Event, host: HTMLElement): void {
   event.preventDefault();
   closeDialog(host);
 }
+
+export function searchInputValue(event: Event): string {
+  return String((event.target as HTMLElement & { value?: unknown }).value ?? "");
+}
+
+export function notifyDialogSearch(host: HTMLElement, eventName: string, search: string): void {
+  host.dispatchEvent(new CustomEvent(eventName, {
+    bubbles: true,
+    composed: true,
+    detail: { search: search.trim() },
+  }));
+}
