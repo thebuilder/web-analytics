@@ -1,9 +1,5 @@
 import { apiFailure } from "../api/api-failure.js";
 
-export function reportApiErrorMessage(error: unknown, status: number): string {
-  return reportErrorMessage(apiFailure(error, status));
-}
-
 export function reportErrorMessage(error: unknown): string {
   const { code, status } = apiFailure(error);
 

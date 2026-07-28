@@ -8,13 +8,13 @@ import {
 } from "@umbraco-cms/backoffice/external/lit";
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
-import type { UUIInputElement } from "@umbraco-cms/backoffice/external/uui";
 import type { AnalyticsBreakdownRow, AnalyticsDimension } from "../api/types.gen.js";
 import { renderAnalyticsDialogHeadline } from "./analytics-dialog-headline.js";
 import { analyticsDialogStyles } from "./analytics-dialog.styles.js";
 import { breakdownDimensionLabel, type TrafficMetric } from "./breakdown-rows.js";
 import { AUDIENCE_OPTIONS, breakdownDialogGroup, referrerDimensionOption, UTM_OPTIONS, type DimensionOption } from "./dashboard-cards.js";
 import type { AnalyticsFilter, UtmDimension } from "./dashboard-url-state.js";
+import { cancelDialog, closeDialog, notifyDialogClosed, notifyDialogSearch, openDialog, searchInputValue } from "./dialog-lifecycle.js";
 import { isUtmDimension } from "./utm-capability.js";
 import type { ReportTabGroup } from "./report-tabs.js";
 import "./breakdown-table.element.js";
@@ -36,29 +36,24 @@ export class WebAnalyticsBreakdownDialogElement extends UmbElementMixin(LitEleme
   @state() private _utmDimension?: UtmDimension;
 
   protected firstUpdated(): void {
-    this.shadowRoot?.querySelector("dialog")?.showModal();
+    openDialog(this);
   }
 
   #close(): void {
-    this.shadowRoot?.querySelector("dialog")?.close();
+    closeDialog(this);
   }
 
   #notifyClosed(): void {
-    this.dispatchEvent(new CustomEvent("close-breakdown", { bubbles: true, composed: true }));
+    notifyDialogClosed(this, "close-breakdown");
   }
 
   #onCancel(event: Event): void {
-    event.preventDefault();
-    this.#close();
+    cancelDialog(event, this);
   }
 
   #onSearch(event: Event): void {
-    this._search = String((event.target as UUIInputElement).value ?? "");
-    this.dispatchEvent(new CustomEvent("search-breakdown", {
-      bubbles: true,
-      composed: true,
-      detail: { search: this._search.trim() },
-    }));
+    this._search = searchInputValue(event);
+    notifyDialogSearch(this, "search-breakdown", this._search);
   }
 
   #selectDimension(option?: DimensionOption): void {

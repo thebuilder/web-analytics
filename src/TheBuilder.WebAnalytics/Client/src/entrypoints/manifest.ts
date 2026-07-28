@@ -1,4 +1,4 @@
-export const manifests: Array<UmbExtensionManifest> = [
+export const entrypointManifests: Array<UmbExtensionManifest> = [
   {
     name: "Web Analytics Entrypoint",
     alias: "TheBuilder.WebAnalytics.Entrypoint",

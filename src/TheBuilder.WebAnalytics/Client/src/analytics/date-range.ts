@@ -291,14 +291,11 @@ function validIso(value: string): string | undefined {
 }
 
 function startOfZonedHour(date: Date, timeZone: string): Date {
-  const parts = new Intl.DateTimeFormat("en", {
+  const value = zonedNumericPartValue(date, timeZone, {
     minute: "2-digit",
     second: "2-digit",
     hourCycle: "h23",
-    timeZone,
-  }).formatToParts(date);
-  const value = (type: Intl.DateTimeFormatPartTypes) =>
-    Number(parts.find((part) => part.type === type)?.value ?? 0);
+  });
   const elapsedInHour = value("minute") * 60_000
     + value("second") * 1000
     + date.getUTCMilliseconds();
@@ -336,12 +333,20 @@ function zonedMidnightToIso(dateOnly: string, timeZone: string): string | undefi
 }
 
 function timeZoneOffsetMilliseconds(date: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat("en", {
+  const value = zonedNumericPartValue(date, timeZone, {
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit",
-    hourCycle: "h23", timeZone,
-  }).formatToParts(date);
-  const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+    hourCycle: "h23",
+  });
   const wallClockAsUtc = Date.UTC(value("year"), value("month") - 1, value("day"), value("hour"), value("minute"), value("second"));
   return wallClockAsUtc - Math.floor(date.valueOf() / 1000) * 1000;
+}
+
+function zonedNumericPartValue(
+  date: Date,
+  timeZone: string,
+  options: Intl.DateTimeFormatOptions,
+): (type: Intl.DateTimeFormatPartTypes) => number {
+  const parts = new Intl.DateTimeFormat("en", { ...options, timeZone }).formatToParts(date);
+  return (type) => Number(parts.find((part) => part.type === type)?.value ?? 0);
 }

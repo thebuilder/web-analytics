@@ -29,7 +29,7 @@ import {
 import { loadDashboardBreakdown, loadDashboardBreakdowns, loadDashboardReports, type DashboardReportQuery, type DashboardReportUpdate } from "./dashboard-report-loader.js";
 import { visibleEventRows } from "./event-rows.js";
 import { reportErrorMessage } from "./report-error.js";
-import { DebouncedRequest, RequestCoordinator } from "./request-coordinator.js";
+import { DebouncedRequest, RequestCoordinator, type RequestResult } from "./request-coordinator.js";
 import { detectUtmCapability, type UtmCapability } from "./utm-capability.js";
 import { errorState, idleState, loadingState, successState, type AsyncState } from "./async-state.js";
 import { normalizeDashboardSelection, supportsDimension, unavailableCapabilities } from "./dashboard-capabilities.js";
@@ -463,58 +463,71 @@ export class AnalyticsDashboardController {
 
   async #initialize(): Promise<void> {
     this.#set({ configurationError: undefined, setupRequired: false });
-    if (this.#documentId) {
-      const documentId = this.#documentId;
-      const result = await this.#initializationRequest.run((signal) => this.#api.documentRoutes({
-        path: { documentId }, query: { culture: this.#culture }, signal,
-      }));
-      if (result.status === "cancelled" || result.status === "stale") return;
-      if (result.status === "error") { this.#set({ configurationError: reportErrorMessage(result.error), summary: idleState() }); return; }
-      const { data, error } = result.value;
-      const route = !error && data?.length ? activeDocumentRoute(data, this.#culture) : undefined;
-      if (!route) {
-        this.#set({ configurationError: "This document is unpublished, unmapped, or its active culture is not configured for analytics.", summary: idleState() });
-        return;
-      }
-      const selection = normalizeDashboardSelection(this.state, route.capabilities);
-      this.#set({ route, connection: route.connection, provider: route.provider, capabilities: route.capabilities, ...selection });
-    } else {
-      const result = await this.#initializationRequest.run((signal) => this.#api.connections({ signal }));
-      if (result.status === "cancelled" || result.status === "stale") return;
-      if (result.status === "error") { this.#set({ configurationError: reportErrorMessage(result.error), summary: idleState() }); return; }
-      const { data, error } = result.value;
-      if (error || !data?.enabled) {
-        this.#set({ configurationError: "Web Analytics is disabled or unavailable. Ask an administrator to configure a connection.", summary: idleState() });
-        return;
-      }
-      if (data.connections.length === 0) {
-        this.#set({ setupRequired: true, summary: idleState() });
-        return;
-      }
-      let { preset, range } = this.state;
-      if (!this.#hasUrlDateState) {
-        preset = [1, 7, 30, 90, 365].includes(data.defaultRangeDays) ? data.defaultRangeDays as Exclude<DatePreset, "custom"> : "custom";
-        range = dateRangeForPreset(data.defaultRangeDays);
-      }
-      const stored = this.#environment.getStoredConnection();
-      const requested = data.connections.some(({ key }) => key === this.state.connection) ? this.state.connection : undefined;
-      const storedValid = data.connections.some(({ key }) => key === stored) ? stored ?? undefined : undefined;
-      const connection = requested ?? storedValid ?? data.connections[0]?.key;
-      const selectedConnection = data.connections.find(({ key }) => key === connection);
-      const capabilities = selectedConnection?.capabilities ?? unavailableCapabilities;
-      const selection = normalizeDashboardSelection(this.state, capabilities);
-      this.#set({
-        connections: data.connections,
-        connection,
-        provider: selectedConnection?.provider,
-        capabilities,
-        ...selection,
-        preset,
-        range,
-      });
-    }
+    const initialized = this.#documentId
+      ? await this.#initializeDocument(this.#documentId)
+      : await this.#initializeGlobal();
+    if (!initialized) return;
     this.#syncUrlState();
     await this.loadReports();
+  }
+
+  async #initializeDocument(documentId: string): Promise<boolean> {
+    const result = await this.#initializationRequest.run((signal) => this.#api.documentRoutes({
+      path: { documentId }, query: { culture: this.#culture }, signal,
+    }));
+    if (!this.#initializationSucceeded(result)) return false;
+    const { data, error } = result.value;
+    const route = !error && data?.length ? activeDocumentRoute(data, this.#culture) : undefined;
+    if (!route) {
+      this.#set({ configurationError: "This document is unpublished, unmapped, or its active culture is not configured for analytics.", summary: idleState() });
+      return false;
+    }
+    const selection = normalizeDashboardSelection(this.state, route.capabilities);
+    this.#set({ route, connection: route.connection, provider: route.provider, capabilities: route.capabilities, ...selection });
+    return true;
+  }
+
+  async #initializeGlobal(): Promise<boolean> {
+    const result = await this.#initializationRequest.run((signal) => this.#api.connections({ signal }));
+    if (!this.#initializationSucceeded(result)) return false;
+    const { data, error } = result.value;
+    if (error || !data?.enabled) {
+      this.#set({ configurationError: "Web Analytics is disabled or unavailable. Ask an administrator to configure a connection.", summary: idleState() });
+      return false;
+    }
+    if (data.connections.length === 0) {
+      this.#set({ setupRequired: true, summary: idleState() });
+      return false;
+    }
+    let { preset, range } = this.state;
+    if (!this.#hasUrlDateState) {
+      preset = [1, 7, 30, 90, 365].includes(data.defaultRangeDays) ? data.defaultRangeDays as Exclude<DatePreset, "custom"> : "custom";
+      range = dateRangeForPreset(data.defaultRangeDays);
+    }
+    const stored = this.#environment.getStoredConnection();
+    const requested = data.connections.some(({ key }) => key === this.state.connection) ? this.state.connection : undefined;
+    const storedValid = data.connections.some(({ key }) => key === stored) ? stored ?? undefined : undefined;
+    const connection = requested ?? storedValid ?? data.connections[0]?.key;
+    const selectedConnection = data.connections.find(({ key }) => key === connection);
+    const capabilities = selectedConnection?.capabilities ?? unavailableCapabilities;
+    const selection = normalizeDashboardSelection(this.state, capabilities);
+    this.#set({
+      connections: data.connections,
+      connection,
+      provider: selectedConnection?.provider,
+      capabilities,
+      ...selection,
+      preset,
+      range,
+    });
+    return true;
+  }
+
+  #initializationSucceeded<T>(result: RequestResult<T>): result is Extract<RequestResult<T>, { status: "success" }> {
+    if (result.status === "error") {
+      this.#set({ configurationError: reportErrorMessage(result.error), summary: idleState() });
+    }
+    return result.status === "success";
   }
 
   #applyReportUpdate(update: DashboardReportUpdate): void {
