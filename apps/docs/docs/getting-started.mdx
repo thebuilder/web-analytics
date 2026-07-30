@@ -19,7 +19,7 @@ The package registers its services and backoffice extensions automatically. Buil
 
 Create a read-only credential with access to the provider account or site being connected. Add it to the application's secret configuration—not `appsettings.json` and never source control. Restart every Umbraco application instance after adding or rotating the credential.
 
-<Tabs inline param="provider">
+<Tabs param="provider">
   <Tab title="Vercel">
     Create a Vercel access token with read access to the project. Configure it as `WebAnalytics__Providers__Vercel__AccessToken`, then use the project's ID as the connection identifier in Umbraco. Add the team ID only when the project belongs to a Vercel team.
 
