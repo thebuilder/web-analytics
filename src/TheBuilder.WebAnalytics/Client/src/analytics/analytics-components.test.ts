@@ -31,7 +31,8 @@ import type { WebAnalyticsBreakdownTableElement } from "./breakdown-table.elemen
 import type { WebAnalyticsEventTableElement } from "./event-table.element.js";
 import type { WebAnalyticsDashboardElement } from "./analytics-dashboard.element.js";
 import type { WebAnalyticsDashboardHeaderElement } from "./analytics-dashboard-header.element.js";
-import type { WebAnalyticsFlagCardElement } from "./flag-card.element.js";
+import type { WebAnalyticsFlagTableElement } from "./flag-table.element.js";
+import type { WebAnalyticsFlagDialogElement } from "./flag-dialog.element.js";
 import type { WebAnalyticsEventDetailsDialogElement } from "./event-details-dialog.element.js";
 import "./analytics-summary.element.js";
 import "./analytics-breakdown-grid.element.js";
@@ -75,7 +76,7 @@ describe("analytics presentation components", () => {
     element.route = {
       connection: "11111111-1111-1111-1111-111111111111",
       provider: "Vercel",
-      capabilities: { dimensions: ["RequestPath"], events: true, eventDetails: true, eventProperties: true, globalEventFiltering: false, flags: true, breakdownOrdering: false },
+      capabilities: { dimensions: ["RequestPath"], events: true, eventDetails: true, eventProperties: true, globalEventFiltering: false, globalEventPropertyFiltering: true, flags: true, breakdownOrdering: false },
       culture: "en-US",
       hostname: "example.com",
       path: "/products/example",
@@ -200,15 +201,48 @@ describe("analytics presentation components", () => {
 
     const breakdown = element.shadowRoot?.querySelector<WebAnalyticsBreakdownTableElement>("web-analytics-breakdown-table");
     const events = element.shadowRoot?.querySelector<WebAnalyticsEventTableElement>("web-analytics-event-table");
-    const flags = element.shadowRoot?.querySelector<WebAnalyticsFlagCardElement>("web-analytics-flag-card");
+    const flags = element.shadowRoot?.querySelector<WebAnalyticsFlagTableElement>("web-analytics-flag-table");
     await Promise.all([breakdown?.updateComplete, events?.updateComplete, flags?.updateComplete]);
 
     expect(breakdown?.loading).toBe(false);
     expect(breakdown?.shadowRoot?.querySelector(".row-label")?.textContent).toContain("Denmark");
     expect(events?.loading).toBe(false);
-    expect(events?.shadowRoot?.querySelector(".details-action")?.textContent).toBe("Signup");
-    expect(flags?.shadowRoot?.querySelector(".value")?.textContent).toBe("new-checkout");
+    expect(events?.shadowRoot?.querySelector(".row-action")?.textContent).toBe("Signup");
+    expect(flags?.shadowRoot?.querySelector(".row-action")?.textContent).toBe("new-checkout");
     expect(element.shadowRoot?.querySelectorAll('[aria-busy="true"]')).toHaveLength(3);
+  });
+
+  it("shows drill-down filters on their event and flag card rows", async () => {
+    const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
+    element.cards = [];
+    element.events = successState({ rows: [
+      { eventName: "Signup", visitors: 8, count: 9 },
+      { eventName: "Demo requested", visitors: 5, count: 6 },
+    ] });
+    element.flags = successState({ rows: [
+      { value: "new-pricing-page", visitors: 5, pageViews: 7 },
+      { value: "checkout-redesign", visitors: 3, pageViews: 4 },
+    ] });
+    element.eventFilter = {
+      eventName: "Signup",
+      property: "plan",
+      value: "Pro",
+    };
+    element.flagFilter = { flagKey: "new-pricing-page", value: "control" };
+    document.body.append(element);
+    await element.updateComplete;
+
+    const eventTable = element.shadowRoot?.querySelector<WebAnalyticsEventTableElement>("web-analytics-event-table");
+    const flagTable = element.shadowRoot?.querySelector<WebAnalyticsFlagTableElement>("web-analytics-flag-table");
+    await Promise.all([eventTable?.updateComplete, flagTable?.updateComplete]);
+
+    expect(eventTable?.shadowRoot?.querySelector(".drilldown-filter-label")?.textContent).toBe("plan: Pro");
+    expect(flagTable?.shadowRoot?.querySelector(".drilldown-filter-label")?.textContent).toBe("control");
+    expect(eventTable?.shadowRoot?.querySelector(".drilldown-filter")?.tagName).toBe("BUTTON");
+    expect(flagTable?.shadowRoot?.querySelector(".drilldown-filter")?.tagName).toBe("BUTTON");
+    expect(eventTable?.rows.map(({ eventName }) => eventName)).toEqual(["Signup"]);
+    expect(eventTable?.rows[0]).toMatchObject({ visitors: 8, count: 9 });
+    expect(flagTable?.rows.map(({ value }) => value)).toEqual(["new-pricing-page"]);
   });
 
   it("emits audience changes from the breakdown tabs", async () => {
@@ -374,7 +408,7 @@ describe("analytics presentation components", () => {
       "Operating systems",
     ]);
     expect(cards[4]?.querySelector("web-analytics-event-table")).not.toBeNull();
-    expect(cards[5]?.querySelector("web-analytics-flag-card")).not.toBeNull();
+    expect(cards[5]?.querySelector("web-analytics-flag-table")).not.toBeNull();
   });
 
   it("keeps View all actions low priority while retaining emphasis for Retry", async () => {
@@ -384,13 +418,18 @@ describe("analytics presentation components", () => {
       Country: successState({ dimension: "Country", rows: [{ value: "DK", visitors: 12, pageViews: 18 }] }),
     };
     element.events = successState({ rows: [{ eventName: "Signup", visitors: 8, count: 9 }] });
-    element.supportsFlags = false;
+    element.flags = successState({ rows: [{ value: "summer-sale", visitors: 5, pageViews: 7 }] });
     document.body.append(element);
     await element.updateComplete;
 
     const viewAllActions = [...element.shadowRoot?.querySelectorAll("uui-button") ?? []]
       .filter((button) => button.textContent?.trim() === "View all");
-    expect(viewAllActions).toHaveLength(2);
+    expect(viewAllActions).toHaveLength(3);
+    expect(viewAllActions.map((button) => button.getAttribute("label"))).toEqual([
+      "View all Countries",
+      "View all events",
+      "View all flags",
+    ]);
     expect(viewAllActions.every((button) => button.getAttribute("look") === "default")).toBe(true);
     expect(viewAllActions.every((button) => button.classList.contains("view-all") && button.hasAttribute("compact"))).toBe(true);
 
@@ -413,8 +452,8 @@ describe("analytics presentation components", () => {
     const featureGrid = element.shadowRoot?.querySelector(".feature-grid");
     const cards = [...featureGrid?.querySelectorAll("uui-box") ?? []];
     const flagsCard = cards[1];
-    expect(flagsCard?.querySelector("web-analytics-flag-card")).not.toBeNull();
-    expect(flagsCard?.classList.contains("flags-card")).toBe(true);
+    expect(flagsCard?.querySelector("web-analytics-flag-table")).not.toBeNull();
+    expect(flagsCard?.querySelector('[label="View all flags"]')).toBeNull();
     expect(cards[0]?.querySelector("web-analytics-event-table")).not.toBeNull();
   });
 
@@ -430,7 +469,7 @@ describe("analytics presentation components", () => {
     const featureGrid = element.shadowRoot?.querySelector<HTMLElement>(".feature-grid");
     const cards = [...featureGrid?.querySelectorAll("uui-box") ?? []];
     expect(cards).toHaveLength(1);
-    expect(cards[0]?.querySelector("web-analytics-flag-card")).not.toBeNull();
+    expect(cards[0]?.querySelector("web-analytics-flag-table")).not.toBeNull();
     const styles = [...element.shadowRoot?.querySelectorAll("style") ?? []].map((style) => style.textContent).join("\n");
     expect(styles).toContain(".feature-grid");
     expect(styles).toContain("repeat(auto-fill");
@@ -572,33 +611,6 @@ describe("analytics presentation components", () => {
     expect(search?.getAttribute("placeholder")).toBe("Search title");
   });
 
-  it("drills from flag keys into their values and provides setup guidance when empty", async () => {
-    const element = document.createElement("web-analytics-flag-card") as WebAnalyticsFlagCardElement;
-    element.report = successState({ rows: [{ value: "summer-sale", visitors: 184, pageViews: 841 }] });
-    const onSelect = vi.fn();
-    element.addEventListener("select-flag", onSelect);
-    document.body.append(element);
-    await element.updateComplete;
-
-    element.shadowRoot?.querySelector<HTMLButtonElement>(".select")?.click();
-    expect((onSelect.mock.calls[0][0] as CustomEvent).detail).toEqual({ flagKey: "summer-sale" });
-
-    element.selected = successState({ flagKey: "summer-sale", rows: [{ value: "true", visitors: 53, pageViews: 200 }] });
-    await element.updateComplete;
-    expect(element.shadowRoot?.querySelector(".flag-back uui-icon")?.getAttribute("name")).toBe("icon-navigation-left");
-    expect(element.shadowRoot?.querySelector(".selected-label")?.textContent).toBe("summer-sale");
-    expect(element.shadowRoot?.querySelector(".row .value")?.textContent).toBe("true");
-    expect(element.shadowRoot?.querySelector(".row .value")?.tagName).toBe("SPAN");
-
-    element.selected = undefined;
-    element.report = successState({ rows: [] });
-    await element.updateComplete;
-    const setupLink = element.shadowRoot?.querySelector<HTMLAnchorElement>(".empty a");
-    expect(element.shadowRoot?.querySelector<HTMLElement>(".empty-icon uui-icon")?.getAttribute("name")).toBe("icon-flag");
-    expect(setupLink?.href).toBe("https://vercel.com/docs/flags/observability/web-analytics");
-    expect(setupLink?.rel).toBe("noopener noreferrer");
-  });
-
   it("wires a summary interaction through the mounted dashboard controller", async () => {
     const dashboard = document.createElement("web-analytics-dashboard") as WebAnalyticsDashboardElement;
     document.body.append(dashboard);
@@ -644,16 +656,54 @@ describe("analytics presentation components", () => {
     expect(dashboard.shadowRoot?.querySelector("web-analytics-event-details-dialog")).toBeNull();
   });
 
-  it("clears every active filter from the mounted dashboard and URL", async () => {
-    window.history.replaceState({}, "", "/umbraco/section/analytics?filter=RequestPath%3A%2F&filter=Country%3ADK");
+  it("keeps Flags in a dialog while drilling from keys into values", async () => {
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: vi.fn() });
+    sdk.flags
+      .mockResolvedValueOnce(apiOk({ rows: [{ value: "summer-sale", visitors: 184, pageViews: 841 }] }))
+      .mockResolvedValueOnce(apiOk({ rows: [
+        { value: "summer-sale", visitors: 184, pageViews: 841 },
+        { value: "new-checkout", visitors: 92, pageViews: 410 },
+      ] }))
+      .mockResolvedValueOnce(apiOk({ flagKey: "summer-sale", rows: [{ value: "true", visitors: 53, pageViews: 200 }] }));
     const dashboard = document.createElement("web-analytics-dashboard") as WebAnalyticsDashboardElement;
     document.body.append(dashboard);
-    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelectorAll(".filter-badge")).toHaveLength(2));
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector<WebAnalyticsBreakdownGridElement>("web-analytics-breakdown-grid")?.flags.status).toBe("success"));
+
+    dashboard.shadowRoot?.querySelector<WebAnalyticsBreakdownGridElement>("web-analytics-breakdown-grid")?.dispatchEvent(new CustomEvent("view-flags", { bubbles: true, composed: true }));
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector("web-analytics-flag-dialog")).not.toBeNull());
+    const flagsDialog = dashboard.shadowRoot?.querySelector<HTMLElement>("web-analytics-flag-dialog");
+    flagsDialog?.dispatchEvent(new CustomEvent("select-flag", {
+      bubbles: true,
+      composed: true,
+      detail: { flagKey: "summer-sale" },
+    }));
+
+    await vi.waitFor(() => {
+      const dialog = dashboard.shadowRoot?.querySelector<WebAnalyticsFlagDialogElement>("web-analytics-flag-dialog");
+      expect(dialog?.selected?.flagKey).toBe("summer-sale");
+    });
+    expect(dashboard.shadowRoot?.querySelectorAll("web-analytics-flag-dialog")).toHaveLength(1);
+
+    dashboard.shadowRoot?.querySelector<HTMLElement>("web-analytics-flag-dialog")?.dispatchEvent(new CustomEvent("clear-selected-flag", { bubbles: true, composed: true }));
+    await vi.waitFor(() => {
+      const dialog = dashboard.shadowRoot?.querySelector<WebAnalyticsFlagDialogElement>("web-analytics-flag-dialog");
+      expect(dialog?.selected).toBeUndefined();
+    });
+    expect(dashboard.shadowRoot?.querySelectorAll("web-analytics-flag-dialog")).toHaveLength(1);
+  });
+
+  it("clears every active filter from the mounted dashboard and URL", async () => {
+    window.history.replaceState({}, "", "/umbraco/section/analytics?filter=RequestPath%3A%2F&filter=Country%3ADK&filterFlagKey=new-pricing-page&filterFlagValue=control");
+    const dashboard = document.createElement("web-analytics-dashboard") as WebAnalyticsDashboardElement;
+    document.body.append(dashboard);
+    await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelectorAll(".filter-badge")).toHaveLength(3));
 
     dashboard.shadowRoot?.querySelector<HTMLElement>('[label="Clear all analytics filters"]')?.click();
 
     await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector(".active-filters")).toBeNull());
     expect(new URL(window.location.href).searchParams.has("filter")).toBe(false);
+    expect(new URL(window.location.href).searchParams.has("filterFlagKey")).toBe(false);
+    expect(new URL(window.location.href).searchParams.has("filterFlagValue")).toBe(false);
   });
 
   it("renders relevant identity icons for active filters", async () => {

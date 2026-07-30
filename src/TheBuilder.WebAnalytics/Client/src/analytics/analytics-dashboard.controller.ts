@@ -4,9 +4,6 @@ import type {
   AnalyticsConnectionSummary,
   AnalyticsDimension,
   AnalyticsDocumentRoute,
-  AnalyticsEventDetails,
-  AnalyticsEventProperty,
-  AnalyticsEventRow,
   AnalyticsEventsReport,
   AnalyticsFlagsReport,
   AnalyticsProvider,
@@ -21,13 +18,15 @@ import {
   parseDashboardUrlState,
   serializeFilter,
   writeDashboardUrlState,
+  type AnalyticsEventFilter,
   type AnalyticsFilter,
+  type AnalyticsFlagFilter,
   type AudienceDimension,
   type DashboardMetric,
   type UtmDimension,
 } from "./dashboard-url-state.js";
 import { loadDashboardBreakdown, loadDashboardBreakdowns, loadDashboardReports, type DashboardReportQuery, type DashboardReportUpdate } from "./dashboard-report-loader.js";
-import { visibleEventRows } from "./event-rows.js";
+import { AnalyticsFeatureDrilldownController } from "./analytics-feature-drilldown.controller.js";
 import { reportErrorMessage } from "./report-error.js";
 import { DebouncedRequest, RequestCoordinator, type RequestResult } from "./request-coordinator.js";
 import { detectUtmCapability, type UtmCapability } from "./utm-capability.js";
@@ -35,22 +34,13 @@ import { errorState, idleState, loadingState, successState, type AsyncState } fr
 import { normalizeDashboardSelection, supportsDimension, unavailableCapabilities } from "./dashboard-capabilities.js";
 
 type ReportScope = { documentId?: string; culture?: string; path?: string };
+type ReportFilterQuery = Pick<DashboardReportQuery, "filter" | "filterFlagKey" | "filterFlagValue" | "filterEventName" | "filterEventProperty" | "filterEventValue">;
 export type ExpandedBreakdown = {
   dimension: AnalyticsDimension;
   headline: string;
   search: string;
   report: AsyncState<AnalyticsBreakdown["rows"]>;
   cache: Readonly<Record<string, AnalyticsBreakdown["rows"]>>;
-};
-export type SelectedEvent = {
-  eventName: string;
-  details: AsyncState<AnalyticsEventDetails>;
-  eventProperty?: string;
-  eventValue?: string;
-  propertyName?: string;
-  propertySearch?: string;
-  property: AsyncState<AnalyticsEventProperty>;
-  propertyCache: Readonly<Record<string, AnalyticsEventProperty>>;
 };
 export type DashboardState = {
   connections: AnalyticsConnectionSummary[];
@@ -64,18 +54,17 @@ export type DashboardState = {
   breakdowns: Partial<Record<AnalyticsDimension, AsyncState<AnalyticsBreakdown>>>;
   events: AsyncState<AnalyticsEventsReport>;
   flags: AsyncState<AnalyticsFlagsReport>;
-  selectedFlag?: AsyncState<AnalyticsFlagsReport>;
   metric: DashboardMetric;
   audienceDimension: AudienceDimension;
   acquisitionView: AcquisitionView;
   utmDimension: UtmDimension;
   filters: AnalyticsFilter[];
+  flagFilter?: AnalyticsFlagFilter;
+  eventFilter?: AnalyticsEventFilter;
   configurationError?: string;
   setupRequired?: boolean;
   utmCapability: UtmCapability;
   expandedBreakdown?: ExpandedBreakdown;
-  expandedEvents?: AsyncState<AnalyticsEventRow[]>;
-  selectedEvent?: SelectedEvent;
 };
 
 export type DashboardEnvironment = {
@@ -95,6 +84,7 @@ const defaultEnvironment = (): DashboardEnvironment => ({
 });
 
 export class AnalyticsDashboardController {
+  readonly features: AnalyticsFeatureDrilldownController;
   state: DashboardState = {
     connections: [],
     range: dateRangeForPreset(30),
@@ -118,10 +108,6 @@ export class AnalyticsDashboardController {
   readonly #reportRequest = new RequestCoordinator();
   readonly #utmRequest = new RequestCoordinator();
   readonly #expandedRequest = new DebouncedRequest();
-  readonly #eventSearchRequest = new DebouncedRequest();
-  readonly #eventDetailsRequest = new RequestCoordinator();
-  readonly #flagRequest = new RequestCoordinator();
-  readonly #eventPropertyRequest = new DebouncedRequest();
   readonly #utmCapabilityByConnection = new Map<string, UtmCapability>();
   #documentId?: string;
   #culture?: string;
@@ -133,6 +119,15 @@ export class AnalyticsDashboardController {
     this.#notify = notify;
     this.#api = api;
     this.#environment = environment;
+    this.features = new AnalyticsFeatureDrilldownController(notify, api, () => {
+      const connection = this.state.connection;
+      return {
+        capabilities: this.#capabilities(),
+        visitQuery: connection ? this.#reportQuery(connection, this.#visitFilterQuery()) : undefined,
+        eventListQuery: connection ? this.#reportQuery(connection, this.#eventListFilterQuery()) : undefined,
+        eventFilter: this.state.eventFilter,
+      };
+    }, (eventFilter) => this.#changeReportScope({ eventFilter }));
   }
 
   connect(documentId?: string, culture?: string): void {
@@ -149,14 +144,7 @@ export class AnalyticsDashboardController {
     this.#scopeKey = key;
     this.#documentId = documentId;
     this.#culture = culture;
-    this.#initializationRequest.cancel();
-    this.#reportRequest.cancel();
-    this.#utmRequest.cancel();
-    this.#expandedRequest.cancel();
-    this.#eventSearchRequest.cancel();
-    this.#eventDetailsRequest.cancel();
-    this.#flagRequest.cancel();
-    this.#eventPropertyRequest.cancel();
+    this.#cancelRequests();
     this.#set({
       route: undefined,
       provider: undefined,
@@ -165,25 +153,24 @@ export class AnalyticsDashboardController {
       breakdowns: {},
       events: loadingState(),
       flags: loadingState(),
-      selectedFlag: undefined,
       acquisitionView: "referrers",
       utmCapability: "unknown",
       expandedBreakdown: undefined,
-      expandedEvents: undefined,
-      selectedEvent: undefined,
     });
+    this.features.closeAll();
     void this.#initialize();
   }
 
   disconnect(): void {
+    this.#cancelRequests();
+    this.features.disconnect();
+  }
+
+  #cancelRequests(): void {
     this.#initializationRequest.cancel();
     this.#reportRequest.cancel();
     this.#utmRequest.cancel();
     this.#expandedRequest.cancel();
-    this.#eventSearchRequest.cancel();
-    this.#eventDetailsRequest.cancel();
-    this.#flagRequest.cancel();
-    this.#eventPropertyRequest.cancel();
   }
 
   cards(): ReadonlyArray<DashboardCard> {
@@ -205,7 +192,6 @@ export class AnalyticsDashboardController {
     const selectedConnection = this.state.connections.find(({ key }) => key === connection);
     if (selectedConnection?.isConfigured === false) {
       this.#reportRequest.cancel();
-      this.#closeDialogs();
       this.#utmRequest.cancel();
       this.#set({
         summary: idleState(),
@@ -216,7 +202,6 @@ export class AnalyticsDashboardController {
       });
       return;
     }
-    this.#closeDialogs();
     this.#utmRequest.cancel();
     const capabilities = this.#capabilities();
     const supportsUtm = capabilities.dimensions.includes("UtmSource");
@@ -265,7 +250,7 @@ export class AnalyticsDashboardController {
     const selectedConnection = this.state.connections.find(({ key }) => key === connection);
     const capabilities = selectedConnection?.capabilities ?? unavailableCapabilities;
     const selection = normalizeDashboardSelection(this.state, capabilities);
-    this.#set({
+    this.#changeReportScope({
       connection,
       provider: selectedConnection?.provider,
       capabilities,
@@ -276,14 +261,10 @@ export class AnalyticsDashboardController {
       events: loadingState(),
       flags: loadingState(),
     });
-    this.#syncUrlState();
-    void this.loadReports();
   }
 
   setDateRange(preset: DatePreset, range: AnalyticsDateRange): void {
-    this.#set({ preset, range });
-    this.#syncUrlState();
-    void this.loadReports();
+    this.#changeReportScope({ preset, range });
   }
 
   setMetric(metric: DashboardMetric): void {
@@ -321,18 +302,34 @@ export class AnalyticsDashboardController {
     const filters = active
       ? this.state.filters.filter((filter) => filter.dimension !== dimension)
       : [...this.state.filters.filter((filter) => filter.dimension !== dimension), { dimension, value }];
-    this.#set({ filters });
-    this.#syncUrlState();
-    void this.loadReports();
+    this.#changeReportScope({ filters });
+  }
+
+  toggleFlagFilter(flagKey: string, value: string): void {
+    if (!this.#capabilities().flags || !flagKey) return;
+    const active = this.state.flagFilter?.flagKey === flagKey && this.state.flagFilter.value === value;
+    this.#changeReportScope({ flagFilter: active ? undefined : { flagKey, value } });
+  }
+
+  clearEventFilter(): void {
+    this.#changeReportScope({ eventFilter: undefined });
   }
 
   removeFilter(dimension: AnalyticsDimension): void {
-    this.#set({ filters: this.state.filters.filter((filter) => filter.dimension !== dimension) });
-    this.#syncUrlState();
-    void this.loadReports();
+    this.#changeReportScope({ filters: this.state.filters.filter((filter) => filter.dimension !== dimension) });
   }
 
-  clearFilters(): void { this.#set({ filters: [] }); this.#syncUrlState(); void this.loadReports(); }
+  removeFlagFilter(): void {
+    this.#changeReportScope({ flagFilter: undefined });
+  }
+
+  clearFilters(): void {
+    this.#changeReportScope({ filters: [], flagFilter: undefined, eventFilter: undefined });
+  }
+
+  retryReports(): void {
+    this.#changeReportScope({});
+  }
 
   async openBreakdown(
     dimension: AnalyticsDimension,
@@ -383,83 +380,18 @@ export class AnalyticsDashboardController {
 
   closeBreakdown(): void { this.#expandedRequest.cancel(); this.#set({ expandedBreakdown: undefined }); }
 
-  async openEvents(search = "", debounce = false): Promise<void> {
-    if (!this.#capabilities().events) return;
-    const connection = this.state.connection;
-    if (!connection) return;
-    const previous = this.state.expandedEvents;
-    this.#set({ expandedEvents: loadingState(previous) });
-    const run = (signal: AbortSignal) => this.#api.events({
-      query: { ...this.#reportQuery(connection, this.#eventListFilterQuery()), limit: 100, search: search || undefined }, signal,
-    });
-    const result = await (debounce ? this.#eventSearchRequest.schedule(run) : this.#eventSearchRequest.run(run));
-    if (result.status === "cancelled" || result.status === "stale" || !this.state.expandedEvents) return;
-    if (result.status === "error") { this.#set({ expandedEvents: errorState(reportErrorMessage(result.error), previous) }); return; }
-    const { data, error, response } = result.value;
-    this.#set({ expandedEvents: error
-      ? errorState(apiErrorMessage(error, response?.status ?? 0), previous)
-      : successState(visibleEventRows(data?.rows ?? [])) });
-  }
-
-  closeEvents(): void { this.#eventSearchRequest.cancel(); this.#set({ expandedEvents: undefined }); }
-
-  async selectFlag(flagKey: string): Promise<void> {
-    if (!this.#capabilities().flags) return;
-    const connection = this.state.connection;
-    if (!connection) return;
-    const previous = this.state.selectedFlag;
-    this.#set({ selectedFlag: loadingState(previous) });
-    const result = await this.#flagRequest.run((signal) => this.#api.flags({
-      query: { ...this.#reportQuery(connection, this.#visitFilterQuery()), flagKey, limit: 100 }, signal,
-    }));
-    if (result.status === "cancelled" || result.status === "stale") return;
-    if (result.status === "error") { this.#set({ selectedFlag: errorState(reportErrorMessage(result.error), previous) }); return; }
-    const { data, error, response } = result.value;
-    this.#set({ selectedFlag: error || !data
-      ? errorState(apiErrorMessage(error, response?.status ?? 0), previous)
-      : successState(data) });
-  }
-
-  clearSelectedFlag(): void { this.#flagRequest.cancel(); this.#set({ selectedFlag: undefined }); }
-
-  async selectEvent(eventName: string): Promise<void> {
-    if (!this.#capabilities().eventDetails) return;
-    await this.#loadEventDetails(eventName);
-  }
-
-  toggleEventPropertyFilter(property: string, value: string): void {
-    const selected = this.state.selectedEvent;
-    if (!selected || !this.#capabilities().eventProperties) return;
-    const active = selected.eventProperty === property && selected.eventValue === value;
-    void this.#loadEventDetails(selected.eventName, active ? undefined : property, active ? undefined : value);
-  }
-
-  searchEventProperty(propertyName: string, search: string): void {
-    if (!this.state.selectedEvent || !this.#capabilities().eventProperties) return;
-    const normalizedSearch = search.trim();
-    void this.#loadEventPropertyValues(propertyName, normalizedSearch, normalizedSearch.length > 0);
-  }
-
-  closeEventDetails(): void {
-    this.#eventPropertyRequest.cancel();
-    this.#eventDetailsRequest.cancel();
-    this.#set({ selectedEvent: undefined });
-  }
-
-  async backToEvents(): Promise<void> {
-    const eventsAreOpen = this.state.expandedEvents !== undefined;
-    this.closeEventDetails();
-    if (!eventsAreOpen) await this.openEvents();
-  }
-
-  closeEventFlow(): void {
-    this.#eventPropertyRequest.cancel();
-    this.#eventDetailsRequest.cancel();
-    this.#eventSearchRequest.cancel();
-    this.#set({ selectedEvent: undefined, expandedEvents: undefined });
-  }
-
   #set(patch: Partial<DashboardState>): void { this.state = { ...this.state, ...patch }; this.#notify(); }
+
+  #changeReportScope(patch: Partial<DashboardState>): void {
+    this.#expandedRequest.cancel();
+    this.features.closeDialogs();
+    this.#set({
+      ...patch,
+      expandedBreakdown: undefined,
+    });
+    this.#syncUrlState();
+    void this.loadReports();
+  }
 
   async #initialize(): Promise<void> {
     this.#set({ configurationError: undefined, setupRequired: false });
@@ -548,7 +480,9 @@ export class AnalyticsDashboardController {
   async #loadBreakdowns(): Promise<void> {
     const connection = this.state.connection;
     if (!connection) return;
-    this.#closeDialogs();
+    this.#expandedRequest.cancel();
+    this.features.closeDialogs();
+    this.#set({ expandedBreakdown: undefined });
     this.#utmRequest.cancel();
     const { dimensions } = this.#dashboardReportPlan();
     this.#set({
@@ -638,71 +572,9 @@ export class AnalyticsDashboardController {
     this.#applyReportUpdate(result.value.update);
   }
 
-  async #loadEventDetails(eventName: string, eventProperty?: string, eventValue?: string): Promise<void> {
-    const connection = this.state.connection;
-    if (!connection) return;
-    this.#eventPropertyRequest.cancel();
-    const previous = this.state.selectedEvent?.eventName === eventName ? this.state.selectedEvent.details : undefined;
-    this.#set({ selectedEvent: { eventName, eventProperty, eventValue, details: loadingState(previous), property: idleState(), propertyCache: {} } });
-    const result = await this.#eventDetailsRequest.run((signal) => this.#api.eventDetails({
-      query: { ...this.#reportQuery(connection, this.#visitFilterQuery()), eventName, eventProperty, eventValue }, signal,
-    }));
-    if (result.status === "cancelled" || result.status === "stale" || this.state.selectedEvent?.eventName !== eventName) return;
-    if (result.status === "error") {
-      this.#set({ selectedEvent: { ...this.state.selectedEvent, details: errorState(reportErrorMessage(result.error), previous) } });
-      return;
-    }
-    const { data, error, response } = result.value;
-    if (error || !data) {
-      this.#set({ selectedEvent: { ...this.state.selectedEvent, details: errorState(apiErrorMessage(error, response?.status ?? 0), previous) } });
-      return;
-    }
-    const propertyCache = Object.fromEntries(data.properties
-      .filter((property) => property.values.length > 0)
-      .map((property) => [eventPropertyCacheKey(property.name, ""), property]));
-    this.#set({ selectedEvent: { ...this.state.selectedEvent, details: successState(data), propertyCache } });
-    const firstProperty = data.properties[0];
-    if (this.#capabilities().eventProperties && firstProperty && !firstProperty.values.length) {
-      void this.#loadEventPropertyValues(firstProperty.name, "");
-    }
-  }
-
-  async #loadEventPropertyValues(propertyName: string, search: string, debounce = false): Promise<void> {
-    const connection = this.state.connection;
-    const selected = this.state.selectedEvent;
-    if (!connection || !selected || !this.#capabilities().eventProperties) return;
-    const cacheKey = eventPropertyCacheKey(propertyName, search);
-    const cached = selected.propertyCache[cacheKey];
-    const property = cached ? loadingState(successState(cached)) : loadingState<AnalyticsEventProperty>();
-    this.#set({ selectedEvent: { ...selected, propertyName, propertySearch: search, property } });
-    const run = (signal: AbortSignal) => this.#api.eventPropertyValues({
-      query: {
-        ...this.#reportQuery(connection, this.#visitFilterQuery()),
-        eventName: selected.eventName,
-        propertyName,
-        limit: 100,
-        search,
-        eventProperty: selected.eventProperty,
-        eventValue: selected.eventValue,
-      },
-      signal,
-    });
-    const result = await (debounce ? this.#eventPropertyRequest.schedule(run) : this.#eventPropertyRequest.run(run));
-    const current = this.state.selectedEvent;
-    if (result.status === "cancelled" || result.status === "stale" || current?.eventName !== selected.eventName || current.propertyName !== propertyName) return;
-    if (result.status === "error") {
-      this.#set({ selectedEvent: { ...current, property: errorState(reportErrorMessage(result.error), property) } });
-      return;
-    }
-    const { data, error, response } = result.value;
-    this.#set({ selectedEvent: { ...current, property: error || !data
-      ? errorState(apiErrorMessage(error, response?.status ?? 0), property)
-      : successState(data), propertyCache: !error && data ? { ...current.propertyCache, [cacheKey]: data } : current.propertyCache } });
-  }
-
-  #reportQuery(connection: string, filter: { filter?: string[] }): DashboardReportQuery {
+  #reportQuery(connection: string, filter: ReportFilterQuery): DashboardReportQuery {
     const { from, to, interval } = this.state.range;
-    return { connection, from, to, interval, ...this.#scope(), ...filter } as DashboardReportQuery;
+    return { connection, from, to, interval, ...this.#scope(), ...filter };
   }
 
   #scope(): ReportScope {
@@ -715,13 +587,36 @@ export class AnalyticsDashboardController {
     return filters.length ? { filter: filters.map(serializeFilter) } : {};
   }
 
-  #visitFilterQuery(): { filter?: string[] } {
-    return this.#serializedFilters(this.#capabilities().globalEventFiltering
-      ? this.state.filters
-      : this.state.filters.filter(({ dimension }) => dimension !== "EventName"));
+  #flagFilterQuery(): { filterFlagKey?: string; filterFlagValue?: string } {
+    return this.state.flagFilter
+      ? { filterFlagKey: this.state.flagFilter.flagKey, filterFlagValue: this.state.flagFilter.value }
+      : {};
   }
 
-  #eventListFilterQuery(): { filter?: string[] } { return this.#serializedFilters(this.state.filters); }
+  #eventFilterQuery(): Pick<DashboardReportQuery, "filterEventName" | "filterEventProperty" | "filterEventValue"> {
+    const filter = this.state.eventFilter;
+    return filter
+      ? {
+          filterEventName: filter.eventName,
+          filterEventProperty: filter.property,
+          filterEventValue: filter.value,
+        }
+      : {};
+  }
+
+  #visitFilterQuery(): ReportFilterQuery {
+    return {
+      ...this.#serializedFilters(this.#capabilities().globalEventFiltering
+        ? this.state.filters
+        : this.state.filters.filter(({ dimension }) => dimension !== "EventName")),
+      ...this.#flagFilterQuery(),
+      ...this.#eventFilterQuery(),
+    };
+  }
+
+  #eventListFilterQuery(): ReportFilterQuery {
+    return { ...this.#serializedFilters(this.state.filters), ...this.#flagFilterQuery(), ...this.#eventFilterQuery() };
+  }
 
   #restoreUrlState(): void {
     const parsed = parseDashboardUrlState(this.#environment.currentUrl().searchParams);
@@ -731,6 +626,8 @@ export class AnalyticsDashboardController {
       audienceDimension: parsed.audience,
       utmDimension: parsed.utm,
       filters: parsed.filters,
+      flagFilter: parsed.flagFilter,
+      eventFilter: parsed.eventFilter,
     };
     if (parsed.range) {
       patch.range = parsed.range;
@@ -753,21 +650,11 @@ export class AnalyticsDashboardController {
       audience: this.state.audienceDimension,
       utm: this.state.utmDimension,
       filters: this.state.filters,
+      flagFilter: this.state.flagFilter,
+      eventFilter: this.state.eventFilter,
     }));
   }
 
-  #closeDialogs(): void {
-    this.#expandedRequest.cancel();
-    this.#eventSearchRequest.cancel();
-    this.#eventDetailsRequest.cancel();
-    this.#flagRequest.cancel();
-    this.#eventPropertyRequest.cancel();
-    this.#set({ expandedBreakdown: undefined, expandedEvents: undefined, selectedEvent: undefined, selectedFlag: undefined });
-  }
-}
-
-function eventPropertyCacheKey(propertyName: string, search: string): string {
-  return JSON.stringify([propertyName, search]);
 }
 
 function breakdownCacheKey(dimension: AnalyticsDimension, search: string): string {

@@ -155,6 +155,12 @@ public sealed class MockAnalyticsClient :
     {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<AnalyticsEventRow> rows = HasEvents(connection) ? Events : [];
+        if (query.EventFilter is not null)
+        {
+            rows = rows
+                .Where(row => string.Equals(row.EventName, query.EventFilter.EventName, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
         var filtered = ApplyDimensionFilter(rows, query, AnalyticsDimension.EventName, row => row.EventName);
         var scale = QueryScale(connection, query, AnalyticsDimension.EventName);
         var scaled = filtered.Select(row => new AnalyticsEventRow(
@@ -180,6 +186,15 @@ public sealed class MockAnalyticsClient :
             "personalised-homepage" => [new("default", 2410, 1530), new("industry", 1390, 870), new("returning-visitor", 960, 610)],
             _ => FlagKeys
         };
+        var flagFilter = query.FlagFilter;
+        if (flagKey is not null &&
+            flagFilter is not null &&
+            string.Equals(flagFilter.Key, flagKey, StringComparison.OrdinalIgnoreCase))
+        {
+            rows = rows
+                .Where(row => string.Equals(row.Value, flagFilter.Value, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
         var scale = QueryScale(connection, query);
         return Task.FromResult<IReadOnlyList<AnalyticsFlagRow>>(rows
             .Take(Math.Max(0, limit))
@@ -267,7 +282,9 @@ public sealed class MockAnalyticsClient :
         var growthScale = Scenario(connection) is MockAnalyticsScenario.Complete
             ? DemoGrowthScale(query.To)
             : 1d;
-        var filterCount = query.Filters?.Count(filter => filter.Dimension != excludedDimension) ?? 0;
+        var filterCount = (query.Filters?.Count(filter => filter.Dimension != excludedDimension) ?? 0)
+            + (query.FlagFilter is null ? 0 : 1)
+            + (query.EventFilter is null ? 0 : 1);
         return scale * rangeScale * Math.Pow(0.62d, filterCount) * growthScale;
     }
 

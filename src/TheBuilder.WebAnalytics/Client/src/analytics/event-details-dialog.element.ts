@@ -3,16 +3,17 @@ import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { UUIInputElement } from "@umbraco-cms/backoffice/external/uui";
 import type { AnalyticsEventDetails, AnalyticsEventProperty } from "../api/types.gen.js";
-import { renderAnalyticsDialogHeadline } from "./analytics-dialog-headline.js";
+import { renderAnalyticsDialogFrame } from "./analytics-dialog-frame.js";
 import { analyticsDialogStyles, analyticsEventDialogStyles } from "./analytics-dialog.styles.js";
 import { analyticsTableSkeletonStyles, renderAnalyticsTableSkeletonRows } from "./analytics-table-skeleton.js";
-import { cancelDialog, closeDialog, notifyDialogClosed, openDialog } from "./dialog-lifecycle.js";
+import { openDialog } from "./dialog-lifecycle.js";
 import { renderReportTabs, reportTabsStyles } from "./report-tabs.js";
 
 @customElement("web-analytics-event-details-dialog")
 export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitElement) {
   @property() eventName = "Event";
   @property({ type: Boolean }) propertiesEnabled = false;
+  @property({ type: Boolean }) filteringEnabled = false;
   @property({ type: Boolean }) loading = false;
   @property() unavailable?: string;
   @property({ attribute: false }) details?: AnalyticsEventDetails;
@@ -26,9 +27,6 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
   @state() private _search = "";
 
   protected firstUpdated(): void { openDialog(this); }
-  #close(): void { closeDialog(this); }
-  #notifyClosed(): void { notifyDialogClosed(this, "close-event-details"); }
-  #onCancel(event: Event): void { cancelDialog(event, this); }
   #backToEvents(): void { this.dispatchEvent(new CustomEvent("back-to-events", { bubbles: true, composed: true })); }
 
   #activeProperty(): AnalyticsEventProperty | undefined {
@@ -59,12 +57,17 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     this.#notifySearch(propertyName, "");
   }
 
-  #toggleFilter(property: string, value: string): void {
+  #applyFilter(property: string, value: AnalyticsEventProperty["values"][number]): void {
     this.#clearSearch(property);
-    this.dispatchEvent(new CustomEvent("toggle-event-property-filter", {
+    this.dispatchEvent(new CustomEvent("apply-event-property-filter", {
       bubbles: true,
       composed: true,
-      detail: { property, value },
+      detail: {
+        property,
+        value: value.value,
+        visitors: value.visitors,
+        count: value.count,
+      },
     }));
   }
 
@@ -85,9 +88,8 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     const maximum = Math.max(...values.map((value) => value.count), 1);
     return html`
       <div id="event-property-panel" role="tabpanel" aria-labelledby=${`event-property-tab-${this.details?.properties.indexOf(property) ?? 0}`}>
-        ${property.values.length || (this.filterProperty !== undefined && this.filterValue !== undefined) ? html`
+        ${property.values.length ? html`
           <div class="property-controls">
-            ${property.values.length ? html`
             <uui-input
               type="search"
               label=${`Search ${property.name} values`}
@@ -97,14 +99,6 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
               @input=${this.#onSearch}>
               <uui-icon name="icon-search" slot="prepend"></uui-icon>
             </uui-input>
-            ` : ""}
-            ${this.filterProperty !== undefined && this.filterValue !== undefined ? html`
-              <button type="button" class="active-filter" @click=${() => this.#toggleFilter(this.filterProperty!, this.filterValue!)}>
-                <uui-icon name="icon-filter"></uui-icon>
-                <span>${this.filterProperty}: ${this.filterValue || "(empty)"}</span>
-                <uui-icon name="icon-delete"></uui-icon>
-              </button>
-            ` : ""}
           </div>
         ` : ""}
         <div class="property-table">
@@ -132,15 +126,15 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
                 </th>
                 <td>
                   <span class="visitors-content">
-                    <button
+                    ${this.filteringEnabled ? html`<button
                       type="button"
                       class="filter-button"
                       aria-pressed=${activeFilter}
                       aria-label=${activeFilter ? `Remove ${property.name} filter ${value.value || "empty"}` : `Filter by ${property.name} ${value.value || "empty"}`}
                       title=${activeFilter ? "Remove filter" : "Filter by this value"}
-                      @click=${() => this.#toggleFilter(property.name, value.value)}>
+                      @click=${() => this.#applyFilter(property.name, value)}>
                       <uui-icon name=${activeFilter ? "icon-delete" : "icon-filter"}></uui-icon>
-                    </button>
+                    </button>` : ""}
                     <strong>${this.localize.number(value.visitors)}</strong>
                   </span>
                 </td>
@@ -166,28 +160,29 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
 
   render() {
     const activeProperty = this.#activeProperty();
-    return html`
-      <dialog aria-label=${`${this.eventName} event details`} @cancel=${this.#onCancel} @close=${this.#notifyClosed}>
-        <div class="analytics-dialog-layout">
-          ${renderAnalyticsDialogHeadline(html`
+    return renderAnalyticsDialogFrame({
+      host: this,
+      ariaLabel: `${this.eventName} event details`,
+      closeLabel: "Close event details",
+      headline: html`
             <button type="button" class="analytics-dialog-back" aria-label=${`Back to all events from ${this.eventName}`} title="Back to all events" @click=${this.#backToEvents}>
               <uui-icon name="icon-navigation-left" aria-hidden="true"></uui-icon>
               <span>${this.eventName}</span>
             </button>
-          `, "Close event details", () => this.#close())}
-          <div class="dialog-content analytics-dialog-body" aria-busy=${this.loading}>
-            ${this.details ? html`
-              ${this.propertiesEnabled ? activeProperty ? html`
-                  ${this.#renderProperty(activeProperty)}
-                ` : this.#renderNoProperties()
-                : ""}
-              ${this.loading ? html`<div class="loading-overlay" role="status">Updating event details…</div>` : ""}
-              ${this.unavailable ? html`<div class="error-overlay" role="alert">${this.unavailable}</div>` : ""}
-            ` : this.loading ? html`<div class="loading" role="status">Loading event details…</div>` : this.unavailable ? html`<div class="state-message"><umb-empty-state headline="Event details unavailable"><p>${this.unavailable}</p></umb-empty-state></div>` : ""}
-          </div>
+      `,
+      body: html`
+        <div class="dialog-content analytics-dialog-body" aria-busy=${this.loading}>
+          ${this.details ? html`
+            ${this.propertiesEnabled ? activeProperty ? html`
+                ${this.#renderProperty(activeProperty)}
+              ` : this.#renderNoProperties()
+              : ""}
+            ${this.loading ? html`<div class="loading-overlay" role="status">Updating event details…</div>` : ""}
+            ${this.unavailable ? html`<div class="error-overlay" role="alert">${this.unavailable}</div>` : ""}
+          ` : this.loading ? html`<div class="loading" role="status">Loading event details…</div>` : this.unavailable ? html`<div class="state-message"><umb-empty-state headline="Event details unavailable"><p>${this.unavailable}</p></umb-empty-state></div>` : ""}
         </div>
-      </dialog>
-    `;
+      `,
+    });
   }
 
   static styles = [UmbTextStyles, analyticsDialogStyles, analyticsEventDialogStyles, analyticsTableSkeletonStyles, reportTabsStyles, css`
@@ -203,8 +198,6 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     thead { background: var(--uui-color-surface); box-shadow: 0 1px 0 var(--uui-color-border); position: sticky; top: 0; z-index: 3; }
     thead th { background: var(--uui-color-surface); font-weight: 700; }
     .property-heading { --analytics-report-tabs-margin: calc(-1 * var(--uui-size-space-3)) calc(-1 * var(--uui-size-space-5)); overflow: hidden; padding-block: var(--uui-size-space-3); }
-    .active-filter { align-items: center; background: var(--uui-color-surface-alt); border: 1px solid var(--uui-color-border); border-radius: var(--uui-border-radius); color: var(--uui-color-text); cursor: pointer; display: inline-flex; gap: var(--uui-size-space-2); max-inline-size: 100%; padding: var(--uui-size-space-2) var(--uui-size-space-3); }
-    .active-filter span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .metric-headings th { box-shadow: 0 1px 0 var(--uui-color-border); }
     thead th:not(:first-child), td { text-align: right; width: 8rem; }
     tbody th { font-weight: 500; min-width: 12rem; position: relative; }
@@ -223,7 +216,6 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     .loading-overlay { background: color-mix(in srgb, var(--uui-color-surface) 82%, transparent); inset: 0; padding: var(--uui-size-space-5); position: absolute; z-index: 4; }
     .error-overlay { background: color-mix(in srgb, var(--uui-color-warning) 8%, var(--uui-color-surface)); border: 1px solid color-mix(in srgb, var(--uui-color-warning) 28%, var(--uui-color-border)); border-radius: var(--uui-border-radius); inset-block-start: var(--uui-size-space-3); inset-inline: var(--uui-size-space-3); padding: var(--uui-size-space-4); position: absolute; z-index: 5; }
     .empty-row td { padding: var(--uui-size-space-5); text-align: left; }
-    .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
     @media (hover: none) { .filter-button { opacity: 1; } }
   `];
 }

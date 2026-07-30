@@ -1,5 +1,5 @@
 import type { AnalyticsCapabilities, AnalyticsDimension } from "../api/types.gen.js";
-import type { AnalyticsFilter, AudienceDimension, UtmDimension } from "./dashboard-url-state.js";
+import type { AnalyticsEventFilter, AnalyticsFilter, AnalyticsFlagFilter, AudienceDimension, UtmDimension } from "./dashboard-url-state.js";
 import type { AcquisitionView } from "./dashboard-cards.js";
 
 export const unavailableCapabilities: AnalyticsCapabilities = {
@@ -8,6 +8,7 @@ export const unavailableCapabilities: AnalyticsCapabilities = {
   eventDetails: false,
   eventProperties: false,
   globalEventFiltering: false,
+  globalEventPropertyFiltering: false,
   flags: false,
   breakdownOrdering: false,
 };
@@ -17,6 +18,8 @@ type DashboardSelection = {
   acquisitionView: AcquisitionView;
   utmDimension: UtmDimension;
   filters: AnalyticsFilter[];
+  flagFilter?: AnalyticsFlagFilter;
+  eventFilter?: AnalyticsEventFilter;
 };
 
 const audienceDimensions: ReadonlyArray<AudienceDimension> = ["DeviceType", "BrowserName"];
@@ -40,6 +43,8 @@ export function normalizeDashboardSelection(
     utmDimension,
     filters: selection.filters.filter(({ dimension }) =>
       supported.has(dimension) && (dimension !== "EventName" || capabilities.globalEventFiltering)),
+    flagFilter: capabilities.flags ? selection.flagFilter : undefined,
+    eventFilter: capabilities.globalEventPropertyFiltering ? selection.eventFilter : undefined,
   };
 }
 

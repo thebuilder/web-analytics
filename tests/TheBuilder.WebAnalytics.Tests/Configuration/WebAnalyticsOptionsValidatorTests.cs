@@ -149,6 +149,7 @@ public sealed class WebAnalyticsOptionsValidatorTests
         Assert.True(connection.Capabilities.EventDetails);
         Assert.True(connection.Capabilities.Events);
         Assert.True(connection.Capabilities.GlobalEventFiltering);
+        Assert.True(connection.Capabilities.GlobalEventPropertyFiltering);
         Assert.Equal(["locale", "title"], connection.EventPropertyNames);
     }
 
@@ -168,6 +169,7 @@ public sealed class WebAnalyticsOptionsValidatorTests
         Assert.False(connection.Capabilities.EventDetails);
         Assert.False(connection.Capabilities.EventProperties);
         Assert.False(connection.Capabilities.GlobalEventFiltering);
+        Assert.False(connection.Capabilities.GlobalEventPropertyFiltering);
         Assert.False(connection.Capabilities.Flags);
     }
 

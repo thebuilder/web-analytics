@@ -149,6 +149,31 @@ public sealed class MockAnalyticsClientTests
     }
 
     [Fact]
+    public async Task Demo_flag_and_event_property_filters_change_report_data()
+    {
+        var client = new MockAnalyticsClient();
+        var connection = CreateRegistry(MockAnalyticsScenario.Complete, true).Get(MockKey)!;
+        var baseline = CreateQuery();
+        var flagFiltered = baseline with
+        {
+            FlagFilter = new AnalyticsFlagFilter("new-pricing-page", "control")
+        };
+        var eventFiltered = baseline with
+        {
+            EventFilter = new AnalyticsEventFilter("Signup completed", "plan", "Pro")
+        };
+
+        var baselineTotals = await client.CountAsync(connection, baseline, CancellationToken.None);
+        var flagTotals = await client.CountAsync(connection, flagFiltered, CancellationToken.None);
+        var eventTotals = await client.CountAsync(connection, eventFiltered, CancellationToken.None);
+        var events = await client.GetEventsAsync(connection, eventFiltered, 10, null, CancellationToken.None);
+
+        Assert.True(flagTotals.Visitors < baselineTotals.Visitors);
+        Assert.True(eventTotals.Visitors < baselineTotals.Visitors);
+        Assert.Equal("Signup completed", Assert.Single(events).EventName);
+    }
+
+    [Fact]
     public async Task Resolver_serves_mock_reports_without_contacting_providers()
     {
         var handler = new RejectingHttpMessageHandler();
@@ -206,6 +231,7 @@ public sealed class MockAnalyticsClientTests
             AnalyticsProviderCapabilities.FromClient<CoreOnlyAnalyticsClient>(
                 [],
                 globalEventFiltering: true,
+                globalEventPropertyFiltering: false,
                 breakdownOrdering: false));
 
         Assert.Contains(nameof(IAnalyticsEventsProviderClient), exception.Message);
@@ -273,6 +299,7 @@ public sealed class MockAnalyticsClientTests
         AnalyticsProviderCapabilities.FromClient<AsymmetricAnalyticsClient>(
             [],
             globalEventFiltering: false,
+            globalEventPropertyFiltering: false,
             breakdownOrdering: false),
         new(
             AnalyticsConnectionIdentifier.ProjectId,

@@ -295,12 +295,93 @@ public sealed class WebAnalyticsApiControllerTests
             null,
             null,
             null,
-            ["EventName:Signup"],
+            new() { Filter = ["EventName:Signup"] },
             CancellationToken.None);
 
         AssertInvalidQuery(response.Result);
         var problem = Assert.IsType<AnalyticsProblemDetails>(Assert.IsType<ObjectResult>(response.Result).Value);
         Assert.Contains("does not support event filters for this report", problem.Detail);
+    }
+
+    [Fact]
+    public async Task Summary_rejects_incomplete_flag_filters_before_dispatch()
+    {
+        var response = await CreateBoundaryOnlyController().Summary(
+            MainKey,
+            UtcDate(2026, 7, 1),
+            UtcDate(2026, 7, 3),
+            AnalyticsInterval.Day,
+            null,
+            null,
+            null,
+            new() { FilterFlagKey = "new-pricing-page" },
+            CancellationToken.None);
+
+        AssertInvalidQuery(response.Result);
+        var problem = Assert.IsType<AnalyticsProblemDetails>(Assert.IsType<ObjectResult>(response.Result).Value);
+        Assert.Contains("key and value must be supplied together", problem.Detail);
+    }
+
+    [Fact]
+    public async Task Summary_rejects_incomplete_event_property_filters_before_dispatch()
+    {
+        var response = await CreateBoundaryOnlyController().Summary(
+            MainKey,
+            UtcDate(2026, 7, 1),
+            UtcDate(2026, 7, 3),
+            AnalyticsInterval.Day,
+            null,
+            null,
+            null,
+            new() { FilterEventName = "Signup", FilterEventProperty = "plan" },
+            CancellationToken.None);
+
+        AssertInvalidQuery(response.Result);
+        var problem = Assert.IsType<AnalyticsProblemDetails>(Assert.IsType<ObjectResult>(response.Result).Value);
+        Assert.Contains("name, property, and value must be supplied together", problem.Detail);
+    }
+
+    [Fact]
+    public async Task Summary_rejects_global_event_property_filters_for_vercel()
+    {
+        var response = await CreateVercelBoundaryController().Summary(
+            MainKey,
+            UtcDate(2026, 7, 1),
+            UtcDate(2026, 7, 3),
+            AnalyticsInterval.Day,
+            null,
+            null,
+            null,
+            new()
+            {
+                FilterEventName = "Signup",
+                FilterEventProperty = "plan",
+                FilterEventValue = "Pro"
+            },
+            CancellationToken.None);
+
+        AssertInvalidQuery(response.Result);
+        var problem = Assert.IsType<AnalyticsProblemDetails>(Assert.IsType<ObjectResult>(response.Result).Value);
+        Assert.Contains("does not support event property filters", problem.Detail);
+    }
+
+    [Fact]
+    public async Task Summary_rejects_flag_filters_for_providers_without_flags()
+    {
+        var response = await CreatePlausibleBoundaryController().Summary(
+            MainKey,
+            UtcDate(2026, 7, 1),
+            UtcDate(2026, 7, 3),
+            AnalyticsInterval.Day,
+            null,
+            null,
+            null,
+            new() { FilterFlagKey = "new-pricing-page", FilterFlagValue = "control" },
+            CancellationToken.None);
+
+        AssertInvalidQuery(response.Result);
+        var problem = Assert.IsType<AnalyticsProblemDetails>(Assert.IsType<ObjectResult>(response.Result).Value);
+        Assert.Contains("does not support flag filters", problem.Detail);
     }
 
     [Fact]
@@ -323,7 +404,7 @@ public sealed class WebAnalyticsApiControllerTests
             null,
             null,
             null,
-            ["Route:/articles/[slug]"],
+            new() { Filter = ["Route:/articles/[slug]"] },
             CancellationToken.None);
 
         AssertInvalidQuery(response.Result);
@@ -367,7 +448,7 @@ public sealed class WebAnalyticsApiControllerTests
             UtcDate(2026, 7, 3),
             AnalyticsInterval.Day,
             "Signup",
-            filter: ["EventName:AnotherEvent"]);
+            reportFilters: new() { Filter = ["EventName:AnotherEvent"] });
 
         AssertInvalidQuery(response.Result);
     }
@@ -384,7 +465,7 @@ public sealed class WebAnalyticsApiControllerTests
             AnalyticsInterval.Day,
             "Signup",
             "plan",
-            filter: ["EventName:AnotherEvent"]);
+            reportFilters: new() { Filter = ["EventName:AnotherEvent"] });
 
         AssertInvalidQuery(response.Result);
     }

@@ -81,6 +81,7 @@ describe("event details dialog layout", () => {
     const dialog = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
     dialog.eventName = "Signup completed";
     dialog.propertiesEnabled = true;
+    dialog.filteringEnabled = true;
     dialog.details = {
       eventName: "Signup completed",
       totals: { count: 15, visitors: 12 },
@@ -143,5 +144,31 @@ describe("event details dialog layout", () => {
 
     expect(dialog.shadowRoot?.querySelector("tbody th strong")).toBeNull();
     expect([...dialog.shadowRoot?.querySelectorAll("tbody td strong") ?? []].map((metric) => metric.textContent)).toEqual(["12", "15"]);
+    expect(dialog.shadowRoot?.querySelector(".filter-button")).toBeNull();
+  });
+
+  it("delegates event property filter application with its metrics", async () => {
+    const dialog = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
+    dialog.eventName = "Signup completed";
+    dialog.propertiesEnabled = true;
+    dialog.filteringEnabled = true;
+    dialog.details = {
+      eventName: "Signup completed",
+      totals: { count: 15, visitors: 12 },
+      properties: [{ name: "plan", values: [{ value: "Pro", count: 15, visitors: 12 }] }],
+    };
+    const onFilter = vi.fn();
+    dialog.addEventListener("apply-event-property-filter", onFilter);
+    document.body.append(dialog);
+    await dialog.updateComplete;
+
+    dialog.shadowRoot?.querySelector<HTMLButtonElement>(".filter-button")?.click();
+
+    expect((onFilter.mock.calls[0][0] as CustomEvent).detail).toEqual({
+      property: "plan",
+      value: "Pro",
+      visitors: 12,
+      count: 15,
+    });
   });
 });

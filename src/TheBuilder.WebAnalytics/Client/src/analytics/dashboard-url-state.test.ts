@@ -4,7 +4,7 @@ import { parseDashboardUrlState, writeDashboardUrlState } from "./dashboard-url-
 describe("analytics dashboard URL state", () => {
   it("parses shareable report state and ignores malformed filters", () => {
     const state = parseDashboardUrlState(new URLSearchParams(
-      "connection=main&range=30&from=2026-06-17T00%3A00%3A00Z&to=2026-07-16T00%3A00%3A00Z&tz=UTC&metric=pageViews&audience=BrowserName&utm=UtmCampaign&filter=Country%3ADK&filter=RequestPath%3A%2Fnews%3Aarchive&filter=EventName%3ASignup&filter=Nope%3Ax&filter=Country%3AUS",
+      "connection=main&range=30&from=2026-06-17T00%3A00%3A00Z&to=2026-07-16T00%3A00%3A00Z&tz=UTC&metric=pageViews&audience=BrowserName&utm=UtmCampaign&filter=Country%3ADK&filter=RequestPath%3A%2Fnews%3Aarchive&filter=EventName%3ASignup&filter=Nope%3Ax&filter=Country%3AUS&filterFlagKey=new-pricing-page&filterFlagValue=editorial%3Acompact",
     ));
 
     expect(state.connection).toBe("main");
@@ -18,6 +18,7 @@ describe("analytics dashboard URL state", () => {
       { dimension: "RequestPath", value: "/news:archive" },
       { dimension: "EventName", value: "Signup" },
     ]);
+    expect(state.flagFilter).toEqual({ flagKey: "new-pricing-page", value: "editorial:compact" });
   });
 
   it("writes analytics state while preserving unrelated Umbraco parameters", () => {
@@ -29,6 +30,8 @@ describe("analytics dashboard URL state", () => {
       audience: "DeviceType",
       utm: "UtmMedium",
       filters: [{ dimension: "Country", value: "DK" }],
+      flagFilter: { flagKey: "new-pricing-page", value: "control" },
+      eventFilter: { eventName: "Signup completed", property: "plan", value: "Pro" },
     });
 
     expect(url.searchParams.get("umbDebug")).toBe("true");
@@ -36,6 +39,37 @@ describe("analytics dashboard URL state", () => {
     expect(url.searchParams.get("utm")).toBe("UtmMedium");
     expect(url.searchParams.get("tz")).toBe("Europe/Copenhagen");
     expect(url.searchParams.getAll("filter")).toEqual(["Country:DK"]);
+    expect(url.searchParams.get("filterFlagKey")).toBe("new-pricing-page");
+    expect(url.searchParams.get("filterFlagValue")).toBe("control");
+    expect(url.searchParams.get("filterEventName")).toBe("Signup completed");
+    expect(url.searchParams.get("filterEventProperty")).toBe("plan");
+    expect(url.searchParams.get("filterEventValue")).toBe("Pro");
+    expect(parseDashboardUrlState(url.searchParams).eventFilter).toEqual({
+      eventName: "Signup completed",
+      property: "plan",
+      value: "Pro",
+    });
+  });
+
+  it("ignores incomplete flag filters", () => {
+    expect(parseDashboardUrlState(new URLSearchParams("filterFlagKey=new-pricing-page")).flagFilter).toBeUndefined();
+    expect(parseDashboardUrlState(new URLSearchParams("filterFlagValue=control")).flagFilter).toBeUndefined();
+  });
+
+  it("round-trips an empty flag value", () => {
+    const url = writeDashboardUrlState(new URL("https://example.com/analytics"), {
+      connection: "main",
+      preset: 30,
+      range: { from: "2026-06-01T00:00:00.000Z", to: "2026-07-01T00:00:00.000Z", interval: "Day", timeZone: "UTC" },
+      metric: "visitors",
+      audience: "DeviceType",
+      utm: "UtmSource",
+      filters: [],
+      flagFilter: { flagKey: "experiment", value: "" },
+    });
+
+    expect(url.searchParams.has("filterFlagValue")).toBe(true);
+    expect(parseDashboardUrlState(url.searchParams).flagFilter).toEqual({ flagKey: "experiment", value: "" });
   });
 
   it("restores the hourly last 24 hours preset", () => {

@@ -333,6 +333,19 @@ public sealed class PlausibleAnalyticsClient(
         {
             filters.Add(new PlausibleFilter("is", PropertyDimension(eventDataFilter.Property), [eventDataFilter.Value]));
         }
+        if (query.EventFilter is not null)
+        {
+            if (string.IsNullOrWhiteSpace(eventName))
+            {
+                filters.Add(new PlausibleFilter("is", "event:goal", [query.EventFilter.EventName]));
+            }
+            if (eventDataFilter is null ||
+                !string.Equals(eventDataFilter.Property, query.EventFilter.Property, StringComparison.Ordinal) ||
+                !string.Equals(eventDataFilter.Value, query.EventFilter.Value, StringComparison.Ordinal))
+            {
+                filters.Add(new PlausibleFilter("is", PropertyDimension(query.EventFilter.Property), [query.EventFilter.Value]));
+            }
+        }
         return filters;
     }
 

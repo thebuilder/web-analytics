@@ -293,6 +293,10 @@ public sealed class VercelAnalyticsClient(
         AnalyticsConnection connection,
         AnalyticsQuery query)
     {
+        if (query.EventFilter is not null)
+        {
+            throw new ArgumentException("Global event property filters are not supported by Vercel.", nameof(query));
+        }
         var parameters = new Dictionary<string, string?>
         {
             ["projectId"] = connection.ProjectId,
@@ -310,7 +314,10 @@ public sealed class VercelAnalyticsClient(
         {
             AddFilter(parameters, $"{ToApiValue(filter.Dimension)} eq '{EscapeODataString(filter.Value)}'");
         }
-
+        if (query.FlagFilter is not null)
+        {
+            AddFilter(parameters, $"{ToFlagDimension(query.FlagFilter.Key)} eq '{EscapeODataString(query.FlagFilter.Value)}'");
+        }
         return parameters;
     }
 

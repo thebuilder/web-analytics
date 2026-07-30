@@ -16,6 +16,7 @@ import {
 import { countryDisplayName, countryFlagUrl, normalizeCountryCode } from "./country-display.js";
 import { breakdownValueIcon } from "./breakdown-value-icon.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
+import { renderAnalyticsFilterAction } from "./analytics-filter-action.js";
 import { googleFaviconUrl } from "./favicon.js";
 import { renderReportTabs, reportTabsStyles, selectedReportTabId, type ReportTabGroup } from "./report-tabs.js";
 
@@ -103,20 +104,15 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
           const tooltipId = `breakdown-value-${index}`;
           const activeFilter = this.filters.some((filter) => filter.dimension === this.dimension && filter.value === row.value);
           const filterLabel = activeFilter ? `Remove ${displayValue} filter` : `Filter analytics by ${displayValue}`;
-          const filterAction = html`
-            <button
-              class="filter-action"
-              type="button"
-              aria-label=${filterLabel}
-              aria-pressed=${activeFilter}
-              title=${filterLabel}
-              @click=${() => this.dispatchEvent(new CustomEvent("toggle-filter", {
+          const filterAction = renderAnalyticsFilterAction({
+            active: activeFilter,
+            label: filterLabel,
+            toggle: () => this.dispatchEvent(new CustomEvent("toggle-filter", {
                 bubbles: true,
                 composed: true,
                 detail: { dimension: this.dimension, value: row.value },
-              }))}>
-              <uui-icon name="icon-filter" aria-hidden="true"></uui-icon>
-            </button>`;
+            })),
+          });
           const expandedPercentageMode = !this.compact && isPercentageDimension(this.dimension);
           const expandedPercentage = expandedPercentageMode
             ? html`<span class="metric-share" title=${`${visitorPercentage.precise} of visitors`}>${visitorPercentage.display}</span>`

@@ -313,6 +313,46 @@ public sealed class VercelAnalyticsClientTests
     }
 
     [Theory]
+    [InlineData("editor's choice", "filter=flags/'new-pricing-page' eq 'editor''s choice'")]
+    [InlineData("", "filter=flags/'new-pricing-page' eq ''")]
+    public async Task Visit_reports_filter_by_a_specific_flag_value(string value, string expectedFilter)
+    {
+        var handler = new RecordingHandler("""{"data":{"pageviews":12,"visitors":8}}""");
+        var client = CreateClient(handler);
+        var connection = CreateConnection();
+        var query = new AnalyticsQuery(
+            connection.Key,
+            new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 7, 3, 0, 0, 0, TimeSpan.Zero),
+            AnalyticsInterval.Day,
+            FlagFilter: new("new-pricing-page", value));
+
+        await client.CountAsync(connection, query, CancellationToken.None);
+
+        var requestQuery = Uri.UnescapeDataString(handler.Request!.RequestUri!.Query);
+        Assert.Contains(expectedFilter, requestQuery);
+    }
+
+    [Fact]
+    public async Task Visit_reports_reject_global_event_property_filters()
+    {
+        var handler = new RecordingHandler("""{"data":{"pageviews":12,"visitors":8}}""");
+        var client = CreateClient(handler);
+        var connection = CreateConnection();
+        var query = new AnalyticsQuery(
+            connection.Key,
+            new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 7, 3, 0, 0, 0, TimeSpan.Zero),
+            AnalyticsInterval.Day,
+            EventFilter: new("Signup", "account-tier", "Editor's choice"));
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(
+            () => client.CountAsync(connection, query, CancellationToken.None));
+
+        Assert.Contains("not supported by Vercel", error.Message);
+    }
+
+    [Theory]
     [InlineData("beta_banner", "flags/beta_banner")]
     [InlineData("my-flag", "flags/'my-flag'")]
     [InlineData("editor's-flag", "flags/'editor''s-flag'")]

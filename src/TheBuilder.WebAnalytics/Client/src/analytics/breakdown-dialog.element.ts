@@ -9,12 +9,12 @@ import {
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { AnalyticsBreakdownRow, AnalyticsDimension } from "../api/types.gen.js";
-import { renderAnalyticsDialogHeadline } from "./analytics-dialog-headline.js";
+import { renderAnalyticsDialogFrame } from "./analytics-dialog-frame.js";
 import { analyticsDialogStyles } from "./analytics-dialog.styles.js";
 import { breakdownDimensionLabel, type TrafficMetric } from "./breakdown-rows.js";
 import { AUDIENCE_OPTIONS, breakdownDialogGroup, referrerDimensionOption, UTM_OPTIONS, type DimensionOption } from "./dashboard-cards.js";
 import type { AnalyticsFilter, UtmDimension } from "./dashboard-url-state.js";
-import { cancelDialog, closeDialog, notifyDialogClosed, notifyDialogSearch, openDialog, searchInputValue } from "./dialog-lifecycle.js";
+import { notifyDialogSearch, openDialog, searchInputValue } from "./dialog-lifecycle.js";
 import { isUtmDimension } from "./utm-capability.js";
 import type { ReportTabGroup } from "./report-tabs.js";
 import "./breakdown-table.element.js";
@@ -37,18 +37,6 @@ export class WebAnalyticsBreakdownDialogElement extends UmbElementMixin(LitEleme
 
   protected firstUpdated(): void {
     openDialog(this);
-  }
-
-  #close(): void {
-    closeDialog(this);
-  }
-
-  #notifyClosed(): void {
-    notifyDialogClosed(this, "close-breakdown");
-  }
-
-  #onCancel(event: Event): void {
-    cancelDialog(event, this);
   }
 
   #onSearch(event: Event): void {
@@ -153,41 +141,44 @@ export class WebAnalyticsBreakdownDialogElement extends UmbElementMixin(LitEleme
     const dialogHeadline = group === "audience" ? "Audience" : group === "acquisition" ? "Traffic sources" : this.headline;
     const headingTabs = this.#headingTabs();
     const subheadingTabs = this.#subheadingTabs();
-    return html`
-      <dialog aria-label=${dialogHeadline} @cancel=${this.#onCancel} @close=${this.#notifyClosed}>
-        <div class="analytics-dialog-layout">
-          ${renderAnalyticsDialogHeadline(dialogHeadline, `Close ${dialogHeadline}`, () => this.#close(), html`
-            <uui-input
-              type="search"
-              label=${`Search ${this.headline}`}
-              maxlength="200"
-              placeholder="Search"
-              .value=${this._search}
-              @input=${this.#onSearch}>
-              <uui-icon name="icon-search" slot="prepend"></uui-icon>
-            </uui-input>
-          `, false)}
-          <div class="results analytics-dialog-body" aria-busy=${this.loading} aria-live="polite">
-            <web-analytics-breakdown-table
-              .headline=${this.headline}
-              .rowLabel=${breakdownDimensionLabel(this.dimension)}
-              .dimension=${this.dimension}
-              .metric=${this.metric}
-              .rows=${this.rows}
-              .loading=${this.loading}
-              .unavailable=${this.unavailable}
-              .emptyMessage=${this._search ? "No matching results. Try a different search." : "No traffic was recorded for this breakdown."}
-              .baseUrl=${this.baseUrl}
-              .filters=${this.filters}
-              .linkValues=${this.linkValues}
-              .headingTabs=${headingTabs}
-              .subheadingTabs=${subheadingTabs}
-              @heading-tab-change=${(event: CustomEvent<{ value: string }>) => this.#selectHeading(event.detail.value)}
-              @subheading-tab-change=${(event: CustomEvent<{ value: string }>) => this.#selectSubheading(event.detail.value)}></web-analytics-breakdown-table>
-          </div>
+    return renderAnalyticsDialogFrame({
+      host: this,
+      ariaLabel: dialogHeadline,
+      closeLabel: `Close ${dialogHeadline}`,
+      headline: dialogHeadline,
+      showHeadline: false,
+      controls: html`
+        <uui-input
+          type="search"
+          label=${`Search ${this.headline}`}
+          maxlength="200"
+          placeholder="Search"
+          .value=${this._search}
+          @input=${this.#onSearch}>
+          <uui-icon name="icon-search" slot="prepend"></uui-icon>
+        </uui-input>
+      `,
+      body: html`
+        <div class="results analytics-dialog-body" aria-busy=${this.loading} aria-live="polite">
+          <web-analytics-breakdown-table
+            .headline=${this.headline}
+            .rowLabel=${breakdownDimensionLabel(this.dimension)}
+            .dimension=${this.dimension}
+            .metric=${this.metric}
+            .rows=${this.rows}
+            .loading=${this.loading}
+            .unavailable=${this.unavailable}
+            .emptyMessage=${this._search ? "No matching results. Try a different search." : "No traffic was recorded for this breakdown."}
+            .baseUrl=${this.baseUrl}
+            .filters=${this.filters}
+            .linkValues=${this.linkValues}
+            .headingTabs=${headingTabs}
+            .subheadingTabs=${subheadingTabs}
+            @heading-tab-change=${(event: CustomEvent<{ value: string }>) => this.#selectHeading(event.detail.value)}
+            @subheading-tab-change=${(event: CustomEvent<{ value: string }>) => this.#selectSubheading(event.detail.value)}></web-analytics-breakdown-table>
         </div>
-      </dialog>
-    `;
+      `,
+    });
   }
 
   static styles = [UmbTextStyles, analyticsDialogStyles, css`

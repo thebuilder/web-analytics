@@ -27,6 +27,28 @@ public sealed class AnalyticsReportServiceTests
     }
 
     [Fact]
+    public async Task Summary_cache_distinguishes_flag_and_event_property_filters()
+    {
+        var client = new CountingClient();
+        using var cache = new AnalyticsReportCache();
+        var service = CreateService(CreateRegistry(), client, cache);
+        var query = CreateQuery();
+
+        await service.GetSummaryAsync(query, CancellationToken.None);
+        await service.GetSummaryAsync(query with
+        {
+            FlagFilter = new AnalyticsFlagFilter("new-pricing-page", "control")
+        }, CancellationToken.None);
+        await service.GetSummaryAsync(query with
+        {
+            EventFilter = new AnalyticsEventFilter("Signup", "plan", "Pro")
+        }, CancellationToken.None);
+
+        Assert.Equal(6, client.CountCalls);
+        Assert.Equal(3, client.TrendCalls);
+    }
+
+    [Fact]
     public async Task Zero_cache_duration_disables_caching()
     {
         var client = new CountingClient();

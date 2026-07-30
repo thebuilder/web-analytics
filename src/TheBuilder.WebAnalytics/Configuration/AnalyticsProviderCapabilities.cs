@@ -8,6 +8,7 @@ internal static class AnalyticsProviderCapabilities
     internal static AnalyticsCapabilities FromClient<TClient>(
         IReadOnlyList<AnalyticsDimension> dimensions,
         bool globalEventFiltering,
+        bool globalEventPropertyFiltering,
         bool breakdownOrdering)
         where TClient : class, IAnalyticsProviderClient
     {
@@ -20,6 +21,9 @@ internal static class AnalyticsProviderCapabilities
         if (globalEventFiltering && !events)
             throw new InvalidOperationException(
                 $"{clientType.Name} cannot enable global event filtering without implementing {nameof(IAnalyticsEventsProviderClient)}.");
+        if (globalEventPropertyFiltering && !eventProperties)
+            throw new InvalidOperationException(
+                $"{clientType.Name} cannot enable global event property filtering without implementing {nameof(IAnalyticsEventPropertiesProviderClient)}.");
 
         return new(
             dimensions,
@@ -27,6 +31,7 @@ internal static class AnalyticsProviderCapabilities
             eventDetails,
             eventProperties,
             globalEventFiltering,
+            globalEventPropertyFiltering,
             flags,
             breakdownOrdering);
     }

@@ -9,6 +9,16 @@ export const renderAnalyticsTableSkeletonRows = (count: number) => Array.from({ 
 `);
 
 export const analyticsTableSkeletonStyles = css`
+  .visually-hidden {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+
   .skeleton-line, .skeleton-number {
     background: var(--uui-color-surface-alt);
     block-size: 1lh;
