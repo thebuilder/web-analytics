@@ -33,6 +33,9 @@ export default defineConfig({
     output: "static",
     site: "https://umbraco-web-analytics.vercel.app",
   },
+  analytics: {
+    vercel: true,
+  },
   ai: {
     llmsTxt: true,
   },

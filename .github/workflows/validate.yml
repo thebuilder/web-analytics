@@ -32,7 +32,7 @@ jobs:
 
       - name: Audit changed client code
         if: github.event_name == 'pull_request'
-        run: pnpm --filter thebuilder-web-analytics audit --base '${{ github.event.pull_request.base.sha }}' --format github-annotations
+        run: pnpm --filter thebuilder-web-analytics run audit --base '${{ github.event.pull_request.base.sha }}' --format github-annotations
 
       - name: Test client
         run: pnpm --filter thebuilder-web-analytics test
