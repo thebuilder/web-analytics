@@ -1,0 +1,19 @@
+{
+  "name": "thebuilder-web-analytics-workspace",
+  "private": true,
+  "packageManager": "pnpm@11.13.0",
+  "scripts": {
+    "build": "pnpm --recursive --if-present run build",
+    "check": "pnpm --recursive --if-present run check",
+    "test": "pnpm --filter thebuilder-web-analytics test",
+    "client:watch": "pnpm --filter thebuilder-web-analytics watch",
+    "client:build": "pnpm --filter thebuilder-web-analytics build",
+    "client:check": "pnpm --filter thebuilder-web-analytics check",
+    "client:test": "pnpm --filter thebuilder-web-analytics test",
+    "client:audit": "pnpm --filter thebuilder-web-analytics audit",
+    "docs:dev": "pnpm --filter @thebuilder/web-analytics-docs dev",
+    "docs:build": "pnpm --filter @thebuilder/web-analytics-docs build",
+    "docs:check": "pnpm --filter @thebuilder/web-analytics-docs check",
+    "docs:validate": "pnpm --filter @thebuilder/web-analytics-docs validate"
+  }
+}

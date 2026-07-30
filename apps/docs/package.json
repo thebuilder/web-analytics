@@ -1,0 +1,18 @@
+{
+  "name": "@thebuilder/web-analytics-docs",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@11.13.0",
+  "scripts": {
+    "dev": "blume dev",
+    "build": "blume build",
+    "check": "blume check",
+    "validate": "blume validate"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "blume": "1.2.1",
+    "sharp": "0.34.5"
+  }
+}

@@ -1,0 +1,38 @@
+---
+title: Troubleshooting
+description: Resolve missing access, provider credential failures, empty reports, and stale multi-instance settings.
+---
+
+## Connection and data
+
+| Symptom | Check |
+| --- | --- |
+| Token missing | Configure the matching `WebAnalytics__Providers__{Provider}__AccessToken`, or a connection override, then restart the application. |
+| Vercel returns `401` or `403` | Confirm the token is valid, scoped to the owning account or team, and can access the configured project. |
+| Vercel returns `400` | Verify the project ID and optional Team value. |
+| Plausible returns `401` or `403` | Confirm the Stats API key can read the configured site. |
+| Plausible rejects a query | Verify that `SiteId` exactly matches the domain registered in Plausible. |
+| Self-hosted Plausible rejects a query or returns `404` | Configure `WebAnalytics__Providers__Plausible__BaseUrl` with the instance's public base URL and confirm it exposes `/api/v2/query`. |
+| No data appears | Confirm the provider tracks the public site, production traffic exists, and the selected date range is available from the provider. |
+| A panel is missing | Confirm the selected provider supports it. Unsupported capabilities are hidden, not connection errors. |
+
+## Access and document analytics
+
+| Symptom | Check |
+| --- | --- |
+| Analytics section is not visible | Add the Analytics section to the user's Umbraco user group. The automatic administrator grant runs only once. |
+| Global reports return no access | Confirm the user has Analytics-section access. |
+| Document Analytics workspace is not visible | Confirm the document is published, has a published route, is below a mapped root, and uses an enabled type. |
+| Document report returns no access | Confirm Content-section access and browse permission for that document. Document reports do not require global Analytics-section access. |
+
+## Deployment and configuration
+
+| Symptom | Check |
+| --- | --- |
+| Settings differ between instances | Restart every Umbraco instance after saved-setting or credential changes. Each process maintains its own configuration snapshot and report cache. |
+| A new connection uses old data | Select the new connection again after saving; reports are scoped to the active connection. |
+| Credential rotation has no effect | Verify the new server-side secret is available to every application instance, then restart every instance. |
+
+## Development data
+
+The example app can expose deterministic development-only connections with `WebAnalytics:EnableMockConnections`. These presets need no external token and never call Vercel or Plausible. They are disabled by default and must not be enabled in production.

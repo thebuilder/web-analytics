@@ -1,4 +1,4 @@
-![Web Analytics overview in the Umbraco backoffice](https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/analytics-overview.png)
+![Web Analytics overview in the Umbraco backoffice](https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/apps/docs/docs/screenshots/analytics-overview.png)
 
 Web Analytics brings analytics from [**Vercel Web Analytics**](https://vercel.com/docs/analytics) and [**Plausible**](https://plausible.io/docs/stats-api) into the Umbraco backoffice, giving editors useful traffic and content insights without sending them to another tool.
 
@@ -12,4 +12,4 @@ Web Analytics brings analytics from [**Vercel Web Analytics**](https://vercel.co
 
 Web Analytics fits into the Umbraco permissions and editorial workflows teams already know, making analytics available where content decisions happen.
 
-Ready to bring your analytics into the backoffice? See the [installation and configuration guide](https://github.com/thebuilder/web-analytics#readme).
+Ready to bring your analytics into the backoffice? See the [installation and configuration guide](https://umbraco-web-analytics.vercel.app/).

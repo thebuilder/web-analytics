@@ -1,0 +1,69 @@
+---
+title: Getting started
+description: Install Web Analytics, configure a provider credential, and verify the first connection.
+---
+
+This guide covers the shared path for both providers. Provider-specific identifiers and capabilities are covered in the [Vercel](/providers/vercel) and [Plausible](/providers/plausible) guides.
+
+## 1. Install the package
+
+Add Web Analytics to the Umbraco web project:
+
+```sh
+dotnet add package TheBuilder.WebAnalytics
+```
+
+The package registers its services and backoffice extensions automatically. Build and deploy the Umbraco application as usual; NuGet static web assets include the package's `App_Plugins` files.
+
+## 2. Choose a provider and configure its secret
+
+Create a read-only credential that can access the provider account you will connect. Add it to the application's secret configuration—not `appsettings.json` and never source control.
+
+<Tabs inline param="provider">
+  <Tab title="Vercel">
+    Create a Vercel access token with read access to the project. Configure it as `WebAnalytics__Providers__Vercel__AccessToken`, then use the project's ID as the connection identifier in Umbraco. Add the team ID only when the project belongs to a Vercel team.
+
+    For local development, use either a shell environment variable or .NET user secrets:
+
+    ```sh
+    dotnet user-secrets init --project path/to/Your.Umbraco.Web.csproj
+    dotnet user-secrets set "WebAnalytics:Providers:Vercel:AccessToken" "your_token" --project path/to/Your.Umbraco.Web.csproj
+    ```
+  </Tab>
+  <Tab title="Plausible">
+    Create a Plausible Stats API key with access to the site. Configure it as `WebAnalytics__Providers__Plausible__AccessToken`, then use the site's exact domain as the connection identifier in Umbraco. For a self-hosted instance, also configure `WebAnalytics__Providers__Plausible__BaseUrl` with its public base URL. The instance must expose `/api/v2/query`.
+
+    For local development, use either a shell environment variable or .NET user secrets:
+
+    ```sh
+    dotnet user-secrets init --project path/to/Your.Umbraco.Web.csproj
+    dotnet user-secrets set "WebAnalytics:Providers:Plausible:AccessToken" "your_stats_api_key" --project path/to/Your.Umbraco.Web.csproj
+    dotnet user-secrets set "WebAnalytics:Providers:Plausible:BaseUrl" "https://analytics.example.com/" --project path/to/Your.Umbraco.Web.csproj
+    ```
+  </Tab>
+</Tabs>
+
+Use the equivalent secret or app-setting facility in your hosting platform. Restart every Umbraco application instance after adding or rotating a credential.
+
+## 3. Add and test the connection
+
+As an administrator, open **Settings → Web Analytics**.
+
+1. Select **Add connection**.
+2. Choose Vercel or Plausible. The provider cannot be changed after creation.
+3. Enter the provider identifier.
+4. Select **Save settings**, then **Test connection**.
+
+The settings screen reports whether the shared provider credential or a connection override was detected. It does not display or store a token.
+
+![A Plausible connection in the Web Analytics settings screen](./screenshots/settings.png)
+
+## 4. Verify the dashboard
+
+Open the global **Analytics** section. Check that totals and history load, then use a known date range with recorded production traffic.
+
+If reports do not load, start with [troubleshooting](/reference/troubleshooting). A provider may hide an unsupported panel; that is different from a failed connection.
+
+## Next step
+
+Configure [document analytics](/guides/document-analytics) when editors should see a report while editing a mapped document.

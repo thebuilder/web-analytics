@@ -10,7 +10,7 @@
   "Category": "Analytics & Insights",
   "Title": "Web Analytics",
   "Description": "Connect web analytics providers and bring site-wide and page-level insights into the Umbraco backoffice.",
-  "DocumentationUrl": "https://github.com/thebuilder/web-analytics#readme",
+  "DocumentationUrl": "https://umbraco-web-analytics.vercel.app/",
   "IssueTrackerUrl": "https://github.com/thebuilder/web-analytics/issues",
   "LicenseTypes": [
     "Free"
@@ -18,19 +18,19 @@
   "PackageType": "Integration",
   "Screenshots": [
     {
-      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/analytics-overview.png",
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/apps/docs/docs/screenshots/analytics-overview.png",
       "Caption": "Explore visitors, page views, traffic history, popular pages, and referrers from the Analytics section."
     },
     {
-      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/settings.png",
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/apps/docs/docs/screenshots/settings.png",
       "Caption": "Set up Vercel and Plausible connections, confirm shared credentials, and configure reporting from the Settings section."
     },
     {
-      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/audience-events-and-flags.png",
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/apps/docs/docs/screenshots/audience-events-and-flags.png",
       "Caption": "Understand audience devices and locations alongside provider-supported events and features."
     },
     {
-      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/docs/screenshots/custom-event-details.png",
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/apps/docs/docs/screenshots/custom-event-details.png",
       "Caption": "Drill into event activity and compare visitors with total events when supported by the provider."
     }
   ],

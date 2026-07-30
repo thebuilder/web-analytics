@@ -1,0 +1,41 @@
+---
+title: Vercel Web Analytics
+description: Connect a Vercel project and understand its available analytics reports.
+---
+
+Use this guide after following the shared [getting-started flow](/getting-started).
+
+## Create the credential
+
+Create a Vercel token in account settings and scope it to the account or team that owns the project. The package uses the token only on the server.
+
+```text
+WebAnalytics__Providers__Vercel__AccessToken
+```
+
+For a team-owned project, copy either the team ID (`team_...`) or team slug as well.
+
+## Add the connection
+
+In **Settings → Web Analytics**, choose **Vercel** and enter:
+
+- **Project ID** — the Vercel project identifier beginning with `prj_...`.
+- **Team** — optional. Leave it blank for a personal project.
+
+Save, then select **Test connection**. A `401` or `403` generally means the token cannot access the project; a `400` usually means the project ID or optional team value is invalid.
+
+## Capabilities
+
+Vercel connections provide core totals, history, traffic breakdowns, UTM dimensions, event lists, event-property drill-downs, and feature flags.
+
+Vercel does not support applying an event or event-property filter to a global report, and does not support selecting the ordering metric for a breakdown. The backoffice adapts to those capabilities.
+
+## Connection-specific credential
+
+Use a connection override only when this connection needs a different credential from the shared Vercel token. The Settings UI shows the exact secret key, in the form:
+
+```text
+WebAnalytics__ConnectionAccessTokens__{connection-guid}
+```
+
+The override remains server-side and takes precedence over the shared provider credential.
