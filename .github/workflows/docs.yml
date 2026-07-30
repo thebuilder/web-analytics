@@ -17,10 +17,6 @@ on:
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
       - package.json
-  release:
-    types:
-      - published
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -59,16 +55,3 @@ jobs:
 
       - name: Build documentation
         run: corepack pnpm docs:build
-
-  deploy:
-    name: Refresh Vercel documentation
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'release'
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Vercel deployment
-        env:
-          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
-        run: curl --fail-with-body --request POST --retry 3 --retry-all-errors "$VERCEL_DEPLOY_HOOK"
