@@ -19,7 +19,7 @@ questions:
       - /getting-started
 
   - id: add-first-connection
-    question: How do I add and test my first analytics connection?
+    question: How do I add and test my first analytics connection, and how can I confirm whether it uses a shared credential or a connection override?
     expected:
       - An administrator opens Settings then Web Analytics and selects Add connection.
       - Choose Vercel or Plausible; the provider cannot be changed after the connection is created.
