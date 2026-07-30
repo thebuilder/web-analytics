@@ -1,0 +1,85 @@
+---
+title: Configuration reference
+description: Before the first Settings save, server configuration supplies non-secret values; afterward, Umbraco settings take precedence.
+---
+
+The Settings screen is the normal way to manage connections.
+
+## Configuration lifecycle and precedence
+
+Before an administrator first saves Settings → Web Analytics, server configuration supplies the active non-secret values. After that first save, Umbraco-stored non-secret connection settings become the source of truth.
+
+1. At startup, the package reads `WebAnalytics` server configuration.
+2. Until an administrator saves **Settings → Web Analytics**, those non-secret values are the active configuration.
+3. After the first settings save, non-secret connection settings are stored in Umbraco and become the source of truth.
+4. Provider credentials always remain in server-side configuration. A connection-specific credential overrides the shared provider credential.
+
+Each Umbraco application instance keeps its own in-memory report cache. Restart every instance after changing saved settings or credentials so every process uses the same configuration.
+
+## Safe configuration-only example
+
+Use configuration-only setup when deployment automation must bootstrap connections. Do not put access tokens in this file.
+
+```json
+{
+  "WebAnalytics": {
+    "Enabled": true,
+    "DefaultRangeDays": 30,
+    "CacheDuration": "00:05:00",
+    "Connections": [
+      {
+        "Key": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "Provider": "Vercel",
+        "ProjectId": "prj_...",
+        "Team": "team_...",
+        "DocumentRootKeys": [
+          "11111111-1111-1111-1111-111111111111"
+        ],
+        "EnableAllDocumentTypes": false,
+        "EnabledDocumentTypeKeys": [
+          "22222222-2222-2222-2222-222222222222"
+        ]
+      }
+    ]
+  }
+}
+```
+
+For Plausible, use `"Provider": "Plausible"` and set `SiteId` instead of `ProjectId` and `Team`. Add `EventPropertyNames` for custom event properties.
+
+## Package settings
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `Enabled` | `true` | Enables the Analytics section and configured document workspace views. |
+| `EnableMockConnections` | `false` | Enables deterministic development-only connection presets. Never enable in production. |
+| `DefaultRangeDays` | `30` | Initial reporting range. Valid values are 1–730. |
+| `CacheDuration` | `00:05:00` | Per-instance in-memory cache duration. Valid from zero to one hour. |
+| `Connections` | `[]` | Provider connection definitions. The first becomes the initial default. |
+| `ConnectionAccessTokens` | Empty | Optional secret dictionary keyed by a connection GUID. |
+| `Providers:Vercel:AccessToken` | Empty | Shared Vercel access token. |
+| `Providers:Plausible:AccessToken` | Empty | Shared Plausible Stats API key. |
+| `Providers:Plausible:BaseUrl` | `https://plausible.io/` | Public base URL of the Plausible Cloud or self-hosted instance. It must expose `/api/v2/query`. |
+
+## Connection settings
+
+| Key | Applies to | Description |
+| --- | --- | --- |
+| `Key` | All | Stable connection GUID. The Settings UI creates one automatically. |
+| `DisplayName` | All | Cached display name until the provider name is available. |
+| `Provider` | All | `Vercel` or `Plausible`. |
+| `ProjectId` | Vercel | Project ID beginning with `prj_`. |
+| `Team` | Vercel | Optional team ID or slug. |
+| `SiteId` | Plausible | Registered site ID, normally a domain. |
+| `EventPropertyNames` | Plausible | Custom properties to discover and drill into. |
+| `EnableEvents` | All | Whether to show provider-supported custom events. |
+| `EnableFlags` | Vercel | Whether to show provider-supported feature flags. |
+| `MockScenario` | Development only | Selects deterministic mock report data when mock connections are enabled: `Complete`, `Utm`, `Flags`, or `Events`. |
+| `DocumentRootKeys` | All | Root document GUIDs mapped to this connection. |
+| `EnableAllDocumentTypes` | All | Enables document analytics for every type below a mapped root. |
+| `EnabledDocumentTypeKeys` | All | Restricts document analytics to specific document-type GUIDs. |
+| `EnabledDocumentTypes` | All | Document-type aliases for configuration-only bootstrapping. |
+
+:::warning
+Keep provider credentials out of `appsettings.json` and source control. Use environment variables, user secrets, or the secret facility supplied by the hosting platform.
+:::

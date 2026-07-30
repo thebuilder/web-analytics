@@ -55,7 +55,6 @@ jobs:
           node-version: 24
 
       - name: Install backoffice dependencies
-        working-directory: src/TheBuilder.WebAnalytics/Client
         run: |
           corepack enable
           pnpm install --frozen-lockfile

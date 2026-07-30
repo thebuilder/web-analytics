@@ -4,6 +4,9 @@
 .pnpm-store/
 **/coverage/
 **/.vite/
+apps/docs/.blume/
+apps/docs/.blume-verify/
+apps/docs/dist/
 artifacts/
 src/TheBuilder.WebAnalytics/wwwroot/App_Plugins/
 **/umbraco/Data/
@@ -21,3 +24,4 @@ samples/TheBuilder.WebAnalytics.Example/appsettings-schema.json
 *.key
 .idea/
 .vs/
+.blume-verify/

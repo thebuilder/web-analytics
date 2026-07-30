@@ -1,0 +1,57 @@
+name: Documentation
+
+on:
+  pull_request:
+    paths:
+      - apps/docs/**
+      - .github/workflows/docs.yml
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - package.json
+  push:
+    branches:
+      - main
+    paths:
+      - apps/docs/**
+      - .github/workflows/docs.yml
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - package.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      ASTRO_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install documentation dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Check documentation
+        run: corepack pnpm docs:check
+
+      - name: Validate documentation links
+        run: corepack pnpm docs:validate
+
+      - name: Build documentation
+        run: corepack pnpm docs:build

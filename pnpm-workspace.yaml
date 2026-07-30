@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - src/TheBuilder.WebAnalytics/Client
+allowBuilds:
+  esbuild: true
+  sharp: true
+minimumReleaseAgeExclude:
+  - blume@1.2.1

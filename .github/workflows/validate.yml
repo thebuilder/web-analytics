@@ -13,9 +13,6 @@ jobs:
   client:
     name: Client
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: src/TheBuilder.WebAnalytics/Client
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -35,13 +32,13 @@ jobs:
 
       - name: Audit changed client code
         if: github.event_name == 'pull_request'
-        run: pnpm run audit --base '${{ github.event.pull_request.base.sha }}' --format github-annotations
+        run: pnpm --filter thebuilder-web-analytics run audit --base '${{ github.event.pull_request.base.sha }}' --format github-annotations
 
       - name: Test client
-        run: pnpm test
+        run: pnpm --filter thebuilder-web-analytics test
 
       - name: Build client
-        run: pnpm build
+        run: pnpm --filter thebuilder-web-analytics build
 
   dotnet:
     name: .NET (Umbraco ${{ matrix.umbraco-version }})
@@ -89,7 +86,6 @@ jobs:
         run: corepack enable
 
       - name: Install backoffice dependencies
-        working-directory: src/TheBuilder.WebAnalytics/Client
         run: pnpm install --frozen-lockfile
 
       - name: Pack NuGet package
