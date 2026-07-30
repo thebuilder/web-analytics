@@ -1,11 +1,13 @@
 ---
 title: Configuration reference
-description: Configure Web Analytics safely, understand precedence, and reference every supported setting.
+description: Before the first Settings save, server configuration supplies non-secret values; afterward, Umbraco settings take precedence.
 ---
 
-The Settings screen is the normal way to manage connections. Server configuration can bootstrap non-secret settings before the first save.
+The Settings screen is the normal way to manage connections.
 
 ## Configuration lifecycle and precedence
+
+Before an administrator first saves Settings → Web Analytics, server configuration supplies the active non-secret values. After that first save, Umbraco-stored non-secret connection settings become the source of truth.
 
 1. At startup, the package reads `WebAnalytics` server configuration.
 2. Until an administrator saves **Settings → Web Analytics**, those non-secret values are the active configuration.

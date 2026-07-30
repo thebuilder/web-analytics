@@ -1,6 +1,6 @@
 ---
 title: Getting started
-description: Install Web Analytics, configure a provider credential, and verify the first connection.
+description: Create a read-only credential with account or site access, store it in application or hosting-platform secret settings, restart every instance, and verify the connection.
 ---
 
 This guide covers the shared path for both providers. Provider-specific identifiers and capabilities are covered in the [Vercel](/providers/vercel) and [Plausible](/providers/plausible) guides.
@@ -15,9 +15,9 @@ dotnet add package TheBuilder.WebAnalytics
 
 The package registers its services and backoffice extensions automatically. Build and deploy the Umbraco application as usual; NuGet static web assets include the package's `App_Plugins` files.
 
-## 2. Choose a provider and configure its secret
+## 2. Choose a provider, configure its secret, and restart
 
-Create a read-only credential that can access the provider account you will connect. Add it to the application's secret configuration—not `appsettings.json` and never source control.
+Create a read-only credential with access to the provider account or site being connected. Add it to the application's secret configuration—not `appsettings.json` and never source control. Restart every Umbraco application instance after adding or rotating the credential.
 
 <Tabs inline param="provider">
   <Tab title="Vercel">
@@ -43,7 +43,7 @@ Create a read-only credential that can access the provider account you will conn
   </Tab>
 </Tabs>
 
-Use the equivalent secret or app-setting facility in your hosting platform. Restart every Umbraco application instance after adding or rotating a credential.
+Use the equivalent secret or app-setting facility in your hosting platform.
 
 ## 3. Add and test the connection
 

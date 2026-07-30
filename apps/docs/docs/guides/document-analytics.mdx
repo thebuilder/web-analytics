@@ -1,13 +1,13 @@
 ---
 title: Document analytics
-description: Show page-level reports in the Umbraco document workspace without exposing data outside an editor's access.
+description: Map the nearest document root and types to show reports automatically filtered to the selected published route. Document reports do not require global Analytics-section access.
 ---
 
-Document mappings are optional. A connection without a mapping remains available in the global Analytics section but does not add a document workspace report.
+Document mappings are optional. A connection without a mapping remains available in the global Analytics section but does not add a document workspace report. Document reports do not require global Analytics-section access.
 
 ## Map an Umbraco site root
 
-For each site that needs page-level reports, choose the root document in the connection's **Page analytics** settings. The nearest mapped ancestor determines which analytics connection a document uses.
+For each site that needs page-level reports, choose the root document in the connection's **Page analytics** settings. A document uses the connection from its nearest mapped ancestor; it does not use a connection from merely any ancestor root. A mapped document report is automatically filtered to its selected published route.
 
 Then either enable all document types below that root or choose the specific document types that should show the Analytics workspace view.
 
@@ -16,11 +16,11 @@ Then either enable all document types below that root or choose the specific doc
 A document shows its Analytics workspace view only when all of these conditions are met:
 
 - It is published and has a published route.
-- Its nearest configured document root resolves to a connection.
+- Its nearest configured document root must specifically resolve to a connection, not merely any ancestor root.
 - Its document type is enabled for that connection.
 - The current user can access the Content section and browse that document.
 
-The report is automatically filtered to the selected published route. This lets an editor inspect the page they are working on without first finding it in a global report.
+This lets an editor inspect the page they are working on without first finding it in a global report.
 
 ![The Analytics workspace on a mapped Home document](../screenshots/document-analytics-workspace.png)
 
@@ -46,6 +46,8 @@ Global and document analytics are intentionally separate:
 | Editor with Content access and document browse permission | No | Yes, where mapped and published | No |
 
 This means an editor can see analytics for a document they can browse without gaining access to global site reporting.
+
+Document reports do not require global Analytics-section access.
 
 ## Troubleshoot a missing workspace
 

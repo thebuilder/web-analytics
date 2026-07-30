@@ -1,0 +1,98 @@
+questions:
+  - id: install-package
+    question: How do I install Web Analytics in my Umbraco site?
+    expected:
+      - Add the TheBuilder.WebAnalytics package to the Umbraco web project with dotnet add package TheBuilder.WebAnalytics.
+      - The package registers its services and backoffice extensions automatically.
+      - Build and deploy the Umbraco application as usual; NuGet static web assets include the App_Plugins files.
+    routes:
+      - /getting-started
+
+  - id: configure-provider-secret
+    question: How should I securely create, configure, deploy, and rotate an analytics provider credential?
+    expected:
+      - Create a read-only credential that can access the provider account or site to connect.
+      - Store the credential in application secret configuration, not appsettings.json or source control.
+      - Use the hosting platform's equivalent secret or app-setting facility in deployed environments.
+      - Restart every Umbraco application instance after adding or rotating a credential.
+    routes:
+      - /getting-started
+
+  - id: add-first-connection
+    question: How do I add and test my first analytics connection?
+    expected:
+      - An administrator opens Settings then Web Analytics and selects Add connection.
+      - Choose Vercel or Plausible; the provider cannot be changed after the connection is created.
+      - Enter the provider identifier, save settings, and select Test connection.
+      - The settings screen reports whether it detected a shared credential or connection override without displaying or storing a token.
+    routes:
+      - /getting-started
+
+  - id: settings-precedence
+    question: How does Web Analytics configuration precedence work before and after the first Settings → Web Analytics save?
+    expected:
+      - Before an administrator first saves Settings then Web Analytics, server configuration supplies active non-secret values.
+      - After that first save, Umbraco-stored non-secret connection settings become the source of truth.
+      - Provider credentials always remain in server-side configuration.
+      - A connection-specific credential overrides the shared provider credential.
+    routes:
+      - /reference/configuration
+
+  - id: deploy-to-multiple-instances
+    question: What must I do after changing settings or credentials on a multi-instance deployment?
+    expected:
+      - Restart every Umbraco application instance after changing saved settings or credentials.
+      - Each application process has its own configuration snapshot and in-memory report cache.
+      - Every instance must have access to a newly rotated server-side secret.
+    routes:
+      - /reference/troubleshooting
+
+  - id: configure-vercel-project
+    question: What information does a Vercel connection need?
+    expected:
+      - Configure a server-side Vercel access token scoped to the account or team that owns the project.
+      - Enter the Vercel project ID, which begins with prj_, when adding the connection.
+      - Team is optional and should be left blank for a personal project.
+      - A team-owned project can use a team ID or team slug.
+    routes:
+      - /providers/vercel
+
+  - id: configure-self-hosted-plausible
+    question: How do I connect a self-hosted Plausible instance?
+    expected:
+      - Store a Plausible Stats API key in server-side configuration.
+      - Configure the instance's public base URL with WebAnalytics__Providers__Plausible__BaseUrl.
+      - The base URL must use HTTP or HTTPS and cannot include user information, a query, or a fragment.
+      - The Umbraco application must be able to reach the instance's /api/v2/query endpoint.
+    routes:
+      - /providers/plausible
+
+  - id: enable-document-analytics
+    question: How do I enable document-workspace analytics for mapped documents, and how is its report automatically scoped?
+    expected:
+      - In the connection's Page analytics settings, map the relevant root document.
+      - Enable every document type below the root or choose the specific document types that should show the workspace.
+      - A document uses the connection from its nearest mapped ancestor.
+      - A mapped document report is automatically filtered to its selected published route.
+    routes:
+      - /guides/document-analytics
+
+  - id: document-workspace-access
+    question: Why is the Analytics workspace missing from a document, and does it require global Analytics-section access?
+    expected:
+      - The document must be published and have a published route.
+      - Its nearest configured document root must resolve to a connection and its document type must be enabled for that connection.
+      - The user must have Content-section access and browse permission for that document.
+      - Document reports do not require global Analytics-section access.
+    routes:
+      - /guides/document-analytics
+
+  - id: product-capabilities-and-tracking
+    question: What does Web Analytics add to Umbraco's dedicated Analytics section and mapped document workspaces, and does it install website tracking?
+    expected:
+      - It connects Vercel Web Analytics and Plausible to the Umbraco backoffice.
+      - It provides a dedicated Analytics section with reports including visitors, page views, trends, acquisition, audience, pages, routes, and campaigns.
+      - It can show analytics in mapped published document workspaces, scoped to the document route.
+      - It reads analytics the provider already collects and does not install, replace, or configure public-website tracking.
+    routes:
+      - /
