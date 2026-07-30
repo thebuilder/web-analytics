@@ -42,7 +42,33 @@ internal static class PlausibleProvider
         fallbackBaseUrl: GetSiteBaseUrl);
 
     internal static AnalyticsProviderRegistration Registration { get; } =
-        AnalyticsProviderRegistration.Create<PlausibleAnalyticsClient>(Definition, new Uri("https://plausible.io/"));
+        AnalyticsProviderRegistration.Create<PlausibleAnalyticsClient>(Definition, GetApiBaseUrl);
+
+    internal static Uri GetApiBaseUrl(WebAnalyticsOptions options)
+    {
+        if (TryGetApiBaseUrl(options.Providers.Plausible.BaseUrl, out var baseUrl)) return baseUrl;
+
+        throw new ArgumentException(
+            "Plausible BaseUrl must be an absolute HTTP or HTTPS URL without a query, fragment, or user information.",
+            nameof(options));
+    }
+
+    internal static bool TryGetApiBaseUrl(string? configuredUrl, out Uri baseUrl)
+    {
+        baseUrl = null!;
+        if (!Uri.TryCreate(configuredUrl, UriKind.Absolute, out var parsed) ||
+            (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps) ||
+            string.IsNullOrWhiteSpace(parsed.Host) ||
+            !string.IsNullOrEmpty(parsed.UserInfo) ||
+            !string.IsNullOrEmpty(parsed.Query) ||
+            !string.IsNullOrEmpty(parsed.Fragment))
+        {
+            return false;
+        }
+
+        baseUrl = new Uri($"{parsed.GetLeftPart(UriPartial.Path).TrimEnd('/')}/", UriKind.Absolute);
+        return true;
+    }
 
     private static string? GetSiteBaseUrl(AnalyticsConnection connection)
     {
