@@ -23,4 +23,16 @@ describe("events dialog", () => {
     expect(dialog.shadowRoot?.querySelector("uui-input")?.getAttribute("label")).toBe("Search events");
     expect(dialog.shadowRoot?.querySelector(".analytics-dialog-close")?.getAttribute("aria-label")).toBe("Close events");
   });
+
+  it("uses the shared dialog close contract", async () => {
+    const dialog = document.createElement("web-analytics-event-dialog") as WebAnalyticsEventDialogElement;
+    const onClose = vi.fn();
+    dialog.addEventListener("analytics-dialog-close", onClose);
+    document.body.append(dialog);
+    await dialog.updateComplete;
+
+    dialog.shadowRoot?.querySelector("dialog")?.dispatchEvent(new Event("close"));
+
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });

@@ -214,7 +214,13 @@ public sealed class AnalyticsReportService(
         var filters = string.Join(",", (query.Filters ?? [])
             .OrderBy(filter => filter.Dimension)
             .Select(filter => $"{filter.Dimension}:{EncodeCachePart(filter.Value)}"));
-        return $"{query.Connection:N}:{query.From.UtcTicks}:{query.To.UtcTicks}:{query.Interval}:{query.RequestPath}:{filters}";
+        var flagFilter = query.FlagFilter is null
+            ? string.Empty
+            : $"{EncodeCachePart(query.FlagFilter.Key)}:{EncodeCachePart(query.FlagFilter.Value)}";
+        var eventFilter = query.EventFilter is null
+            ? string.Empty
+            : $"{EncodeCachePart(query.EventFilter.EventName)}:{EncodeCachePart(query.EventFilter.Property)}:{EncodeCachePart(query.EventFilter.Value)}";
+        return $"{query.Connection:N}:{query.From.UtcTicks}:{query.To.UtcTicks}:{query.Interval}:{query.RequestPath}:{filters}:{flagFilter}:{eventFilter}";
     }
 
     private async Task<AnalyticsTotals?> TryGetPreviousTotalsAsync(

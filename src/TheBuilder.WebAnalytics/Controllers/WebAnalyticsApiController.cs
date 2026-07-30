@@ -97,11 +97,11 @@ public sealed class WebAnalyticsApiController(
         [FromQuery] Guid? documentId,
         [FromQuery] string? culture,
         [FromQuery] string? path,
-        [FromQuery] string[]? filter,
+        [FromQuery] AnalyticsReportFilters? reportFilters,
         CancellationToken cancellationToken)
     {
         var scope = await AuthorizeAndBuildQueryAsync(
-            connection, from, to, interval, documentId, culture, path, filter, ReportScope.Visits,
+            connection, from, to, interval, documentId, culture, path, reportFilters, ReportScope.Visits,
             new(ReportCapability.Core), cancellationToken);
         if (scope.Error is not null) return scope.Error;
         var report = await reportService.GetSummaryAsync(scope.Query!, cancellationToken);
@@ -123,7 +123,7 @@ public sealed class WebAnalyticsApiController(
         [FromQuery] Guid? documentId = null,
         [FromQuery] string? culture = null,
         [FromQuery] string? path = null,
-        [FromQuery] string[]? filter = null,
+        [FromQuery] AnalyticsReportFilters? reportFilters = null,
         CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(dimension) || dimension == AnalyticsDimension.EventName)
@@ -135,7 +135,7 @@ public sealed class WebAnalyticsApiController(
         if (orderBy is not null && !Enum.IsDefined(orderBy.Value))
             return ValidationProblem("The requested breakdown metric is not supported.");
         var scope = await AuthorizeAndBuildQueryAsync(
-            connection, from, to, interval, documentId, culture, path, filter, ReportScope.Visits,
+            connection, from, to, interval, documentId, culture, path, reportFilters, ReportScope.Visits,
             new(ReportCapability.Breakdown, dimension), cancellationToken);
         if (scope.Error is not null) return scope.Error;
         if (orderBy is not null && registry.Get(connection)?.Capabilities.BreakdownOrdering is not true)
@@ -157,13 +157,13 @@ public sealed class WebAnalyticsApiController(
         [FromQuery] Guid? documentId = null,
         [FromQuery] string? culture = null,
         [FromQuery] string? path = null,
-        [FromQuery] string[]? filter = null,
+        [FromQuery] AnalyticsReportFilters? reportFilters = null,
         CancellationToken cancellationToken = default)
     {
         if (limit is < 1 or > 100) return ValidationProblem("Limit must be between 1 and 100.");
         if (search?.Length > 200) return ValidationProblem("Search must be 200 characters or fewer.");
         var scope = await AuthorizeAndBuildQueryAsync(
-            connection, from, to, interval, documentId, culture, path, filter, ReportScope.EventList,
+            connection, from, to, interval, documentId, culture, path, reportFilters, ReportScope.EventList,
             new(ReportCapability.Events), cancellationToken);
         if (scope.Error is not null) return scope.Error;
         var report = await reportService.GetEventsAsync(scope.Query!, limit, search, cancellationToken);
@@ -183,13 +183,13 @@ public sealed class WebAnalyticsApiController(
         [FromQuery] Guid? documentId = null,
         [FromQuery] string? culture = null,
         [FromQuery] string? path = null,
-        [FromQuery] string[]? filter = null,
+        [FromQuery] AnalyticsReportFilters? reportFilters = null,
         CancellationToken cancellationToken = default)
     {
         if (flagKey?.Length > 255) return ValidationProblem("Flag key must be 255 characters or fewer.");
         if (limit is < 1 or > 100) return ValidationProblem("Limit must be between 1 and 100.");
         var scope = await AuthorizeAndBuildQueryAsync(
-            connection, from, to, interval, documentId, culture, path, filter, ReportScope.Visits,
+            connection, from, to, interval, documentId, culture, path, reportFilters, ReportScope.Visits,
             new(ReportCapability.Flags), cancellationToken);
         if (scope.Error is not null) return scope.Error;
         var report = await reportService.GetFlagsAsync(scope.Query!, flagKey, limit, cancellationToken);
@@ -210,7 +210,7 @@ public sealed class WebAnalyticsApiController(
         [FromQuery] Guid? documentId = null,
         [FromQuery] string? culture = null,
         [FromQuery] string? path = null,
-        [FromQuery] string[]? filter = null,
+        [FromQuery] AnalyticsReportFilters? reportFilters = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(eventName) || eventName.Length > 255)
@@ -227,7 +227,7 @@ public sealed class WebAnalyticsApiController(
         }
 
         var scope = await AuthorizeAndBuildQueryAsync(
-            connection, from, to, interval, documentId, culture, path, filter, ReportScope.EventSelection,
+            connection, from, to, interval, documentId, culture, path, reportFilters, ReportScope.EventSelection,
             new(string.IsNullOrWhiteSpace(eventProperty) ? ReportCapability.EventDetails : ReportCapability.EventProperties), cancellationToken);
         if (scope.Error is not null) return scope.Error;
         var eventDataFilter = string.IsNullOrWhiteSpace(eventProperty)
@@ -254,7 +254,7 @@ public sealed class WebAnalyticsApiController(
         [FromQuery] Guid? documentId = null,
         [FromQuery] string? culture = null,
         [FromQuery] string? path = null,
-        [FromQuery] string[]? filter = null,
+        [FromQuery] AnalyticsReportFilters? reportFilters = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(eventName) || eventName.Length > 255)
@@ -277,7 +277,7 @@ public sealed class WebAnalyticsApiController(
         }
 
         var scope = await AuthorizeAndBuildQueryAsync(
-            connection, from, to, interval, documentId, culture, path, filter, ReportScope.EventSelection,
+            connection, from, to, interval, documentId, culture, path, reportFilters, ReportScope.EventSelection,
             new(ReportCapability.EventProperties), cancellationToken);
         if (scope.Error is not null) return scope.Error;
         var eventDataFilter = string.IsNullOrWhiteSpace(eventProperty)
@@ -302,7 +302,7 @@ public sealed class WebAnalyticsApiController(
         Guid? documentId,
         string? culture,
         string? path,
-        IReadOnlyList<string>? filterValues,
+        AnalyticsReportFilters? reportFilters,
         ReportScope reportScope,
         ReportRequirement reportRequirement,
         CancellationToken cancellationToken)
@@ -315,10 +315,12 @@ public sealed class WebAnalyticsApiController(
         {
             return (null, ValidationProblem("The date range must be ordered and no longer than 730 days."));
         }
-        if (!AnalyticsFilterParser.TryParse(filterValues, out var filters, out var filterError))
+        reportFilters ??= new();
+        if (!reportFilters.TryParse(out var parsedFilters, out var filterError))
         {
             return (null, ValidationProblem(filterError!));
         }
+        var (filters, flagFilter, eventFilter) = parsedFilters;
         if (!registry.Settings.Enabled)
         {
             return (null, WebAnalyticsProblemFactory.CreateResult(
@@ -333,9 +335,9 @@ public sealed class WebAnalyticsApiController(
             var selectedConnection = registry.Get(connection);
             if (selectedConnection is null)
                 return (null, NotFoundProblem("The selected analytics connection does not exist."));
-            var capabilityError = ValidateCapabilities(filters, reportScope, reportRequirement, selectedConnection.Capabilities);
+            var capabilityError = ValidateCapabilities(filters, flagFilter, eventFilter, reportScope, reportRequirement, selectedConnection.Capabilities);
             return capabilityError is null
-                ? (new AnalyticsQuery(connection, from, to, interval, Filters: filters), null)
+                ? (new AnalyticsQuery(connection, from, to, interval, Filters: filters, FlagFilter: flagFilter, EventFilter: eventFilter), null)
                 : (null, capabilityError);
         }
 
@@ -350,14 +352,16 @@ public sealed class WebAnalyticsApiController(
             string.Equals(route.Path, path, StringComparison.Ordinal));
         if (selectedRoute is null)
             return (null, ValidationProblem("The selected path is not a published route for this document and connection."));
-        var documentCapabilityError = ValidateCapabilities(filters, reportScope, reportRequirement, selectedRoute.Capabilities);
+        var documentCapabilityError = ValidateCapabilities(filters, flagFilter, eventFilter, reportScope, reportRequirement, selectedRoute.Capabilities);
         return documentCapabilityError is null
-            ? (new AnalyticsQuery(connection, from, to, interval, selectedRoute.Path, filters), null)
+            ? (new AnalyticsQuery(connection, from, to, interval, selectedRoute.Path, filters, flagFilter, eventFilter), null)
             : (null, documentCapabilityError);
     }
 
     private ActionResult? ValidateCapabilities(
         IReadOnlyList<AnalyticsFilter> filters,
+        AnalyticsFlagFilter? flagFilter,
+        AnalyticsEventFilter? eventFilter,
         ReportScope reportScope,
         ReportRequirement requirement,
         AnalyticsCapabilities capabilities)
@@ -369,6 +373,10 @@ public sealed class WebAnalyticsApiController(
             !capabilities.GlobalEventFiltering &&
             filters.Any(filter => filter.Dimension == AnalyticsDimension.EventName))
             return ValidationProblem("The selected analytics provider does not support event filters for this report.");
+        if (flagFilter is not null && !capabilities.Flags)
+            return ValidationProblem("The selected analytics provider does not support flag filters.");
+        if (eventFilter is not null && !capabilities.GlobalEventPropertyFiltering)
+            return ValidationProblem("The selected analytics provider does not support event property filters.");
 
         var supported = requirement.Capability switch
         {

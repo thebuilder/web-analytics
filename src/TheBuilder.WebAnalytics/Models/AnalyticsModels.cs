@@ -67,6 +67,7 @@ public sealed record AnalyticsCapabilities(
     bool EventDetails,
     bool EventProperties,
     bool GlobalEventFiltering,
+    bool GlobalEventPropertyFiltering,
     bool Flags,
     bool BreakdownOrdering);
 
@@ -76,7 +77,9 @@ public sealed record AnalyticsQuery(
     DateTimeOffset To,
     AnalyticsInterval Interval,
     string? RequestPath = null,
-    IReadOnlyList<AnalyticsFilter>? Filters = null)
+    IReadOnlyList<AnalyticsFilter>? Filters = null,
+    AnalyticsFlagFilter? FlagFilter = null,
+    AnalyticsEventFilter? EventFilter = null)
 {
     internal AnalyticsQuery(
         Guid Connection,
@@ -97,6 +100,10 @@ public sealed record AnalyticsQuery(
 }
 
 public sealed record AnalyticsFilter(AnalyticsDimension Dimension, string Value);
+
+public sealed record AnalyticsFlagFilter(string Key, string Value);
+
+public sealed record AnalyticsEventFilter(string EventName, string Property, string Value);
 
 public sealed record AnalyticsEventDataFilter(string Property, string Value);
 

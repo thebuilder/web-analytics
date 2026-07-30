@@ -143,6 +143,9 @@ public sealed record AnalyticsConnection(
                 EventDetails = supported.EventDetails && EnableEvents,
                 EventProperties = supported.EventProperties && EnableEvents,
                 GlobalEventFiltering = supported.GlobalEventFiltering && EnableEvents,
+                GlobalEventPropertyFiltering = IsMock
+                    ? supported.EventProperties && EnableEvents
+                    : supported.GlobalEventPropertyFiltering && EnableEvents,
                 Flags = supported.Flags && EnableFlags
             };
         }

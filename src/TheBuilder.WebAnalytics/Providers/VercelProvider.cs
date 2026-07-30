@@ -25,6 +25,7 @@ internal static class VercelProvider
                 AnalyticsDimension.EventName
             ],
             globalEventFiltering: false,
+            globalEventPropertyFiltering: false,
             breakdownOrdering: false),
         new(
             AnalyticsConnectionIdentifier.ProjectId,

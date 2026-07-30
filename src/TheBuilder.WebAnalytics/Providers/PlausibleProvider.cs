@@ -25,6 +25,7 @@ internal static class PlausibleProvider
                 AnalyticsDimension.EventName
             ],
             globalEventFiltering: true,
+            globalEventPropertyFiltering: true,
             breakdownOrdering: true),
         new(
             AnalyticsConnectionIdentifier.SiteId,

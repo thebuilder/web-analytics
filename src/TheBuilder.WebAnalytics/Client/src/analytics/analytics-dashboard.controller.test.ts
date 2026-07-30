@@ -11,6 +11,7 @@ const fullCapabilities: AnalyticsCapabilities = {
   eventDetails: true,
   eventProperties: true,
   globalEventFiltering: false,
+  globalEventPropertyFiltering: true,
   flags: true,
   breakdownOrdering: false,
 };
@@ -26,7 +27,8 @@ describe("AnalyticsDashboardController", () => {
         { key: "22222222-2222-2222-2222-222222222222", displayName: "Second", provider: "Vercel", capabilities: fullCapabilities, isDefault: false, isConfigured: true, baseUrl: "https://second.example.com", warnings: [] },
       ],
     }));
-    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    const dashboardEnvironment = environment();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, dashboardEnvironment);
 
     controller.connect();
 
@@ -228,13 +230,13 @@ describe("AnalyticsDashboardController", () => {
     const pending = deferred<ReturnType<typeof ok<{ eventName: string; totals: { count: number; visitors: number }; properties: never[] }>>>();
     api.eventDetails.mockReturnValueOnce(pending.promise);
 
-    const selecting = controller.selectEvent("Signup");
-    expect(controller.state.selectedEvent?.details.status).toBe("loading");
-    controller.closeEventDetails();
+    const selecting = controller.features.selectEvent("Signup");
+    expect(controller.features.state.selectedEvent?.details.status).toBe("loading");
+    controller.features.closeEventDetails();
     pending.resolve(ok({ eventName: "Signup", totals: { count: 1, visitors: 1 }, properties: [] }));
     await selecting;
 
-    expect(controller.state.selectedEvent).toBeUndefined();
+    expect(controller.features.state.selectedEvent).toBeUndefined();
   });
 
   it("keeps the Events list available while viewing event details", async () => {
@@ -242,15 +244,15 @@ describe("AnalyticsDashboardController", () => {
     const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
     controller.connect();
     await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
-    await controller.openEvents();
+    await controller.features.openEvents();
 
-    await controller.selectEvent("Signup");
+    await controller.features.selectEvent("Signup");
 
-    expect(controller.state.expandedEvents?.status).toBe("success");
-    expect(controller.state.selectedEvent?.eventName).toBe("Signup");
-    controller.closeEventDetails();
-    expect(controller.state.expandedEvents?.status).toBe("success");
-    expect(controller.state.selectedEvent).toBeUndefined();
+    expect(controller.features.state.expandedEvents?.status).toBe("success");
+    expect(controller.features.state.selectedEvent?.eventName).toBe("Signup");
+    controller.features.closeEventDetails();
+    expect(controller.features.state.expandedEvents?.status).toBe("success");
+    expect(controller.features.state.selectedEvent).toBeUndefined();
   });
 
   it("opens all events when backing out of details opened from the dashboard", async () => {
@@ -258,13 +260,54 @@ describe("AnalyticsDashboardController", () => {
     const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
     controller.connect();
     await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
-    await controller.selectEvent("Signup");
+    await controller.features.selectEvent("Signup");
 
-    expect(controller.state.expandedEvents).toBeUndefined();
-    await controller.backToEvents();
+    expect(controller.features.state.expandedEvents).toBeUndefined();
+    await controller.features.backToEvents();
 
-    expect(controller.state.selectedEvent).toBeUndefined();
-    expect(controller.state.expandedEvents?.status).toBe("success");
+    expect(controller.features.state.selectedEvent).toBeUndefined();
+    expect(controller.features.state.expandedEvents?.status).toBe("success");
+  });
+
+  it("keeps the Flags list available while viewing a flag and restores it on Back", async () => {
+    const api = dashboardApi();
+    api.flags
+      .mockResolvedValueOnce(ok({ rows: [] }))
+      .mockResolvedValueOnce(ok({ rows: [{ value: "summer-sale", visitors: 184, pageViews: 841 }] }))
+      .mockResolvedValueOnce(ok({ flagKey: "summer-sale", rows: [{ value: "true", visitors: 53, pageViews: 200 }] }));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+
+    await controller.features.openFlags();
+    await controller.features.selectFlag("summer-sale");
+
+    expect(controller.features.state.expandedFlags?.status).toBe("success");
+    expect(controller.features.state.selectedFlag?.flagKey).toBe("summer-sale");
+    expect(stateData(controller.features.state.selectedFlag!.report)?.flagKey).toBe("summer-sale");
+    await controller.features.backToFlags();
+    expect(controller.features.state.expandedFlags?.status).toBe("success");
+    expect(controller.features.state.selectedFlag).toBeUndefined();
+  });
+
+  it("keeps the Flags list request alive while flag details load", async () => {
+    const api = dashboardApi();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    const list = deferred<ReturnType<typeof ok<{ rows: Array<{ value: string; visitors: number; pageViews: number }> }>>>();
+    api.flags
+      .mockReturnValueOnce(list.promise)
+      .mockResolvedValueOnce(ok({ flagKey: "summer-sale", rows: [{ value: "true", visitors: 53, pageViews: 200 }] }));
+
+    const opening = controller.features.openFlags();
+    await vi.waitFor(() => expect(controller.features.state.expandedFlags?.status).toBe("loading"));
+    await controller.features.selectFlag("summer-sale");
+    list.resolve(ok({ rows: [{ value: "summer-sale", visitors: 184, pageViews: 841 }] }));
+    await opening;
+
+    expect(controller.features.state.expandedFlags?.status).toBe("success");
+    expect(controller.features.state.selectedFlag?.report.status).toBe("success");
   });
 
   it("reuses property values returned with event details", async () => {
@@ -278,10 +321,136 @@ describe("AnalyticsDashboardController", () => {
     controller.connect();
     await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
 
-    await controller.selectEvent("Signup");
+    await controller.features.selectEvent("Signup");
 
     expect(api.eventPropertyValues).not.toHaveBeenCalled();
-    expect(controller.state.selectedEvent?.details.status).toBe("success");
+    expect(controller.features.state.selectedEvent?.details.status).toBe("success");
+  });
+
+  it("keeps an event property drill-down on its card after the dialog closes", async () => {
+    const api = dashboardApi();
+    api.eventDetails.mockResolvedValue(ok({
+      eventName: "Signup",
+      totals: { count: 20, visitors: 10 },
+      properties: [{ name: "plan", values: [{ value: "Pro", count: 20, visitors: 10 }] }],
+    }));
+    const dashboardEnvironment = environment();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, dashboardEnvironment);
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    await controller.features.selectEvent("Signup");
+
+    controller.features.applyEventFilter("plan", "Pro");
+
+    expect(controller.features.state.selectedEvent).toBeUndefined();
+    expect(controller.state.eventFilter).toEqual({
+      eventName: "Signup",
+      property: "plan",
+      value: "Pro",
+    });
+    expect(api.summary.mock.calls[api.summary.mock.calls.length - 1]?.[0]?.query).toMatchObject({
+      filterEventName: "Signup",
+      filterEventProperty: "plan",
+      filterEventValue: "Pro",
+    });
+    expect(dashboardEnvironment.currentUrl().searchParams.get("filterEventName")).toBe("Signup");
+    expect(dashboardEnvironment.currentUrl().searchParams.get("filterEventProperty")).toBe("plan");
+    expect(dashboardEnvironment.currentUrl().searchParams.get("filterEventValue")).toBe("Pro");
+
+    await controller.features.selectEvent("Signup");
+    expect(api.eventDetails.mock.calls[api.eventDetails.mock.calls.length - 1]?.[0]?.query).toMatchObject({
+      eventName: "Signup",
+      eventProperty: "plan",
+      eventValue: "Pro",
+    });
+
+    controller.clearEventFilter();
+    expect(controller.state.eventFilter).toBeUndefined();
+    expect(dashboardEnvironment.currentUrl().searchParams.has("filterEventName")).toBe(false);
+  });
+
+  it("restores a URL-backed event filter into the first report request", async () => {
+    const api = dashboardApi();
+    const dashboardEnvironment = environment(
+      "https://cms.example.com/umbraco/section/analytics?filterEventName=Signup&filterEventProperty=plan&filterEventValue=Pro",
+    );
+    const controller = new AnalyticsDashboardController(vi.fn(), api, dashboardEnvironment);
+
+    controller.connect();
+
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    expect(controller.state.eventFilter).toEqual({ eventName: "Signup", property: "plan", value: "Pro" });
+    expect(api.summary.mock.calls[0]?.[0]?.query).toMatchObject({
+      filterEventName: "Signup",
+      filterEventProperty: "plan",
+      filterEventValue: "Pro",
+    });
+    expect(dashboardEnvironment.currentUrl().searchParams.get("filterEventValue")).toBe("Pro");
+  });
+
+  it("removes a restored event filter when the selected provider cannot apply it globally", async () => {
+    const api = dashboardApi();
+    api.connections.mockResolvedValue(ok({
+      enabled: true,
+      defaultRangeDays: 30,
+      connections: [{
+        key: "11111111-1111-1111-1111-111111111111",
+        displayName: "Vercel",
+        provider: "Vercel",
+        capabilities: { ...fullCapabilities, globalEventPropertyFiltering: false },
+        isDefault: true,
+        isConfigured: true,
+        baseUrl: "https://example.com",
+        warnings: [],
+      }],
+    }));
+    const dashboardEnvironment = environment(
+      "https://cms.example.com/umbraco/section/analytics?filterEventName=Signup&filterEventProperty=plan&filterEventValue=Pro",
+    );
+    const controller = new AnalyticsDashboardController(vi.fn(), api, dashboardEnvironment);
+
+    controller.connect();
+
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    expect(controller.state.eventFilter).toBeUndefined();
+    expect(api.summary.mock.calls[0]?.[0]?.query?.filterEventName).toBeUndefined();
+    expect(dashboardEnvironment.currentUrl().searchParams.has("filterEventName")).toBe(false);
+  });
+
+  it("preserves the URL-backed event filter when the report scope changes", async () => {
+    const api = dashboardApi();
+    api.eventDetails.mockResolvedValue(ok({
+      eventName: "Signup",
+      totals: { count: 20, visitors: 10 },
+      properties: [{ name: "plan", values: [{ value: "Pro", count: 20, visitors: 10 }] }],
+    }));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    await controller.features.selectEvent("Signup");
+    controller.features.applyEventFilter("plan", "Pro");
+
+    controller.setDateRange(7, dateRangeForPreset(7));
+
+    expect(controller.state.eventFilter).toEqual({ eventName: "Signup", property: "plan", value: "Pro" });
+  });
+
+  it("preserves the URL-backed event filter when reports are retried", async () => {
+    const api = dashboardApi();
+    api.eventDetails.mockResolvedValue(ok({
+      eventName: "Signup",
+      totals: { count: 20, visitors: 10 },
+      properties: [{ name: "plan", values: [{ value: "Pro", count: 20, visitors: 10 }] }],
+    }));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    await controller.features.selectEvent("Signup");
+    controller.features.applyEventFilter("plan", "Pro");
+
+    controller.retryReports();
+
+    expect(controller.state.eventFilter).toEqual({ eventName: "Signup", property: "plan", value: "Pro" });
   });
 
   it("keeps cached property values visible while refreshing a previously viewed tab", async () => {
@@ -300,17 +469,17 @@ describe("AnalyticsDashboardController", () => {
     controller.connect();
     await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
 
-    await controller.selectEvent("Signup");
-    await vi.waitFor(() => expect(stateData(controller.state.selectedEvent!.property)?.name).toBe("plan"));
+    await controller.features.selectEvent("Signup");
+    await vi.waitFor(() => expect(stateData(controller.features.state.selectedEvent!.property)?.name).toBe("plan"));
 
-    controller.searchEventProperty("source", "");
-    expect(isInitialLoading(controller.state.selectedEvent?.property)).toBe(true);
+    controller.features.searchEventProperty("source", "");
+    expect(isInitialLoading(controller.features.state.selectedEvent?.property)).toBe(true);
     sourceValues.resolve(ok({ name: "source", values: [{ value: "Newsletter", count: 9, visitors: 8 }] }));
-    await vi.waitFor(() => expect(stateData(controller.state.selectedEvent!.property)?.name).toBe("source"));
+    await vi.waitFor(() => expect(stateData(controller.features.state.selectedEvent!.property)?.name).toBe("source"));
 
-    controller.searchEventProperty("plan", "");
-    expect(isInitialLoading(controller.state.selectedEvent?.property)).toBe(false);
-    expect(stateData(controller.state.selectedEvent!.property)?.values).toEqual([{ value: "Pro", count: 20, visitors: 10 }]);
+    controller.features.searchEventProperty("plan", "");
+    expect(isInitialLoading(controller.features.state.selectedEvent?.property)).toBe(false);
+    expect(stateData(controller.features.state.selectedEvent!.property)?.values).toEqual([{ value: "Pro", count: 20, visitors: 10 }]);
   });
 
   it("loads event details without fetching property values when the capability is unavailable", async () => {
@@ -338,12 +507,12 @@ describe("AnalyticsDashboardController", () => {
     controller.connect();
     await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
 
-    await controller.selectEvent("Signup");
-    controller.searchEventProperty("plan", "Pro");
+    await controller.features.selectEvent("Signup");
+    controller.features.searchEventProperty("plan", "Pro");
 
     expect(api.eventDetails).toHaveBeenCalledOnce();
     expect(api.eventPropertyValues).not.toHaveBeenCalled();
-    expect(controller.state.selectedEvent?.details.status).toBe("success");
+    expect(controller.features.state.selectedEvent?.details.status).toBe("success");
   });
 
   it("atomically clears document and dialog state when scope changes", async () => {
@@ -586,6 +755,7 @@ describe("AnalyticsDashboardController", () => {
           eventDetails: true,
           eventProperties: true,
           globalEventFiltering: true,
+          globalEventPropertyFiltering: true,
           flags: false,
           breakdownOrdering: true,
         },
@@ -603,7 +773,7 @@ describe("AnalyticsDashboardController", () => {
     controller.toggleFilter("EventName", "Signup");
     await vi.waitFor(() => expect(api.summary).toHaveBeenCalled());
     expect(api.summary.mock.calls[0]?.[0]?.query?.filter).toEqual(["EventName:Signup"]);
-    await controller.selectEvent("Signup");
+    await controller.features.selectEvent("Signup");
 
     expect(api.events).toHaveBeenCalled();
     expect(api.flags).not.toHaveBeenCalled();
@@ -660,6 +830,68 @@ describe("AnalyticsDashboardController", () => {
     expect(api.summary).not.toHaveBeenCalled();
   });
 
+  it("applies and removes a Vercel flag-value filter across dashboard reports", async () => {
+    const api = dashboardApi();
+    const dashboardEnvironment = environment();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, dashboardEnvironment);
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    api.summary.mockClear();
+
+    controller.toggleFlagFilter("new-pricing-page", "control");
+
+    await vi.waitFor(() => expect(api.summary).toHaveBeenCalled());
+    expect(controller.state.flagFilter).toEqual({ flagKey: "new-pricing-page", value: "control" });
+    expect(api.summary.mock.calls[0]?.[0]?.query).toMatchObject({
+      filterFlagKey: "new-pricing-page",
+      filterFlagValue: "control",
+    });
+    expect(dashboardEnvironment.currentUrl().searchParams.get("filterFlagKey")).toBe("new-pricing-page");
+    expect(dashboardEnvironment.currentUrl().searchParams.get("filterFlagValue")).toBe("control");
+
+    controller.toggleFlagFilter("new-pricing-page", "control");
+    expect(controller.state.flagFilter).toBeUndefined();
+    expect(dashboardEnvironment.currentUrl().searchParams.has("filterFlagKey")).toBe(false);
+    expect(dashboardEnvironment.currentUrl().searchParams.has("filterFlagValue")).toBe(false);
+  });
+
+  it("applies an empty Vercel flag value", async () => {
+    const api = dashboardApi();
+    const dashboardEnvironment = environment();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, dashboardEnvironment);
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    api.summary.mockClear();
+
+    controller.toggleFlagFilter("new-pricing-page", "");
+
+    await vi.waitFor(() => expect(api.summary).toHaveBeenCalled());
+    expect(controller.state.flagFilter).toEqual({ flagKey: "new-pricing-page", value: "" });
+    expect(api.summary.mock.calls[0]?.[0]?.query).toMatchObject({
+      filterFlagKey: "new-pricing-page",
+      filterFlagValue: "",
+    });
+    expect(dashboardEnvironment.currentUrl().searchParams.has("filterFlagValue")).toBe(true);
+  });
+
+  it("closes the selected flag dialog when applying its filter", async () => {
+    const api = dashboardApi();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    await controller.features.openFlags();
+    await controller.features.selectFlag("new-pricing-page");
+
+    controller.toggleFlagFilter("new-pricing-page", "control");
+
+    expect(controller.features.state.expandedFlags).toBeUndefined();
+    expect(controller.features.state.selectedFlag).toBeUndefined();
+    expect(controller.state.flagFilter).toEqual({
+      flagKey: "new-pricing-page",
+      value: "control",
+    });
+  });
+
   it("removes unsupported filters when switching providers", async () => {
     const api = dashboardApi();
     const plausibleCapabilities: AnalyticsCapabilities = {
@@ -670,6 +902,7 @@ describe("AnalyticsDashboardController", () => {
       eventDetails: true,
       eventProperties: true,
       globalEventFiltering: true,
+      globalEventPropertyFiltering: true,
       flags: false,
       breakdownOrdering: true,
     };
