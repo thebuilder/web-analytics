@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using TheBuilder.WebAnalytics.Configuration;
 using TheBuilder.WebAnalytics.Models;
+using TheBuilder.WebAnalytics.Providers;
 
 namespace TheBuilder.WebAnalytics.Tests.Configuration;
 
@@ -39,6 +40,34 @@ public sealed class WebAnalyticsOptionsValidatorTests
         };
 
         Assert.True(_sut.Validate(null, options).Succeeded);
+    }
+
+    [Fact]
+    public void Self_hosted_plausible_base_url_is_valid_and_normalized()
+    {
+        var options = new WebAnalyticsOptions
+        {
+            Providers = { Plausible = { BaseUrl = "https://analytics.example.com/plausible" } }
+        };
+
+        Assert.True(_sut.Validate(null, options).Succeeded);
+        Assert.Equal("https://analytics.example.com/plausible/", PlausibleProvider.GetApiBaseUrl(options).ToString());
+    }
+
+    [Theory]
+    [InlineData("not a URL")]
+    [InlineData("ftp://analytics.example.com")]
+    [InlineData("https://analytics.example.com/?key=secret")]
+    public void Invalid_plausible_base_url_fails_validation(string baseUrl)
+    {
+        var options = new WebAnalyticsOptions
+        {
+            Providers = { Plausible = { BaseUrl = baseUrl } }
+        };
+
+        var result = _sut.Validate(null, options);
+
+        Assert.Contains(result.Failures!, failure => failure.Contains("Providers:Plausible:BaseUrl"));
     }
 
     [Fact]

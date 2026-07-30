@@ -36,7 +36,11 @@ public sealed class VercelAnalyticsProviderOptions
 
 public sealed class PlausibleAnalyticsProviderOptions
 {
+    public const string DefaultBaseUrl = "https://plausible.io/";
+
     public string AccessToken { get; set; } = string.Empty;
+
+    public string BaseUrl { get; set; } = DefaultBaseUrl;
 }
 
 public sealed class AnalyticsConnectionOptions

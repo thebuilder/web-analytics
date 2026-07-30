@@ -27,7 +27,7 @@ The connection and reporting workflow is provider-neutral. Availability of indiv
 | [Vercel Web Analytics](https://vercel.com/docs/analytics) | Project ID (`prj_...`) and optional team | [Scoped access token](https://vercel.com/kb/guide/how-do-i-use-a-vercel-api-access-token) | Custom-event property exploration and feature flags |
 | [Plausible](https://plausible.io/docs/stats-api) | Site ID, normally the registered domain | [Stats API key](https://plausible.io/docs/stats-api#authentication) | Goal and custom-event totals, filtering, and property drill-downs |
 
-Plausible's Stats API requires a Business plan. Self-hosted Plausible is not currently supported.
+Plausible Cloud's Stats API requires a Business plan. Self-hosted Plausible is supported when its instance exposes the v2 Stats API.
 
 ## Install
 
@@ -58,7 +58,7 @@ Create a token in the account settings and scope it to the account or team that 
 
 #### Plausible
 
-Create a [Stats API](https://plausible.io/docs/stats-api) key from the Plausible account API Keys settings. The site ID must exactly match the domain registered in Plausible.
+Create a [Stats API](https://plausible.io/docs/stats-api) key from the Plausible account API Keys settings. The site ID must exactly match the domain registered in Plausible. For a self-hosted instance, also set its public base URL in `WebAnalytics:Providers:Plausible:BaseUrl`.
 
 ### 2. Add the credential to the Umbraco deployment
 
@@ -67,6 +67,7 @@ Configure a shared credential for each provider you use:
 ```text
 WebAnalytics__Providers__Vercel__AccessToken
 WebAnalytics__Providers__Plausible__AccessToken
+WebAnalytics__Providers__Plausible__BaseUrl
 ```
 
 Examples:
@@ -75,6 +76,7 @@ Examples:
 # Local shell or container environment
 export WebAnalytics__Providers__Vercel__AccessToken="your_token"
 export WebAnalytics__Providers__Plausible__AccessToken="your_stats_api_key"
+export WebAnalytics__Providers__Plausible__BaseUrl="https://analytics.example.com/"
 
 # .NET user-secrets
 dotnet user-secrets init \
@@ -170,14 +172,15 @@ Package settings use the `WebAnalytics` section.
 | `Connections` | `[]` | Provider connection definitions. The first connection becomes the initial default. |
 | `ConnectionAccessTokens` | Empty | Optional secret dictionary keyed by a connection GUID. Prefer the copyable environment-variable name shown in the settings UI. |
 
-#### Provider credentials
+#### Provider configuration
 
-Provider credentials are shared by every connection using that provider unless a connection-specific override is configured.
+Provider credentials are shared by every connection using that provider unless a connection-specific override is configured. Plausible's base URL applies to every Plausible connection.
 
-| Provider | Configuration key | Description |
-| --- | --- | --- |
-| Vercel | `Providers:Vercel:AccessToken` | Scoped access token for the account or team that owns the configured projects. |
-| Plausible | `Providers:Plausible:AccessToken` | Stats API key from a Plausible Business account. |
+| Setting | Configuration key | Default | Description |
+| --- | --- | --- | --- |
+| Vercel token | `Providers:Vercel:AccessToken` | Empty | Scoped access token for the account or team that owns the configured projects. |
+| Plausible token | `Providers:Plausible:AccessToken` | Empty | Stats API key. Plausible Cloud requires a Business plan. |
+| Plausible base URL | `Providers:Plausible:BaseUrl` | `https://plausible.io/` | Base URL of the Plausible Cloud or self-hosted instance. It must expose `/api/v2/query`. |
 
 Each entry under `Connections` supports:
 

@@ -16,4 +16,10 @@ internal sealed class AnalyticsProviderRegistration(
         Uri baseAddress)
         where TClient : class, IAnalyticsProviderClient =>
         new(definition, services => services.AddAnalyticsProvider<TClient>(baseAddress));
+
+    internal static AnalyticsProviderRegistration Create<TClient>(
+        AnalyticsProviderDefinition definition,
+        Func<WebAnalyticsOptions, Uri> baseAddress)
+        where TClient : class, IAnalyticsProviderClient =>
+        new(definition, services => services.AddAnalyticsProvider<TClient>(baseAddress));
 }

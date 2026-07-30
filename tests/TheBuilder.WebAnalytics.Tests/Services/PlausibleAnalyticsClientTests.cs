@@ -26,6 +26,19 @@ public sealed class PlausibleAnalyticsClientTests
     }
 
     [Fact]
+    public async Task Count_targets_configured_self_hosted_base_url()
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[42,31]}]}""");
+        var client = new PlausibleAnalyticsClient(
+            new HttpClient(handler) { BaseAddress = new Uri("https://analytics.example.com/plausible/") },
+            new AnalyticsProviderRequestGate());
+
+        await client.CountAsync(CreateConnection(), CreateQuery(), CancellationToken.None);
+
+        Assert.Equal("https://analytics.example.com/plausible/api/v2/query", handler.Request?.RequestUri?.ToString());
+    }
+
+    [Fact]
     public async Task Count_applies_a_global_event_name_filter()
     {
         var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[15,12]}]}""");
