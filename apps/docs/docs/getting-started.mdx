@@ -19,29 +19,27 @@ The package registers its services and backoffice extensions automatically. Buil
 
 Create a read-only credential with access to the provider account or site being connected. Add it to the application's secret configuration—not `appsettings.json` and never source control. Restart every Umbraco application instance after adding or rotating the credential.
 
-<Tabs param="provider">
-  <Tab title="Vercel">
-    Create a Vercel access token with read access to the project. Configure it as `WebAnalytics__Providers__Vercel__AccessToken`, then use the project's ID as the connection identifier in Umbraco. Add the team ID only when the project belongs to a Vercel team.
+Choose the provider that already collects your site analytics:
 
-    For local development, use either a shell environment variable or .NET user secrets:
+- **Vercel** — Create an access token with read access to the project. Configure it as `WebAnalytics__Providers__Vercel__AccessToken`, then use the project's ID as the connection identifier in Umbraco. Add the team ID only when the project belongs to a Vercel team.
+- **Plausible** — Create a Stats API key with access to the site. Configure it as `WebAnalytics__Providers__Plausible__AccessToken`, then use the site's exact domain as the connection identifier in Umbraco. For a self-hosted instance, also configure `WebAnalytics__Providers__Plausible__BaseUrl` with its public base URL. The instance must expose `/api/v2/query`.
 
-    ```sh
-    dotnet user-secrets init --project path/to/Your.Umbraco.Web.csproj
-    dotnet user-secrets set "WebAnalytics:Providers:Vercel:AccessToken" "your_token" --project path/to/Your.Umbraco.Web.csproj
-    ```
-  </Tab>
-  <Tab title="Plausible">
-    Create a Plausible Stats API key with access to the site. Configure it as `WebAnalytics__Providers__Plausible__AccessToken`, then use the site's exact domain as the connection identifier in Umbraco. For a self-hosted instance, also configure `WebAnalytics__Providers__Plausible__BaseUrl` with its public base URL. The instance must expose `/api/v2/query`.
+For local development, use either a shell environment variable or .NET user secrets:
 
-    For local development, use either a shell environment variable or .NET user secrets:
+<CodeGroup>
 
-    ```sh
-    dotnet user-secrets init --project path/to/Your.Umbraco.Web.csproj
-    dotnet user-secrets set "WebAnalytics:Providers:Plausible:AccessToken" "your_stats_api_key" --project path/to/Your.Umbraco.Web.csproj
-    dotnet user-secrets set "WebAnalytics:Providers:Plausible:BaseUrl" "https://analytics.example.com/" --project path/to/Your.Umbraco.Web.csproj
-    ```
-  </Tab>
-</Tabs>
+```sh Vercel
+dotnet user-secrets init --project path/to/Your.Umbraco.Web.csproj
+dotnet user-secrets set "WebAnalytics:Providers:Vercel:AccessToken" "your_token" --project path/to/Your.Umbraco.Web.csproj
+```
+
+```sh Plausible
+dotnet user-secrets init --project path/to/Your.Umbraco.Web.csproj
+dotnet user-secrets set "WebAnalytics:Providers:Plausible:AccessToken" "your_stats_api_key" --project path/to/Your.Umbraco.Web.csproj
+dotnet user-secrets set "WebAnalytics:Providers:Plausible:BaseUrl" "https://analytics.example.com/" --project path/to/Your.Umbraco.Web.csproj
+```
+
+</CodeGroup>
 
 Use the equivalent secret or app-setting facility in your hosting platform.
 
