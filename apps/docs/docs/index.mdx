@@ -1,52 +1,39 @@
 ---
-title: Web Analytics for Umbraco
-description: Web Analytics provides a dedicated Analytics section with reports for visitors, page views, trends, acquisition, audience, pages, routes, and campaigns, plus mapped published document workspaces.
+title: Overview
+description: Bring the analytics your site already collects into Umbraco, giving editors useful traffic reports in the backoffice and on mapped documents.
 ---
 
-Web Analytics connects [Vercel Web Analytics](https://vercel.com/docs/analytics) and [Plausible](https://plausible.io/docs/stats-api) to Umbraco's dedicated Analytics section, so editors can understand traffic where they manage content.
+## Supported providers
 
-It provides a dedicated Analytics section with reports covering visitors, page views, trends, acquisition, audience, pages, routes, and campaigns. Document-workspace analytics are scoped to the mapped published document's route.
+Choose the reference for the analytics provider your site already has.
 
-It reads analytics your provider already collects. It does **not** install, replace, or configure tracking on your public website.
+<CardGroup cols={2}>
+  <Card title="Vercel Web Analytics" href="/providers/vercel">
+    Reference connection fields, team projects, feature flags, and Vercel-specific errors.
+  </Card>
+  <Card title="Plausible" href="/providers/plausible">
+    Reference Cloud and self-hosted connections, event properties, and Plausible-specific errors.
+  </Card>
+</CardGroup>
+
+:::tip[Ready to connect your analytics?]
+[Follow the Quickstart](/quickstart) to install the package, connect the provider your site already uses, and verify the dashboard.
+:::
 
 ![The global Analytics dashboard in the Umbraco backoffice](./screenshots/analytics-overview.png)
 
-## Start here
-
-<Steps>
-  <Step title="Install the package">
-    [Add Web Analytics to your Umbraco project](/getting-started), then build and deploy it as usual.
-  </Step>
-  <Step title="Configure and test a connection">
-    Create a provider credential, add it to server-side configuration, then add and test the connection in **Settings → Web Analytics**. Follow the provider-specific guide for [Vercel](/providers/vercel) or [Plausible](/providers/plausible) when you need its identifiers and capabilities.
-  </Step>
-  <Step title="Open Analytics">
-    Verify the global **Analytics** section, then set up [document analytics](/guides/document-analytics) when editors need page-level reports.
-  </Step>
-</Steps>
-
 ## What you get
 
-- Analytics is displayed in mapped published document workspaces and scoped to the document route.
-- Provider-supported activity reports appear when available.
-- Date comparisons, filters, and drill-downs that help editors move from a headline number to useful context.
-- More than one connection for multi-site Umbraco installations.
-- Server-side provider access: credentials remain in the application configuration, never in the browser or Umbraco content.
+- **Traffic reports.** Explore visitors, page views, trends, acquisition, audience, pages, routes, and campaigns.
+- **Document context.** Show analytics in mapped published document workspaces, scoped to the document's route.
+- **Useful detail.** Use date comparisons, filters, and drill-downs to move from a headline number to useful context.
+- **Multi-site support.** Add more than one connection to an Umbraco installation.
+- **Private credentials.** Keep provider access in server-side application configuration, never in the browser or Umbraco content.
+- **No tracking changes.** Read provider-collected data without installing, replacing, or configuring public-site tracking.
 
-## Supported versions and providers
+## Compatibility
 
-Web Analytics supports Umbraco CMS 17.1 through 18.x.
-
-| Provider | Identifier | Credential | Provider-specific capabilities |
-| --- | --- | --- | --- |
-| Vercel Web Analytics | Project ID (`prj_...`) and optional team | Scoped access token | Feature flags |
-| Plausible | Site ID, usually the registered domain | Stats API key | Global event filtering and configurable event-property names |
-
-Both providers support core reports, event lists and details, and event-property drill-downs. The interface hides unsupported reports instead of presenting them as errors.
-
-:::note
-Plausible Cloud's Stats API requires a Business plan. Self-hosted Plausible is supported when its instance exposes the v2 Stats API query endpoint.
-:::
+Web Analytics supports Umbraco CMS 17.1 through 18.x. [Vercel Web Analytics](/providers/vercel) and [Plausible](/providers/plausible) both provide core reports, event lists and details, and event-property drill-downs. The interface hides provider capabilities that are not available instead of presenting them as errors.
 
 ## Need the details?
 

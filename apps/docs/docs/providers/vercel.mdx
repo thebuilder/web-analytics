@@ -1,32 +1,27 @@
 ---
 title: Vercel Web Analytics
-description: Connect a Vercel project and understand its available analytics reports.
+description: Reference for Vercel Web Analytics connection fields, reports, team projects, credential overrides, and common connection errors.
 ---
 
-Use this guide after following the shared [getting-started flow](/getting-started).
+The [quickstart](/quickstart) owns the first-time setup flow. Use this page to look up Vercel-specific requirements, connection fields, and capabilities.
 
 ## About Vercel Web Analytics
 
 [Vercel Web Analytics](https://vercel.com/docs/analytics) is Vercel's analytics product for understanding traffic to a Vercel project. This package reads the reports Vercel already collects and makes them available in Umbraco; it does not add tracking to the public site.
 
-## Create the credential
+## Requirements
 
-Create a Vercel token in account settings and scope it to the account or team that owns the project. The access token must be configured server-side.
+The connection needs a [Vercel access token](https://vercel.com/kb/guide/how-do-i-use-a-vercel-api-access-token) scoped to the account or team that owns the project. Configure the token server-side; it is never stored in Umbraco.
 
-```text
-WebAnalytics__Providers__Vercel__AccessToken
-```
+## Connection fields
 
-For a team-owned project, copy either the team ID (`team_...`) or team slug as well.
+| Field | Value |
+| --- | --- |
+| Credential setting | `WebAnalytics__Providers__Vercel__AccessToken` |
+| Project ID | Vercel project identifier beginning with `prj_...` |
+| Team | Optional for a personal project; for a team-owned project, use its `team_...` ID or slug |
 
-## Add the connection
-
-In **Settings → Web Analytics**, choose **Vercel** and enter:
-
-- **Project ID** — the Vercel project identifier beginning with `prj_...`.
-- **Team** — optional. Leave it blank for a personal project.
-
-Save, then select **Test connection**. A `401` or `403` generally means the token cannot access the project; a `400` usually means the project ID or optional team value is invalid.
+Add these values in **Settings → Web Analytics**. A `401` or `403` generally means the token cannot access the project; a `400` usually means the project ID or optional team value is invalid.
 
 ## Capabilities
 

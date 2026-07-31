@@ -6,7 +6,7 @@ questions:
       - The package registers its services and backoffice extensions automatically.
       - Build and deploy the Umbraco application as usual; NuGet static web assets include the App_Plugins files.
     routes:
-      - /getting-started
+      - /quickstart
 
   - id: configure-provider-secret
     question: How should I securely create, configure, deploy, and rotate an analytics provider credential?
@@ -16,7 +16,7 @@ questions:
       - Use the hosting platform's equivalent secret or app-setting facility in deployed environments.
       - Restart every Umbraco application instance after adding or rotating a credential.
     routes:
-      - /getting-started
+      - /quickstart
 
   - id: add-first-connection
     question: How do I add and test my first analytics connection, and how can I confirm whether it uses a shared credential or a connection override?
@@ -26,7 +26,7 @@ questions:
       - Enter the provider identifier, save settings, and select Test connection.
       - The settings screen reports whether it detected a shared credential or connection override without displaying or storing a token.
     routes:
-      - /getting-started
+      - /quickstart
 
   - id: settings-precedence
     question: How does Web Analytics configuration precedence work before and after the first Settings → Web Analytics save?

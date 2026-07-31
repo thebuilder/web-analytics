@@ -29,6 +29,7 @@ export default defineConfig({
       { label: "Changelog", path: "/changelog", href: "/changelog" },
     ],
   },
+  redirects: [{ from: "/getting-started", to: "/quickstart", status: 301 }],
   deployment: {
     output: "static",
     site: "https://umbraco-web-analytics.vercel.app",
