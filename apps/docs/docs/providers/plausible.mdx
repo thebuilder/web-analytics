@@ -1,39 +1,29 @@
 ---
 title: Plausible
-description: Connect Plausible Cloud or a self-hosted Plausible site and configure event properties.
+description: Reference for Plausible Cloud and self-hosted connections, including fields, endpoint requirements, event properties, reports, and common errors.
 ---
 
-Use this guide after following the shared [getting-started flow](/getting-started).
+The [quickstart](/quickstart) owns the first-time setup flow. Use this page to look up Plausible-specific requirements, connection fields, and capabilities.
 
 ## About Plausible
 
 [Plausible](https://plausible.io/) is a privacy-friendly, open-source web analytics platform available as a hosted service or self-hosted instance. This package reads the reports Plausible already collects and makes them available in Umbraco; it does not add tracking to the public site.
 
-## Create the credential
+## Cloud and self-hosted requirements
 
-Create a Stats API key in Plausible and store it in the application's secret configuration:
+The connection needs a Plausible Stats API key in server-side configuration. Plausible Cloud's Stats API requires a Business plan.
 
-```text
-WebAnalytics__Providers__Plausible__AccessToken
-```
+Self-hosted Plausible is supported when the instance exposes the v2 Stats API query endpoint. Its public base URL must use HTTP or HTTPS and cannot include user information, a query, or a fragment. The Umbraco application must be able to reach its `/api/v2/query` endpoint.
 
-Plausible Cloud's Stats API requires a Business plan. Self-hosted Plausible is supported when the instance exposes the v2 Stats API query endpoint.
+## Connection fields
 
-## Configure a self-hosted instance
+| Field | Value |
+| --- | --- |
+| Credential setting | `WebAnalytics__Providers__Plausible__AccessToken` |
+| Site ID | The registered site ID, normally the domain, matching Plausible exactly |
+| Self-hosted base URL | `WebAnalytics__Providers__Plausible__BaseUrl=https://analytics.example.com/`; Cloud users keep the default `https://plausible.io/` |
 
-Set the public base URL of a self-hosted instance in server-side configuration. The URL must use HTTP or HTTPS and cannot include user information, a query, or a fragment. Its `/api/v2/query` endpoint must be reachable from the Umbraco application.
-
-```text
-WebAnalytics__Providers__Plausible__BaseUrl=https://analytics.example.com/
-```
-
-The default is `https://plausible.io/`, so Cloud users do not need to set this value.
-
-## Add the connection
-
-In **Settings → Web Analytics**, choose **Plausible** and enter the **Site ID**. This normally is the domain registered in Plausible and must match it exactly.
-
-Save, then select **Test connection**. A `401` or `403` usually means the Stats API key cannot read that site; a rejected query commonly means the Site ID does not match the registered domain.
+Add these values in **Settings → Web Analytics**. A `401` or `403` usually means the Stats API key cannot read that site; a rejected query commonly means the Site ID does not match the registered domain.
 
 ## Event properties
 
@@ -47,3 +37,5 @@ Add custom event-property names when the site records properties beyond Plausibl
 Plausible connections provide core totals, history, traffic breakdowns, UTM dimensions, event lists, event-property drill-downs, global event and event-property filtering, and selectable breakdown ordering.
 
 Plausible does not expose Vercel feature flags, so the flags panel is hidden for this provider.
+
+For step-by-step credential creation, connection setup, and testing, return to the [quickstart](/quickstart).
