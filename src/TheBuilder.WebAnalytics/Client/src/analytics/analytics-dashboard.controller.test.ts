@@ -93,7 +93,29 @@ describe("AnalyticsDashboardController", () => {
 
     await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
     expect(controller.state.provider).toBe("Plausible");
-    expect(controller.state.connections).toEqual([]);
+    expect(controller.state.connections).toHaveLength(1);
+    expect(controller.state.connections[0]?.provider).toBe("Plausible");
+  });
+
+  it("restores and updates the root-scoped document connection preference", async () => {
+    const api = dashboardApi();
+    const primary = route("/case", "en-US");
+    const secondary = { ...primary, connection: "22222222-2222-2222-2222-222222222222", displayName: "Plausible", provider: "Plausible" as const };
+    api.documentRoutes.mockResolvedValue(ok([primary, secondary]));
+    const setStoredDocumentConnection = vi.fn();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, {
+      ...environment(),
+      getStoredDocumentConnection: () => secondary.connection,
+      setStoredDocumentConnection,
+    });
+
+    controller.connect("document-id", "en-US");
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+
+    expect(controller.state.connection).toBe(secondary.connection);
+    expect(controller.state.connections.map(({ displayName }) => displayName)).toEqual(["Main", "Plausible"]);
+    controller.setConnection(primary.connection);
+    expect(setStoredDocumentConnection).toHaveBeenCalledWith(primary.documentRoot, primary.connection);
   });
 
   it("does not restore a breakdown after its dialog closes during a request", async () => {
@@ -980,7 +1002,7 @@ function dashboardApi() {
 }
 
 function route(path: string, culture: string): AnalyticsDocumentRoute {
-  return { connection: "11111111-1111-1111-1111-111111111111", provider: "Vercel", capabilities: fullCapabilities, culture, hostname: "example.com", path, url: `https://example.com${path}`, isCurrent: true, warnings: [] };
+  return { connection: "11111111-1111-1111-1111-111111111111", displayName: "Main", documentRoot: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", provider: "Vercel", capabilities: fullCapabilities, culture, hostname: "example.com", path, url: `https://example.com${path}`, isCurrent: true, warnings: [] };
 }
 
 function environment(initialUrl = "https://cms.example.com/umbraco/section/analytics"): DashboardEnvironment {
@@ -990,6 +1012,8 @@ function environment(initialUrl = "https://cms.example.com/umbraco/section/analy
     replaceUrl: (next) => { url = new URL(next); },
     getStoredConnection: () => null,
     setStoredConnection: vi.fn(),
+    getStoredDocumentConnection: () => null,
+    setStoredDocumentConnection: vi.fn(),
     languages: ["en-US"],
   };
 }

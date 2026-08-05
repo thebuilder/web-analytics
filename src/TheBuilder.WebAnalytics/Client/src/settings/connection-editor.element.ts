@@ -113,10 +113,10 @@ export class AnalyticsConnectionEditorElement extends UmbElementMixin(LitElement
     return count ? `${count} selected document type${count === 1 ? "" : "s"}` : "No document workspace analytics";
   }
 
-  async #copyTokenKey(): Promise<void> {
+  async #copyTokenKey(settingName: string): Promise<void> {
     window.clearTimeout(this._copyStatusTimer);
     try {
-      await navigator.clipboard.writeText(`WebAnalytics__ConnectionAccessTokens__${this.connection.key}`);
+      await navigator.clipboard.writeText(settingName);
       this._tokenCopyStatus = "copied";
     } catch {
       this._tokenCopyStatus = "failed";
@@ -130,21 +130,42 @@ export class AnalyticsConnectionEditorElement extends UmbElementMixin(LitElement
 
   #renderCredentialSection(connection: EditableAnalyticsConnection, descriptor: AnalyticsProviderDescriptor) {
     const required = !connection.hasAccessToken;
+    const connectionCredentialKey = `WebAnalytics__ConnectionAccessTokens__${connection.key}`;
+    const sharedCredentialKey = `WebAnalytics__Providers__${connection.provider}__AccessToken`;
     return html`<details class="config-section token-section">
       <summary><span>${required ? "Connection credential" : "Credential override"}</span><small>${required ? "Required before testing" : connection.hasAccessTokenOverride ? "Configured on the server" : "Using shared credential"}</small></summary>
       <div class="config-content token-content">
         <p>
           ${required
-            ? `No shared ${connection.provider} ${descriptor.credential.label} was detected. Add a connection-specific credential before testing this connection.`
+            ? `No ${connection.provider} ${descriptor.credential.label} was detected. Configure either a shared credential for all ${connection.provider} connections or a connection-specific credential for this connection.`
             : `Set a connection-specific credential only when this connection cannot use the shared ${connection.provider} ${descriptor.credential.label}.`}
           <a href=${descriptor.credential.documentationUrl} target="_blank" rel="noopener noreferrer" aria-label=${`Create a ${connection.provider} ${descriptor.credential.label} (opens in a new tab)`}>
             Create a ${connection.provider} ${descriptor.credential.label}<uui-icon name="icon-out" aria-hidden="true"></uui-icon>
           </a>
         </p>
-        <div class="token-key">
-          <code>WebAnalytics__ConnectionAccessTokens__${connection.key}</code>
-          <uui-button compact look="secondary" label="Copy credential setting name" @click=${this.#copyTokenKey}>${this._tokenCopyStatus === "copied" ? "Copied" : "Copy"}</uui-button>
-        </div>
+        ${required ? html`
+          <div class="credential-settings">
+            <div>
+              <span class="credential-setting-label">Shared credential</span>
+              <div class="token-key">
+                <code>${sharedCredentialKey}</code>
+                <uui-button compact look="secondary" label="Copy shared credential setting name" @click=${() => this.#copyTokenKey(sharedCredentialKey)}>${this._tokenCopyStatus === "copied" ? "Copied" : "Copy"}</uui-button>
+              </div>
+            </div>
+            <div>
+              <span class="credential-setting-label">Connection-specific credential</span>
+              <div class="token-key">
+                <code>${connectionCredentialKey}</code>
+                <uui-button compact look="secondary" label="Copy connection credential setting name" @click=${() => this.#copyTokenKey(connectionCredentialKey)}>${this._tokenCopyStatus === "copied" ? "Copied" : "Copy"}</uui-button>
+              </div>
+            </div>
+          </div>
+        ` : html`
+          <div class="token-key">
+            <code>${connectionCredentialKey}</code>
+            <uui-button compact look="secondary" label="Copy connection credential setting name" @click=${() => this.#copyTokenKey(connectionCredentialKey)}>${this._tokenCopyStatus === "copied" ? "Copied" : "Copy"}</uui-button>
+          </div>
+        `}
         <span class=${`copy-feedback${this._tokenCopyStatus === "failed" ? " error" : ""}`} role="status" aria-live="polite">
           ${this._tokenCopyStatus === "failed" ? "Could not copy the setting name. Select and copy it manually." : this._tokenCopyStatus === "copied" ? "Setting name copied." : ""}
         </span>
@@ -425,6 +446,8 @@ export class AnalyticsConnectionEditorElement extends UmbElementMixin(LitElement
     .token-content p { margin-top: 0; }
     .token-content a { align-items: center; color: var(--uui-color-interactive); display: inline-flex; gap: var(--uui-size-space-1); margin-inline-start: var(--uui-size-space-1); }
     .token-content a uui-icon { font-size: 0.875em; }
+    .credential-settings { display: grid; gap: var(--uui-size-space-4); }
+    .credential-setting-label { display: block; font-size: var(--uui-type-small-size); font-weight: 700; margin-block-end: var(--uui-size-space-2); }
     .token-key { align-items: center; background: var(--uui-color-surface-alt); display: flex; gap: var(--uui-size-space-3); justify-content: space-between; max-inline-size: 52rem; padding: var(--uui-size-space-3); }
     .copy-feedback { color: var(--uui-color-positive-standalone); display: block; margin-block-start: var(--uui-size-space-2); min-block-size: 1lh; }
     .copy-feedback.error { color: var(--uui-color-danger-standalone); }

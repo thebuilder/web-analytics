@@ -4,7 +4,7 @@ import { parseDashboardUrlState, writeDashboardUrlState } from "./dashboard-url-
 describe("analytics dashboard URL state", () => {
   it("parses shareable report state and ignores malformed filters", () => {
     const state = parseDashboardUrlState(new URLSearchParams(
-      "connection=main&range=30&from=2026-06-17T00%3A00%3A00Z&to=2026-07-16T00%3A00%3A00Z&tz=UTC&metric=pageViews&audience=BrowserName&utm=UtmCampaign&filter=Country%3ADK&filter=RequestPath%3A%2Fnews%3Aarchive&filter=EventName%3ASignup&filter=Nope%3Ax&filter=Country%3AUS&filterFlagKey=new-pricing-page&filterFlagValue=editorial%3Acompact",
+      "connection=main&range=30&from=2026-06-17T00%3A00%3A00Z&to=2026-07-16T00%3A00%3A00Z&tz=UTC&metric=pageViews&audience=BrowserName&utm=UtmCampaign&filter=Country%3ADK&filter=RequestPath%3A%2Fnews%3Aarchive&filter=EventName%3ASignup&filter=Nope%3Ax&filter=Country%3AUS&filterFlagKey=new-pricing-page&filterFlagValue=editorial%3Acompact&includeChildPaths=true",
     ));
 
     expect(state.connection).toBe("main");
@@ -19,6 +19,7 @@ describe("analytics dashboard URL state", () => {
       { dimension: "EventName", value: "Signup" },
     ]);
     expect(state.flagFilter).toEqual({ flagKey: "new-pricing-page", value: "editorial:compact" });
+    expect(state.includeChildPaths).toBe(true);
   });
 
   it("writes analytics state while preserving unrelated Umbraco parameters", () => {
@@ -32,6 +33,7 @@ describe("analytics dashboard URL state", () => {
       filters: [{ dimension: "Country", value: "DK" }],
       flagFilter: { flagKey: "new-pricing-page", value: "control" },
       eventFilter: { eventName: "Signup completed", property: "plan", value: "Pro" },
+      includeChildPaths: true,
     });
 
     expect(url.searchParams.get("umbDebug")).toBe("true");
@@ -44,6 +46,7 @@ describe("analytics dashboard URL state", () => {
     expect(url.searchParams.get("filterEventName")).toBe("Signup completed");
     expect(url.searchParams.get("filterEventProperty")).toBe("plan");
     expect(url.searchParams.get("filterEventValue")).toBe("Pro");
+    expect(url.searchParams.get("includeChildPaths")).toBe("true");
     expect(parseDashboardUrlState(url.searchParams).eventFilter).toEqual({
       eventName: "Signup completed",
       property: "plan",

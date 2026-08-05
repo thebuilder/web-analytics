@@ -1,7 +1,7 @@
 import { LitElement, css, customElement, html, property } from "@umbraco-cms/backoffice/external/lit";
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
-import type { UUISelectElement } from "@umbraco-cms/backoffice/external/uui";
+import type { UUISelectElement, UUIToggleElement } from "@umbraco-cms/backoffice/external/uui";
 import type { AnalyticsConnectionSummary, AnalyticsDocumentRoute } from "../api/types.gen.js";
 import type { AnalyticsDateRange, DatePreset } from "./date-range.js";
 import { googleFaviconUrl } from "./favicon.js";
@@ -16,6 +16,7 @@ export class WebAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEleme
   @property() preset: DatePreset = 30;
   @property() siteUrl?: string;
   @property({ type: Boolean }) documentScoped = false;
+  @property({ type: Boolean }) includeChildPaths = false;
   #failedFaviconHostname?: string;
 
   #connection(): AnalyticsConnectionSummary | undefined {
@@ -46,6 +47,14 @@ export class WebAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEleme
       bubbles: true,
       composed: true,
       detail: { connection: (event.target as UUISelectElement).value as string },
+    }));
+  }
+
+  #onIncludeChildPathsChange(event: Event): void {
+    this.dispatchEvent(new CustomEvent("include-child-paths-change", {
+      bubbles: true,
+      composed: true,
+      detail: { includeChildPaths: (event.target as UUIToggleElement).checked },
     }));
   }
 
@@ -81,9 +90,12 @@ export class WebAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEleme
           ` : siteLabel ? html`
             <span class="site-name"><uui-icon name="icon-globe" aria-hidden="true"></uui-icon><span>${siteLabel}</span></span>
           ` : ""}
+          ${this.documentScoped ? html`
+            <uui-toggle class="child-paths-toggle" label="Include child paths" ?checked=${this.includeChildPaths} @change=${this.#onIncludeChildPathsChange}>Include child paths</uui-toggle>
+          ` : ""}
         </div>
         <div class="controls">
-          ${!this.documentScoped && this.connections.length > 1 ? html`
+          ${this.connections.length > 1 ? html`
             <uui-select class="project-select" label="Analytics connection" .options=${this.#selectOptions()} @change=${this.#onConnectionChange}></uui-select>
           ` : ""}
           ${showDateRange ? html`<web-analytics-date-range-picker .preset=${this.preset} .range=${this.range}></web-analytics-date-range-picker>` : ""}
@@ -121,6 +133,7 @@ export class WebAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEleme
       min-inline-size: 11rem;
     }
     .project-select:hover { --uui-select-background-color: var(--uui-color-surface-alt); }
+    .child-paths-toggle { margin-inline-start: var(--uui-size-space-2); white-space: nowrap; }
     .warnings { display: flex; flex-wrap: wrap; gap: var(--uui-size-space-3); margin-bottom: var(--uui-size-space-5); }
     .warnings:empty { display: none; }
     .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
@@ -133,7 +146,7 @@ export class WebAnalyticsDashboardHeaderElement extends UmbElementMixin(LitEleme
       header { align-items: stretch; }
       .site-context { flex: 1 1 100%; }
       .controls { align-items: stretch; inline-size: 100%; margin-inline-start: 0; }
-      .project-select, web-analytics-date-range-picker { box-sizing: border-box; flex: 1 1 100%; inline-size: 100%; max-inline-size: none; }
+      .project-select, .child-paths-toggle, web-analytics-date-range-picker { box-sizing: border-box; flex: 1 1 100%; inline-size: 100%; max-inline-size: none; }
     }
   `];
 }

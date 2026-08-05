@@ -59,8 +59,6 @@ public static class WebAnalyticsSettingsValidator
         {
             if (!Guid.TryParse(value, out var key))
                 failures.Add($"Connection '{label}' contains invalid document root key '{value}'.");
-            else if (roots.TryGetValue(key, out var owner))
-                failures.Add($"Document root '{key}' is assigned to both '{owner}' and '{connection.Key}'.");
             else
                 roots[key] = connection.Key;
         }

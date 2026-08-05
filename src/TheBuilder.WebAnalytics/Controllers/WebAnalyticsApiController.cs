@@ -320,7 +320,7 @@ public sealed class WebAnalyticsApiController(
         {
             return (null, ValidationProblem(filterError!));
         }
-        var (filters, flagFilter, eventFilter) = parsedFilters;
+        var (filters, flagFilter, eventFilter, includeChildPaths) = parsedFilters;
         if (!registry.Settings.Enabled)
         {
             return (null, WebAnalyticsProblemFactory.CreateResult(
@@ -354,7 +354,7 @@ public sealed class WebAnalyticsApiController(
             return (null, ValidationProblem("The selected path is not a published route for this document and connection."));
         var documentCapabilityError = ValidateCapabilities(filters, flagFilter, eventFilter, reportScope, reportRequirement, selectedRoute.Capabilities);
         return documentCapabilityError is null
-            ? (new AnalyticsQuery(connection, from, to, interval, selectedRoute.Path, filters, flagFilter, eventFilter), null)
+            ? (new AnalyticsQuery(connection, from, to, interval, selectedRoute.Path, includeChildPaths, filters, flagFilter, eventFilter), null)
             : (null, documentCapabilityError);
     }
 

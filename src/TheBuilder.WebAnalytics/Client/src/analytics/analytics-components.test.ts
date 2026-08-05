@@ -75,6 +75,8 @@ describe("analytics presentation components", () => {
     element.siteUrl = "https://example.com";
     element.route = {
       connection: "11111111-1111-1111-1111-111111111111",
+      displayName: "Main",
+      documentRoot: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
       provider: "Vercel",
       capabilities: { dimensions: ["RequestPath"], events: true, eventDetails: true, eventProperties: true, globalEventFiltering: false, globalEventPropertyFiltering: true, flags: true, breakdownOrdering: false },
       culture: "en-US",
@@ -97,6 +99,8 @@ describe("analytics presentation components", () => {
     expect(favicon?.height).toBe(20);
     expect(favicon?.getAttribute("referrerpolicy")).toBe("no-referrer");
     expect(element.shadowRoot?.querySelector(".site-mark uui-icon")).toBeNull();
+    expect(element.shadowRoot?.querySelector(".site-context .child-paths-toggle")?.textContent).toContain("Include child paths");
+    expect(element.shadowRoot?.querySelector(".controls .child-paths-toggle")).toBeNull();
 
     favicon?.dispatchEvent(new Event("error"));
     await element.updateComplete;

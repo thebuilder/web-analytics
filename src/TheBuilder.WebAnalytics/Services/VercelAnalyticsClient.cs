@@ -308,7 +308,11 @@ public sealed class VercelAnalyticsClient(
         AddTeamScope(parameters, connection.Team);
         if (query.RequestPath is not null)
         {
-            parameters["filter"] = $"requestPath eq '{EscapeODataString(query.RequestPath)}'";
+            var path = EscapeODataString(query.RequestPath);
+            var childPathPrefix = query.RequestPath == "/" ? "/" : $"{path}/";
+            parameters["filter"] = query.IncludeChildPaths
+                ? $"requestPath eq '{path}' or startswith(requestPath, '{childPathPrefix}')"
+                : $"requestPath eq '{path}'";
         }
         foreach (var filter in query.Filters?.Where(filter => filter.Dimension != AnalyticsDimension.EventName) ?? [])
         {

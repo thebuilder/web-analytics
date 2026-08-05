@@ -33,7 +33,7 @@ import { detectUtmCapability, type UtmCapability } from "./utm-capability.js";
 import { errorState, idleState, loadingState, successState, type AsyncState } from "./async-state.js";
 import { normalizeDashboardSelection, supportsDimension, unavailableCapabilities } from "./dashboard-capabilities.js";
 
-type ReportScope = { documentId?: string; culture?: string; path?: string };
+type ReportScope = { documentId?: string; culture?: string; path?: string; includeChildPaths?: boolean };
 type ReportFilterQuery = Pick<DashboardReportQuery, "filter" | "filterFlagKey" | "filterFlagValue" | "filterEventName" | "filterEventProperty" | "filterEventValue">;
 export type ExpandedBreakdown = {
   dimension: AnalyticsDimension;
@@ -61,6 +61,7 @@ export type DashboardState = {
   filters: AnalyticsFilter[];
   flagFilter?: AnalyticsFlagFilter;
   eventFilter?: AnalyticsEventFilter;
+  includeChildPaths: boolean;
   configurationError?: string;
   setupRequired?: boolean;
   utmCapability: UtmCapability;
@@ -72,6 +73,8 @@ export type DashboardEnvironment = {
   replaceUrl: (url: URL) => void;
   getStoredConnection: () => string | null;
   setStoredConnection: (connection: string) => void;
+  getStoredDocumentConnection: (root: string) => string | null;
+  setStoredDocumentConnection: (root: string, connection: string) => void;
   languages: ReadonlyArray<string>;
 };
 
@@ -80,6 +83,8 @@ const defaultEnvironment = (): DashboardEnvironment => ({
   replaceUrl: (url) => window.history.replaceState(window.history.state, "", url),
   getStoredConnection: () => localStorage.getItem("thebuilder-web-analytics:connection"),
   setStoredConnection: (connection) => localStorage.setItem("thebuilder-web-analytics:connection", connection),
+  getStoredDocumentConnection: (root) => localStorage.getItem(`thebuilder-web-analytics:document-connection:${root}`),
+  setStoredDocumentConnection: (root, connection) => localStorage.setItem(`thebuilder-web-analytics:document-connection:${root}`, connection),
   languages: navigator.languages,
 });
 
@@ -98,6 +103,7 @@ export class AnalyticsDashboardController {
     acquisitionView: "referrers",
     utmDimension: "UtmSource",
     filters: [],
+    includeChildPaths: false,
     utmCapability: "unknown",
   };
 
@@ -114,6 +120,7 @@ export class AnalyticsDashboardController {
   #scopeKey?: string;
   #urlRestored = false;
   #hasUrlDateState = false;
+  #documentRoutes: AnalyticsDocumentRoute[] = [];
 
   constructor(notify: () => void, api: DashboardApi = dashboardApi, environment = defaultEnvironment()) {
     this.#notify = notify;
@@ -144,6 +151,7 @@ export class AnalyticsDashboardController {
     this.#scopeKey = key;
     this.#documentId = documentId;
     this.#culture = culture;
+    this.#documentRoutes = [];
     this.#cancelRequests();
     this.#set({
       route: undefined,
@@ -243,7 +251,12 @@ export class AnalyticsDashboardController {
 
   setConnection(connection: string): void {
     this.#utmRequest.cancel();
-    this.#environment.setStoredConnection(connection);
+    const documentRoute = this.#documentId
+      ? activeDocumentRoute(this.#documentRoutes, this.#culture, connection)
+      : undefined;
+    if (this.#documentId && !documentRoute) return;
+    if (documentRoute) this.#environment.setStoredDocumentConnection(documentRoute.documentRoot, connection);
+    else this.#environment.setStoredConnection(connection);
     // A report from one project must never remain visible while another project's
     // request is in flight. Other refreshes retain their previous value, but a
     // connection change crosses the data boundary and starts with empty state.
@@ -252,6 +265,7 @@ export class AnalyticsDashboardController {
     const selection = normalizeDashboardSelection(this.state, capabilities);
     this.#changeReportScope({
       connection,
+      route: documentRoute ?? this.state.route,
       provider: selectedConnection?.provider,
       capabilities,
       ...selection,
@@ -265,6 +279,11 @@ export class AnalyticsDashboardController {
 
   setDateRange(preset: DatePreset, range: AnalyticsDateRange): void {
     this.#changeReportScope({ preset, range });
+  }
+
+  setIncludeChildPaths(includeChildPaths: boolean): void {
+    if (this.state.includeChildPaths === includeChildPaths) return;
+    this.#changeReportScope({ includeChildPaths });
   }
 
   setMetric(metric: DashboardMetric): void {
@@ -409,13 +428,30 @@ export class AnalyticsDashboardController {
     }));
     if (!this.#initializationSucceeded(result)) return false;
     const { data, error } = result.value;
-    const route = !error && data?.length ? activeDocumentRoute(data, this.#culture) : undefined;
+    const routes = !error ? data ?? [] : [];
+    const root = routes[0]?.documentRoot;
+    const requested = routes.some((route) => route.connection === this.state.connection) ? this.state.connection : undefined;
+    const stored = root ? this.#environment.getStoredDocumentConnection(root) : undefined;
+    const storedValid = routes.some((route) => route.connection === stored) ? stored : undefined;
+    const connection = requested ?? storedValid ?? routes[0]?.connection;
+    const route = connection ? activeDocumentRoute(routes, this.#culture, connection) : undefined;
     if (!route) {
       this.#set({ configurationError: "This document is unpublished, unmapped, or its active culture is not configured for analytics.", summary: idleState() });
       return false;
     }
+    this.#documentRoutes = routes;
+    const connections = Array.from(new Map(routes.map((candidate) => [candidate.connection, {
+      key: candidate.connection,
+      displayName: candidate.displayName,
+      provider: candidate.provider,
+      capabilities: candidate.capabilities,
+      isDefault: false,
+      isConfigured: true,
+      baseUrl: undefined,
+      warnings: candidate.warnings,
+    }])).values());
     const selection = normalizeDashboardSelection(this.state, route.capabilities);
-    this.#set({ route, connection: route.connection, provider: route.provider, capabilities: route.capabilities, ...selection });
+    this.#set({ connections, route, connection: route.connection, provider: route.provider, capabilities: route.capabilities, ...selection });
     return true;
   }
 
@@ -579,7 +615,12 @@ export class AnalyticsDashboardController {
 
   #scope(): ReportScope {
     return this.#documentId && this.state.route
-      ? { documentId: this.#documentId, culture: this.state.route.culture, path: this.state.route.path }
+      ? {
+        documentId: this.#documentId,
+        culture: this.state.route.culture,
+        path: this.state.route.path,
+        includeChildPaths: this.state.includeChildPaths,
+      }
       : {};
   }
 
@@ -628,6 +669,7 @@ export class AnalyticsDashboardController {
       filters: parsed.filters,
       flagFilter: parsed.flagFilter,
       eventFilter: parsed.eventFilter,
+      includeChildPaths: parsed.includeChildPaths,
     };
     if (parsed.range) {
       patch.range = parsed.range;
@@ -652,6 +694,7 @@ export class AnalyticsDashboardController {
       filters: this.state.filters,
       flagFilter: this.state.flagFilter,
       eventFilter: this.state.eventFilter,
+      includeChildPaths: this.state.includeChildPaths,
     }));
   }
 

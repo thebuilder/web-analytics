@@ -77,6 +77,7 @@ public sealed record AnalyticsQuery(
     DateTimeOffset To,
     AnalyticsInterval Interval,
     string? RequestPath = null,
+    bool IncludeChildPaths = false,
     IReadOnlyList<AnalyticsFilter>? Filters = null,
     AnalyticsFlagFilter? FlagFilter = null,
     AnalyticsEventFilter? EventFilter = null)
@@ -87,6 +88,7 @@ public sealed record AnalyticsQuery(
         DateOnly To,
         AnalyticsInterval Interval,
         string? RequestPath = null,
+        bool IncludeChildPaths = false,
         IReadOnlyList<AnalyticsFilter>? Filters = null)
         : this(
             Connection,
@@ -94,6 +96,7 @@ public sealed record AnalyticsQuery(
             new DateTimeOffset(To.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero),
             Interval,
             RequestPath,
+            IncludeChildPaths,
             Filters)
     {
     }
@@ -173,7 +176,9 @@ public sealed record AnalyticsDocumentRoute(
     string Path,
     string Url,
     bool IsCurrent,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    string DisplayName = "",
+    Guid DocumentRoot = default);
 
 public sealed record AnalyticsSettingsResponse(
     string PackageVersion,

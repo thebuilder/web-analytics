@@ -46,7 +46,7 @@ public sealed class AnalyticsDocumentRouteService(
         var content = contentService.GetById(documentId);
         if (content is null) return [];
 
-        var rootConnection = FindRootConnection(content);
+        var rootConnections = FindRootConnections(content);
         var published = await publishedContent.GetDocumentAsync(documentId, currentCulture, cancellationToken);
         if (published is null) return [];
 
@@ -54,26 +54,29 @@ public sealed class AnalyticsDocumentRouteService(
         foreach (var publishedRoute in published.Routes)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var connection = rootConnection;
-            if (connection is null ||
-                !connection.IsDocumentTypeEnabled(published.ContentTypeAlias, published.ContentTypeKey)) continue;
+            foreach (var (rootKey, connection) in rootConnections)
+            {
+                if (!connection.IsDocumentTypeEnabled(published.ContentTypeAlias, published.ContentTypeKey)) continue;
 
-            routes.Add(new AnalyticsDocumentRoute(
-                connection.Key,
-                connection.Provider,
-                connection.Capabilities,
-                publishedRoute.Culture,
-                publishedRoute.Hostname,
-                publishedRoute.Path,
-                publishedRoute.Url,
-                string.Equals(publishedRoute.Culture, currentCulture, StringComparison.OrdinalIgnoreCase),
-                []));
+                routes.Add(new AnalyticsDocumentRoute(
+                    connection.Key,
+                    connection.Provider,
+                    connection.Capabilities,
+                    publishedRoute.Culture,
+                    publishedRoute.Hostname,
+                    publishedRoute.Path,
+                    publishedRoute.Url,
+                    string.Equals(publishedRoute.Culture, currentCulture, StringComparison.OrdinalIgnoreCase),
+                    [],
+                    connection.DisplayName,
+                    rootKey));
+            }
         }
 
         return routes;
     }
 
-    private AnalyticsConnection? FindRootConnection(IContent content)
+    private IReadOnlyList<(Guid RootKey, AnalyticsConnection Connection)> FindRootConnections(IContent content)
     {
         var ancestorKeys = new List<Guid>();
         var current = content;
@@ -83,7 +86,7 @@ public sealed class AnalyticsDocumentRouteService(
             current = current.ParentId > 0 ? contentService.GetById(current.ParentId) : null;
         }
 
-        return registry.FindNearestRoot(ancestorKeys);
+        return registry.FindNearestRoots(ancestorKeys);
     }
 
 }

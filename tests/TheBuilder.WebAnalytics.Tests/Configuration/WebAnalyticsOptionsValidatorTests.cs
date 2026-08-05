@@ -88,14 +88,12 @@ public sealed class WebAnalyticsOptionsValidatorTests
     }
 
     [Fact]
-    public void Duplicate_root_keys_fail()
+    public void Duplicate_root_keys_across_connections_are_allowed()
     {
         var options = CreateOptions();
         options.Connections.Add(CreateConnection(OtherKey, rootKeys: ["11111111-1111-1111-1111-111111111111"]));
 
-        var result = _sut.Validate(null, options);
-
-        Assert.Contains(result.Failures!, failure => failure.Contains("Document root"));
+        Assert.True(_sut.Validate(null, options).Succeeded);
     }
 
     [Fact]
@@ -266,11 +264,12 @@ public sealed class WebAnalyticsOptionsValidatorTests
             rootKeys: ["22222222-2222-2222-2222-222222222222"]));
         var registry = CreateRegistry(options);
 
-        var root = registry.FindNearestRoot([
+        var roots = registry.FindNearestRoots([
             Guid.Parse("22222222-2222-2222-2222-222222222222"),
             Guid.Parse("11111111-1111-1111-1111-111111111111")]);
 
-        Assert.Equal(OtherKey, root?.Key);
+        var root = Assert.Single(roots);
+        Assert.Equal(OtherKey, root.Connection.Key);
     }
 
     [Fact]
