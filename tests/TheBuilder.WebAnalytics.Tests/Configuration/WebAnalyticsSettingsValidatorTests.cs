@@ -26,7 +26,7 @@ public sealed class WebAnalyticsSettingsValidatorTests
     }
 
     [Fact]
-    public void Duplicate_root_mappings_across_connections_are_rejected()
+    public void Duplicate_root_mappings_across_connections_are_allowed()
     {
         var settings = CreateSettings();
         settings.Connections[0].DocumentRootKeys = ["11111111-1111-1111-1111-111111111111"];
@@ -40,7 +40,7 @@ public sealed class WebAnalyticsSettingsValidatorTests
 
         var failures = WebAnalyticsSettingsValidator.Validate(settings);
 
-        Assert.Contains(failures, failure => failure.Contains("assigned to both"));
+        Assert.Empty(failures);
     }
 
     [Fact]

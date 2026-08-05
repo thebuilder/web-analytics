@@ -384,8 +384,11 @@ describe("analytics settings onboarding", () => {
     expect(editor).not.toBeNull();
     const generatedKey = (editor as AnalyticsConnectionEditorElement).connection.key;
     expect(generatedKey).toMatch(/^[0-9a-f-]{36}$/i);
-    expect(editor?.shadowRoot?.querySelector(".token-key code")?.textContent)
-      .toBe(`WebAnalytics__ConnectionAccessTokens__${generatedKey}`);
+    expect(Array.from(editor?.shadowRoot?.querySelectorAll(".token-key code") ?? []).map((element) => element.textContent))
+      .toEqual([
+        "WebAnalytics__Providers__Vercel__AccessToken",
+        `WebAnalytics__ConnectionAccessTokens__${generatedKey}`,
+      ]);
     expect(dashboard.shadowRoot?.querySelector(".save-status")?.textContent?.trim()).toContain("Unsaved changes");
     expect(dashboard.shadowRoot?.querySelector<HTMLElement>('[label="Save Web Analytics settings"]')?.hasAttribute("disabled")).toBe(false);
     expect(dashboard.shadowRoot?.querySelectorAll('[label="Save Web Analytics settings"]')).toHaveLength(1);
@@ -467,6 +470,14 @@ describe("analytics settings onboarding", () => {
       "Dashboard reports",
     ]);
     expect(editor.shadowRoot?.querySelector(".token-section small")?.textContent?.trim()).toBe("Required before testing");
+    expect(Array.from(editor.shadowRoot?.querySelectorAll(".credential-setting-label") ?? []).map((element) => element.textContent?.trim())).toEqual([
+      "Shared credential",
+      "Connection-specific credential",
+    ]);
+    expect(Array.from(editor.shadowRoot?.querySelectorAll(".token-key code") ?? []).map((element) => element.textContent)).toEqual([
+      "WebAnalytics__Providers__Vercel__AccessToken",
+      "WebAnalytics__ConnectionAccessTokens__connection-1",
+    ]);
   });
 
   it("shows a recoverable message when the override setting name cannot be copied", async () => {
@@ -480,7 +491,7 @@ describe("analytics settings onboarding", () => {
     await vi.waitFor(() => expect(dashboard.shadowRoot?.querySelector("web-analytics-connection-editor")).not.toBeNull());
 
     const editor = dashboard.shadowRoot?.querySelector("web-analytics-connection-editor") as AnalyticsConnectionEditorElement;
-    editor.shadowRoot?.querySelector<HTMLElement>('[label="Copy credential setting name"]')?.click();
+    editor.shadowRoot?.querySelector<HTMLElement>('[label="Copy connection credential setting name"]')?.click();
 
     await vi.waitFor(() => expect(editor.shadowRoot?.querySelector(".copy-feedback")?.textContent).toContain("Select and copy it manually"));
   });

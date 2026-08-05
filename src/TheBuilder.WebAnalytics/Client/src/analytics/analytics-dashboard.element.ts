@@ -123,7 +123,9 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
         .preset=${state.preset}
         .siteUrl=${this.#controller.linkBaseUrl()}
         .documentScoped=${Boolean(this.documentId)}
+        .includeChildPaths=${state.includeChildPaths}
         @connection-change=${(event: CustomEvent<{ connection: string }>) => this.#controller.setConnection(event.detail.connection)}
+        @include-child-paths-change=${(event: CustomEvent<{ includeChildPaths: boolean }>) => this.#controller.setIncludeChildPaths(event.detail.includeChildPaths)}
         @analytics-date-range-change=${(event: CustomEvent<AnalyticsDateRangeChangeDetail>) => this.#controller.setDateRange(event.detail.preset, event.detail.range)}></web-analytics-dashboard-header>
     `;
   }

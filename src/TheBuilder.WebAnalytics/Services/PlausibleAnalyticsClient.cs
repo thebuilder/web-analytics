@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using TheBuilder.WebAnalytics.Configuration;
 using TheBuilder.WebAnalytics.Models;
 using TheBuilder.WebAnalytics.Providers;
@@ -316,7 +317,12 @@ public sealed class PlausibleAnalyticsClient(
         var filters = new List<PlausibleFilter>();
         if (!string.IsNullOrWhiteSpace(query.RequestPath))
         {
-            filters.Add(new PlausibleFilter("is", "event:page", [query.RequestPath]));
+            var pathPattern = query.RequestPath == "/"
+                ? "^/"
+                : $"^{Regex.Escape(query.RequestPath)}(/|$)";
+            filters.Add(query.IncludeChildPaths
+                ? new PlausibleFilter("matches", "event:page", [pathPattern])
+                : new PlausibleFilter("is", "event:page", [query.RequestPath]));
         }
         foreach (var filter in query.Filters ?? [])
         {

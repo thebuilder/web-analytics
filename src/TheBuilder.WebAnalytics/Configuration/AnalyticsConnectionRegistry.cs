@@ -37,18 +37,22 @@ public sealed class AnalyticsConnectionRegistry
     public AnalyticsConnection? Get(Guid key) =>
         Capture().Get(key);
 
-    public AnalyticsConnection? FindNearestRoot(IEnumerable<Guid> ancestorKeys)
+    public IReadOnlyList<(Guid RootKey, AnalyticsConnection Connection)> FindNearestRoots(IEnumerable<Guid> ancestorKeys)
     {
         var snapshot = Capture();
         foreach (var key in ancestorKeys)
         {
-            if (snapshot.RootOwners.TryGetValue(key, out var connectionKey))
+            if (snapshot.RootOwners.TryGetValue(key, out var connectionKeys))
             {
-                return snapshot.Connections.GetValueOrDefault(connectionKey);
+                return connectionKeys
+                    .Select(connectionKey => snapshot.Connections.GetValueOrDefault(connectionKey))
+                    .Where(connection => connection is not null)
+                    .Select(connection => (key, connection!))
+                    .ToArray();
             }
         }
 
-        return null;
+        return [];
     }
 
     internal RegistrySnapshot Capture()
@@ -80,7 +84,10 @@ public sealed class AnalyticsConnectionRegistry
                     serverConfiguration.ConnectionAccessTokens.GetValueOrDefault(connection.Key.ToString()))));
         var roots = connections.Values
             .SelectMany(connection => connection.DocumentRootKeys.Select(rootKey => (rootKey, connection.Key)))
-            .ToDictionary(pair => pair.rootKey, pair => pair.Key);
+            .GroupBy(pair => pair.rootKey)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<Guid>)group.Select(pair => pair.Key).ToArray());
         return new RegistrySnapshot(
             settingsSnapshot.Settings,
             settingsSnapshot.Revision,
@@ -97,7 +104,7 @@ public sealed class AnalyticsConnectionRegistry
         WebAnalyticsSettings Settings,
         long Revision,
         IReadOnlyDictionary<Guid, AnalyticsConnection> Connections,
-        IReadOnlyDictionary<Guid, Guid> RootOwners)
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> RootOwners)
     {
         public AnalyticsConnection? Get(Guid key) => Connections.GetValueOrDefault(key);
     }

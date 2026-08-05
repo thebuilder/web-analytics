@@ -18,6 +18,7 @@ export type DashboardUrlState = {
   filters: AnalyticsFilter[];
   flagFilter?: AnalyticsFlagFilter;
   eventFilter?: AnalyticsEventFilter;
+  includeChildPaths: boolean;
 };
 
 const DIMENSIONS = new Set<AnalyticsDimension>([
@@ -74,6 +75,7 @@ export function parseDashboardUrlState(params: URLSearchParams): DashboardUrlSta
     filters,
     flagFilter,
     eventFilter,
+    includeChildPaths: params.get("includeChildPaths") === "true",
   };
 }
 
@@ -92,9 +94,9 @@ function parseUtmDimension(value: string | null): UtmDimension {
     : "UtmSource";
 }
 
-export function writeDashboardUrlState(url: URL, state: Required<Pick<DashboardUrlState, "preset" | "range" | "metric" | "audience" | "utm" | "filters">> & Pick<DashboardUrlState, "connection" | "flagFilter" | "eventFilter">): URL {
+export function writeDashboardUrlState(url: URL, state: Required<Pick<DashboardUrlState, "preset" | "range" | "metric" | "audience" | "utm" | "filters">> & Partial<Pick<DashboardUrlState, "connection" | "flagFilter" | "eventFilter" | "includeChildPaths">>): URL {
   const params = url.searchParams;
-  for (const name of ["connection", "range", "from", "to", "tz", "metric", "audience", "utm", "filter", "filterFlagKey", "filterFlagValue", "filterEventName", "filterEventProperty", "filterEventValue"]) params.delete(name);
+  for (const name of ["connection", "range", "from", "to", "tz", "metric", "audience", "utm", "filter", "filterFlagKey", "filterFlagValue", "filterEventName", "filterEventProperty", "filterEventValue", "includeChildPaths"]) params.delete(name);
   if (state.connection) params.set("connection", state.connection);
   params.set("range", String(state.preset));
   params.set("from", state.range.from);
@@ -104,6 +106,7 @@ export function writeDashboardUrlState(url: URL, state: Required<Pick<DashboardU
   params.set("audience", state.audience);
   params.set("utm", state.utm);
   state.filters.forEach((filter) => params.append("filter", serializeFilter(filter)));
+  if (state.includeChildPaths) params.set("includeChildPaths", "true");
   if (state.flagFilter) {
     params.set("filterFlagKey", state.flagFilter.flagKey);
     params.set("filterFlagValue", state.flagFilter.value);

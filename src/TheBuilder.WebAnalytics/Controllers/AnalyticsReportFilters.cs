@@ -6,6 +6,9 @@ namespace TheBuilder.WebAnalytics.Controllers;
 
 public sealed class AnalyticsReportFilters
 {
+    [FromQuery(Name = "includeChildPaths")]
+    public bool IncludeChildPaths { get; init; }
+
     [FromQuery(Name = "filter")]
     public string[]? Filter { get; init; }
 
@@ -26,7 +29,7 @@ public sealed class AnalyticsReportFilters
 
     internal bool TryParse(out ParsedAnalyticsReportFilters parsed, out string? error)
     {
-        parsed = new([], null, null);
+        parsed = new([], null, null, IncludeChildPaths);
         if (!AnalyticsFilterParser.TryParse(Filter, out var filters, out error)) return false;
 
         var hasFlagKey = !string.IsNullOrWhiteSpace(FilterFlagKey);
@@ -58,7 +61,8 @@ public sealed class AnalyticsReportFilters
         parsed = new(
             filters,
             hasFlagKey ? new AnalyticsFlagFilter(FilterFlagKey!.Trim(), FilterFlagValue!) : null,
-            hasEventName ? new AnalyticsEventFilter(FilterEventName!.Trim(), FilterEventProperty!.Trim(), FilterEventValue!) : null);
+            hasEventName ? new AnalyticsEventFilter(FilterEventName!.Trim(), FilterEventProperty!.Trim(), FilterEventValue!) : null,
+            IncludeChildPaths);
         error = null;
         return true;
     }
@@ -67,4 +71,5 @@ public sealed class AnalyticsReportFilters
 internal sealed record ParsedAnalyticsReportFilters(
     IReadOnlyList<AnalyticsFilter> Filters,
     AnalyticsFlagFilter? FlagFilter,
-    AnalyticsEventFilter? EventFilter);
+    AnalyticsEventFilter? EventFilter,
+    bool IncludeChildPaths);

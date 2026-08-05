@@ -12,6 +12,8 @@ const route = (culture: string, isCurrent = false): AnalyticsDocumentRoute => ({
   url: `https://www.example.com/${culture}`,
   isCurrent,
   warnings: [],
+  displayName: "Main",
+  documentRoot: "11111111-1111-1111-1111-111111111111",
 });
 
 describe("active document route", () => {

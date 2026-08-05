@@ -220,7 +220,7 @@ public sealed class AnalyticsReportService(
         var eventFilter = query.EventFilter is null
             ? string.Empty
             : $"{EncodeCachePart(query.EventFilter.EventName)}:{EncodeCachePart(query.EventFilter.Property)}:{EncodeCachePart(query.EventFilter.Value)}";
-        return $"{query.Connection:N}:{query.From.UtcTicks}:{query.To.UtcTicks}:{query.Interval}:{query.RequestPath}:{filters}:{flagFilter}:{eventFilter}";
+        return $"{query.Connection:N}:{query.From.UtcTicks}:{query.To.UtcTicks}:{query.Interval}:{query.RequestPath}:{query.IncludeChildPaths}:{filters}:{flagFilter}:{eventFilter}";
     }
 
     private async Task<AnalyticsTotals?> TryGetPreviousTotalsAsync(

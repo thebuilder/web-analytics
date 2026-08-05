@@ -36,6 +36,28 @@ public sealed class AnalyticsDocumentRouteServiceTests
     }
 
     [Fact]
+    public async Task Shared_root_mapping_resolves_a_route_for_each_connection()
+    {
+        var rootKey = Guid.NewGuid();
+        var documentKey = Guid.NewGuid();
+        var contentService = CreateContentTree(rootKey, documentKey);
+        var accessor = new Mock<IAnalyticsPublishedContentAccessor>();
+        accessor.Setup(value => value.GetDocumentAsync(documentKey, "en-US", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreatePublishedDocument("www.example.com", "/news", "en-US"));
+        var service = new AnalyticsDocumentRouteService(
+            contentService.Object,
+            accessor.Object,
+            CreateRegistry(
+                Connection("root", roots: [rootKey]),
+                Connection("site", roots: [rootKey])));
+
+        var routes = await service.GetRoutesAsync(documentKey, "en-US", CancellationToken.None);
+
+        Assert.Equal([RootConnectionKey, SiteConnectionKey], routes.Select(route => route.Connection));
+        Assert.All(routes, route => Assert.Equal(rootKey, route.DocumentRoot));
+    }
+
+    [Fact]
     public async Task Document_without_mapped_root_has_no_routes()
     {
         var rootKey = Guid.NewGuid();

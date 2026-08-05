@@ -56,7 +56,7 @@ For Plausible, use `"Provider": "Plausible"` and set `SiteId` instead of `Projec
 | `DefaultRangeDays` | `30` | Initial reporting range. Valid values are 1–730. |
 | `CacheDuration` | `00:05:00` | Per-instance in-memory cache duration. Valid from zero to one hour. |
 | `Connections` | `[]` | Provider connection definitions. The first becomes the initial default. |
-| `ConnectionAccessTokens` | Empty | Optional secret dictionary keyed by a connection GUID. |
+| `ConnectionAccessTokens` | Empty | Optional connection-specific credential overrides, keyed by connection GUID. An override takes precedence over the shared provider credential. Set one with `WebAnalytics__ConnectionAccessTokens__{connection-guid}`. |
 | `Providers:Vercel:AccessToken` | Empty | Shared Vercel access token. |
 | `Providers:Plausible:AccessToken` | Empty | Shared Plausible Stats API key. |
 | `Providers:Plausible:BaseUrl` | `https://plausible.io/` | Public base URL of the Plausible Cloud or self-hosted instance. It must expose `/api/v2/query`. |
@@ -75,7 +75,7 @@ For Plausible, use `"Provider": "Plausible"` and set `SiteId` instead of `Projec
 | `EnableEvents` | All | Whether to show provider-supported custom events. |
 | `EnableFlags` | Vercel | Whether to show provider-supported feature flags. |
 | `MockScenario` | Development only | Selects deterministic mock report data when mock connections are enabled: `Complete`, `Utm`, `Flags`, or `Events`. |
-| `DocumentRootKeys` | All | Root document GUIDs mapped to this connection. |
+| `DocumentRootKeys` | All | Root document GUIDs mapped to this connection. More than one connection may map the same root; editors select the provider in the document workspace. |
 | `EnableAllDocumentTypes` | All | Enables document analytics for every type below a mapped root. |
 | `EnabledDocumentTypeKeys` | All | Restricts document analytics to specific document-type GUIDs. |
 | `EnabledDocumentTypes` | All | Document-type aliases for configuration-only bootstrapping. |

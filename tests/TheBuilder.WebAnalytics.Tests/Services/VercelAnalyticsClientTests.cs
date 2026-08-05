@@ -65,6 +65,27 @@ public sealed class VercelAnalyticsClientTests
     }
 
     [Fact]
+    public async Task Count_includes_only_descendant_paths_when_requested()
+    {
+        var handler = new RecordingHandler("""{"data":{"pageviews":42,"visitors":31}}""");
+        var client = CreateClient(handler);
+        var connection = CreateConnection();
+        var query = new AnalyticsQuery(
+            connection.Key,
+            new DateOnly(2026, 7, 1),
+            new DateOnly(2026, 7, 15),
+            AnalyticsInterval.Day,
+            "/news",
+            IncludeChildPaths: true);
+
+        await client.CountAsync(connection, query, CancellationToken.None);
+
+        Assert.Contains(
+            "filter=requestPath eq '/news' or startswith(requestPath, '/news/')",
+            Uri.UnescapeDataString(handler.Request!.RequestUri!.Query));
+    }
+
+    [Fact]
     public async Task Count_rejects_missing_visitors()
     {
         var client = CreateClient(new RecordingHandler("""{"data":{"pageviews":42}}"""));

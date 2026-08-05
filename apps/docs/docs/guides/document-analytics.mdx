@@ -1,23 +1,29 @@
 ---
 title: Document analytics
-description: Map the nearest document root and types to show reports automatically filtered to the selected published route. Document reports do not require global Analytics-section access.
+description: Map document roots and types to show reports automatically filtered to the selected published route. Document reports do not require global Analytics-section access.
 ---
 
 Document mappings are optional. A connection without a mapping remains available in the global Analytics section but does not add a document workspace report. Document reports do not require global Analytics-section access.
 
 ## Map an Umbraco site root
 
-For each site that needs page-level reports, choose the root document in the connection's **Page analytics** settings. A document uses the connection from its nearest mapped ancestor; it does not use a connection from merely any ancestor root. A mapped document report is automatically filtered to its selected published route.
+For each site that needs page-level reports, choose the root document in the connection's **Page analytics** settings. A document uses the connections from its nearest mapped ancestor; it does not use connections from merely any ancestor root. A mapped document report is automatically filtered to its selected published route.
 
 Then either enable all document types below that root or choose the specific document types that should show the Analytics workspace view.
+
+You can map more than one connection to the same root, for example when the site reports to both Vercel and Plausible. When more than one mapped connection supports the document type, the workspace shows a provider selector. Its selection is remembered in that browser for the mapped root, so choosing a provider for one site does not change another site's report.
+
+## Choose the path scope
+
+Document analytics initially reports only the selected document's published path. Enable **Include child paths** in the workspace header to report on that path and every path below it. This is useful for section or landing pages; leave it disabled to inspect only the selected page.
 
 ## When the workspace appears
 
 A document shows its Analytics workspace view only when all of these conditions are met:
 
 - It is published and has a published route.
-- Its nearest configured document root must specifically resolve to a connection, not merely any ancestor root.
-- Its document type is enabled for that connection.
+- Its nearest configured document root must specifically resolve to one or more connections, not merely any ancestor root.
+- Its document type is enabled for at least one of those connections.
 - The current user can access the Content section and browse that document.
 
 This lets an editor inspect the page they are working on without first finding it in a global report.
@@ -34,6 +40,8 @@ Imagine one Umbraco installation with two site roots:
 | `Brand B` | Plausible site B | Documents below Brand B report against site B. |
 
 If a nested root is mapped too, it wins for documents below it because it is the nearest mapped ancestor.
+
+You can also map both a Vercel project and a Plausible site to `Brand A`. Editors then choose the provider they need from the document workspace header.
 
 ## Permissions
 

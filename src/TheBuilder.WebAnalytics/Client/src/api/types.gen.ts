@@ -84,6 +84,8 @@ export type AnalyticsDocumentRoute = {
     url: string;
     isCurrent: boolean;
     warnings: Array<string>;
+    displayName: string;
+    documentRoot: string;
 };
 
 export type AnalyticsEventDetails = {
@@ -294,6 +296,7 @@ export type BreakdownData = {
         documentId?: string;
         culture?: string;
         path?: string;
+        includeChildPaths?: boolean;
         filter?: Array<string>;
         filterFlagKey?: string;
         filterFlagValue?: string;
@@ -333,6 +336,7 @@ export type EventsData = {
         documentId?: string;
         culture?: string;
         path?: string;
+        includeChildPaths?: boolean;
         filter?: Array<string>;
         filterFlagKey?: string;
         filterFlagValue?: string;
@@ -373,6 +377,7 @@ export type EventDetailsData = {
         documentId?: string;
         culture?: string;
         path?: string;
+        includeChildPaths?: boolean;
         filter?: Array<string>;
         filterFlagKey?: string;
         filterFlagValue?: string;
@@ -416,6 +421,7 @@ export type EventPropertyValuesData = {
         documentId?: string;
         culture?: string;
         path?: string;
+        includeChildPaths?: boolean;
         filter?: Array<string>;
         filterFlagKey?: string;
         filterFlagValue?: string;
@@ -455,6 +461,7 @@ export type FlagsData = {
         documentId?: string;
         culture?: string;
         path?: string;
+        includeChildPaths?: boolean;
         filter?: Array<string>;
         filterFlagKey?: string;
         filterFlagValue?: string;
@@ -492,6 +499,7 @@ export type SummaryData = {
         documentId?: string;
         culture?: string;
         path?: string;
+        includeChildPaths?: boolean;
         filter?: Array<string>;
         filterFlagKey?: string;
         filterFlagValue?: string;

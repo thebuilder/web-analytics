@@ -39,6 +39,22 @@ public sealed class PlausibleAnalyticsClientTests
     }
 
     [Fact]
+    public async Task Count_matches_the_page_and_its_descendants_when_requested()
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[42,31]}]}""");
+        var client = CreateClient(handler);
+        var query = CreateQuery() with { RequestPath = "/news", IncludeChildPaths = true };
+
+        await client.CountAsync(CreateConnection(), query, CancellationToken.None);
+
+        using var body = JsonDocument.Parse(handler.Body!);
+        var filter = Assert.Single(body.RootElement.GetProperty("filters").EnumerateArray());
+        Assert.Equal("matches", filter[0].GetString());
+        Assert.Equal("event:page", filter[1].GetString());
+        Assert.Equal("^/news(/|$)", filter[2][0].GetString());
+    }
+
+    [Fact]
     public async Task Count_applies_a_global_event_name_filter()
     {
         var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[15,12]}]}""");
