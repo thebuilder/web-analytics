@@ -23,7 +23,7 @@ Self-hosted Plausible is supported when the instance exposes the v2 Stats API qu
 | Site ID | The registered site ID, normally the domain, matching Plausible exactly |
 | Self-hosted base URL | `WebAnalytics__Providers__Plausible__BaseUrl=https://analytics.example.com/`; Cloud users keep the default `https://plausible.io/` |
 
-Add these values in **Settings → Web Analytics**. A `401` or `403` usually means the Stats API key cannot read that site; a rejected query commonly means the Site ID does not match the registered domain.
+Add these values in **Settings → Web Analytics**. For connection errors such as `401`, `403`, a rejected query, or self-hosted endpoint issues, see [Plausible troubleshooting](/reference/troubleshooting#plausible).
 
 ## Event properties
 
