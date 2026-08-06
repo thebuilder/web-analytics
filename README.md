@@ -33,8 +33,8 @@ To let non-admin editors see reporting, grant the **Analytics** section to their
 
 | Provider | Identifier | Credential |
 | --- | --- | --- |
-| [Vercel Web Analytics](https://vercel.com/docs/analytics) | Project ID (`prj_...`) and optional team | Scoped access token |
-| [Plausible](https://plausible.io/docs/stats-api) | Site ID, normally the registered domain | Stats API key |
+| [Vercel Web Analytics](https://umbraco-web-analytics.vercel.app/providers/vercel) | Project ID (`prj_...`) and optional team | Scoped access token |
+| [Plausible](https://umbraco-web-analytics.vercel.app/providers/plausible) | Site ID, normally the registered domain | Stats API key |
 
 Plausible Cloud's Stats API requires a Business plan. Self-hosted Plausible is supported when its instance exposes the v2 Stats API query endpoint.
 
