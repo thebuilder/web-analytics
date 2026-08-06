@@ -18,12 +18,16 @@ Web Analytics supports Umbraco CMS 17.1 through 18.x. Add it to the Umbraco web 
 dotnet add package TheBuilder.WebAnalytics
 ```
 
+Your public site must already collect analytics with Vercel or Plausible; this package reads that data and does not add tracking of its own.
+
 The package registers its services and backoffice extensions automatically. Then:
 
 1. Configure a provider credential in server-side secret configuration (see below).
 2. Restart the Umbraco application so it reads the credential.
 3. As an administrator, open **Settings → Web Analytics**, add a connection, and select **Test connection**.
 4. Open the **Analytics** section to verify that reports load.
+
+To let non-admin editors see reporting, grant the **Analytics** section to their user group; the automatic administrator grant runs only once.
 
 ## Providers
 
@@ -81,9 +85,7 @@ The Settings screen (**Settings → Web Analytics**) is the normal way to manage
 
 Each application instance keeps its own in-memory report cache, so restart every instance after changing saved settings or credentials.
 
-### Package settings
-
-Under the `WebAnalytics` configuration section:
+Besides the provider credentials above, these tunables live under the `WebAnalytics` section:
 
 | Key | Default | Description |
 | --- | --- | --- |
@@ -92,37 +94,8 @@ Under the `WebAnalytics` configuration section:
 | `CacheDuration` | `00:05:00` | Per-instance in-memory cache duration. Valid from zero to one hour. |
 | `Connections` | `[]` | Provider connection definitions. The first becomes the initial default. |
 | `EnableMockConnections` | `false` | Development-only deterministic connection presets. Never enable in production. |
-| `Providers:Vercel:AccessToken` | None | Shared Vercel access token. |
-| `Providers:Plausible:AccessToken` | None | Shared Plausible Stats API key. |
-| `Providers:Plausible:BaseUrl` | `https://plausible.io/` | Public base URL of the Plausible Cloud or self-hosted instance. Must expose `/api/v2/query`. |
-| `ConnectionAccessTokens` | None | Optional per-connection credential overrides, keyed by connection GUID. |
 
-### Configuration-only connections
-
-You can bootstrap non-secret connection settings from configuration, for example in deployment automation. **Do not put access tokens here.** Keep them in the secret store as shown above.
-
-```json
-{
-  "WebAnalytics": {
-    "Enabled": true,
-    "DefaultRangeDays": 30,
-    "CacheDuration": "00:05:00",
-    "Connections": [
-      {
-        "Key": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-        "Provider": "Vercel",
-        "ProjectId": "prj_...",
-        "Team": "team_...",
-        "DocumentRootKeys": ["11111111-1111-1111-1111-111111111111"],
-        "EnableAllDocumentTypes": false,
-        "EnabledDocumentTypeKeys": ["22222222-2222-2222-2222-222222222222"]
-      }
-    ]
-  }
-}
-```
-
-For Plausible, use `"Provider": "Plausible"` and set `SiteId` instead of `ProjectId` and `Team`. Add `EventPropertyNames` to drill into custom event properties. The [configuration reference](https://umbraco-web-analytics.vercel.app/reference/configuration) documents every connection key.
+Connections are normally created through the Settings screen, but they can also be bootstrapped from configuration for deployment automation. The [configuration reference](https://umbraco-web-analytics.vercel.app/reference/configuration) documents every connection key and the full precedence rules.
 
 ## Documentation
 
