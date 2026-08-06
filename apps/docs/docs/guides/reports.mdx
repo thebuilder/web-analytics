@@ -14,7 +14,7 @@ The header holds the two controls that shape every report below it.
 | Control | What it does |
 | --- | --- |
 | **Analytics connection** | Switches between configured connections when more than one exists. Every metric, breakdown, and filter is scoped to the selected connection. |
-| **Date range** | Choose a preset — Last 24 hours, Last 7 days, Last 30 days, Last 90 days, or Last 12 months — or set a custom range. The default range is 30 days and is configurable with `DefaultRangeDays`. |
+| **Date range** | Choose a preset (Last 24 hours, Last 7 days, Last 30 days, Last 90 days, or Last 12 months) or set a custom range. The default range is 30 days and is configurable with `DefaultRangeDays`. |
 
 The range you pick also sets how history is grouped: hourly for a single day, daily up to a month, weekly up to a quarter, and monthly beyond that.
 
@@ -22,10 +22,10 @@ The range you pick also sets how history is grouped: hourly for a single day, da
 
 Two headline metrics sit at the top of the dashboard:
 
-- **Visitors** — the number of distinct people who visited in the selected range.
-- **Page views** — the total number of pages those visitors loaded.
+- **Visitors**: the number of distinct people who visited in the selected range.
+- **Page views**: the total number of pages those visitors loaded.
 
-Each metric shows its total and, automatically, a comparison against the immediately preceding period of the same length — there is no separate toggle. The badge reads as a signed percentage such as `+12%`, with a fuller description like "12% more visitors than the previous 30 days". When the previous period has no data to compare against, the badge is omitted rather than shown as a misleading change.
+Each metric shows its total and, automatically, a comparison against the immediately preceding period of the same length. There is no separate toggle. The badge reads as a signed percentage such as `+12%`, with a fuller description like "12% more visitors than the previous 30 days". When the previous period has no data to compare against, the badge is omitted rather than shown as a misleading change.
 
 Select a metric to plot it over time. The history chart uses the interval implied by the range, and the final segment is drawn as in-progress when the current period is not yet complete.
 
@@ -49,7 +49,7 @@ When the provider records custom events, the dashboard adds an **Events** panel 
 
 ![Custom event details with a property drill-down](../screenshots/custom-event-details.png)
 
-Event-property drill-downs let you break a single event down by a recorded property — for example, which URLs an outbound-link event pointed to. For Plausible, configure the property names you want to explore under the connection's event-property settings; see the [Plausible reference](/providers/plausible#event-properties).
+Event-property drill-downs let you break a single event down by a recorded property, for example which URLs an outbound-link event pointed to. For Plausible, configure the property names you want to explore under the connection's event-property settings; see the [Plausible reference](/providers/plausible#event-properties).
 
 ## Feature flags
 
@@ -59,14 +59,14 @@ For Vercel connections that report feature flags, a **Flags** panel lists each f
 
 ## Filtering and drill-downs
 
-Any breakdown row can become a filter. Hover or keyboard-focus a row to reveal **Filter by this value**; applying it narrows every report on the dashboard to that value — for example, only visitors from one country, or only one referrer.
+Any breakdown row can become a filter. Hover or keyboard-focus a row to reveal **Filter by this value**; applying it narrows every report on the dashboard to that value, for example only visitors from one country, or only one referrer.
 
 Active filters appear as a **Filters** group beneath the header. Remove an individual filter from its chip, or choose **Clear all** to return to the unfiltered view. Filters, the selected date range, and the chosen breakdown tabs are reflected in the dashboard URL, so a filtered view can be bookmarked or shared.
 
 ![Active filters applied to the dashboard](../screenshots/analytics-filters.png)
 
 :::note[Provider differences are expected]
-The interface adapts to what each provider supports instead of showing errors. Vercel does not support applying an event or event-property filter to a global report or choosing the ordering metric for a breakdown; Plausible supports both but has no feature flags. A hidden panel means the provider does not offer that capability — it is not a failed connection. See the [Vercel](/providers/vercel#capabilities) and [Plausible](/providers/plausible#capabilities) references for the exact per-provider capabilities.
+The interface adapts to what each provider supports instead of showing errors. Vercel does not support applying an event or event-property filter to a global report or choosing the ordering metric for a breakdown; Plausible supports both but has no feature flags. A hidden panel means the provider does not offer that capability, not a failed connection. See the [Vercel](/providers/vercel#capabilities) and [Plausible](/providers/plausible#capabilities) references for the exact per-provider capabilities.
 :::
 
 ## Reports on a document

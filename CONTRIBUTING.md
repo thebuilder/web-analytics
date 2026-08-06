@@ -17,8 +17,8 @@ This repository is a pnpm and .NET workspace. The most relevant folders:
 
 ## Prerequisites
 
-- [.NET SDK 10.0](https://dotnet.microsoft.com/download) — builds the package, sample, and tests.
-- [Node.js 24](https://nodejs.org/) — builds the backoffice client and the docs site.
+- [.NET SDK 10.0](https://dotnet.microsoft.com/download): builds the package, sample, and tests.
+- [Node.js 24](https://nodejs.org/): builds the backoffice client and the docs site.
 - [pnpm](https://pnpm.io/) via [Corepack](https://nodejs.org/api/corepack.html). Run `corepack enable` once; the pinned pnpm version is resolved automatically from `package.json`.
 
 Install the JavaScript dependencies from the repository root:
@@ -29,7 +29,7 @@ pnpm install
 
 ## Build the backoffice client
 
-The backoffice UI is a separate frontend build. A plain `dotnet build` of the sample does **not** rebuild it — the client is only built automatically when the NuGet package is packed. During development, build (or watch) the client yourself so its assets land in `wwwroot/App_Plugins/`:
+The backoffice UI is a separate frontend build. A plain `dotnet build` of the sample does **not** rebuild it; the client is only built automatically when the NuGet package is packed. During development, build (or watch) the client yourself so its assets land in `wwwroot/App_Plugins/`:
 
 ```sh
 pnpm client:build   # one-off build

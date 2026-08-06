@@ -36,7 +36,7 @@ Plausible Cloud's Stats API requires a Business plan. Self-hosted Plausible is s
 
 ## Configure a credential
 
-Provider credentials are always read from **server-side configuration** and are never stored in Umbraco or exposed to the browser. Keep them out of `appsettings.json` and source control — use environment variables, [.NET user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), or your hosting platform's secret store. Restart every application instance after adding or rotating a credential.
+Provider credentials are always read from **server-side configuration** and are never stored in Umbraco or exposed to the browser. Keep them out of `appsettings.json` and source control. Use environment variables, [.NET user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), or your hosting platform's secret store. Restart every application instance after adding or rotating a credential.
 
 The configuration keys use the standard .NET double-underscore (`__`) delimiter for environment variables, or `:` for user secrets and JSON.
 
@@ -88,18 +88,18 @@ Under the `WebAnalytics` configuration section:
 | Key | Default | Description |
 | --- | --- | --- |
 | `Enabled` | `true` | Enables the Analytics section and configured document workspace views. |
-| `DefaultRangeDays` | `30` | Initial reporting range, in days. Valid values are 1–730. |
+| `DefaultRangeDays` | `30` | Initial reporting range, in days. Valid values are 1 to 730. |
 | `CacheDuration` | `00:05:00` | Per-instance in-memory cache duration. Valid from zero to one hour. |
 | `Connections` | `[]` | Provider connection definitions. The first becomes the initial default. |
 | `EnableMockConnections` | `false` | Development-only deterministic connection presets. Never enable in production. |
-| `Providers:Vercel:AccessToken` | — | Shared Vercel access token. |
-| `Providers:Plausible:AccessToken` | — | Shared Plausible Stats API key. |
+| `Providers:Vercel:AccessToken` | None | Shared Vercel access token. |
+| `Providers:Plausible:AccessToken` | None | Shared Plausible Stats API key. |
 | `Providers:Plausible:BaseUrl` | `https://plausible.io/` | Public base URL of the Plausible Cloud or self-hosted instance. Must expose `/api/v2/query`. |
-| `ConnectionAccessTokens` | — | Optional per-connection credential overrides, keyed by connection GUID. |
+| `ConnectionAccessTokens` | None | Optional per-connection credential overrides, keyed by connection GUID. |
 
 ### Configuration-only connections
 
-You can bootstrap non-secret connection settings from configuration, for example in deployment automation. **Do not put access tokens here** — keep them in the secret store as shown above.
+You can bootstrap non-secret connection settings from configuration, for example in deployment automation. **Do not put access tokens here.** Keep them in the secret store as shown above.
 
 ```json
 {
@@ -128,9 +128,9 @@ For Plausible, use `"Provider": "Plausible"` and set `SiteId` instead of `Projec
 
 The full documentation site covers everything above in more depth, plus the reporting UI and per-provider capabilities:
 
-- [Quickstart](https://umbraco-web-analytics.vercel.app/quickstart) — install, connect a provider, and verify the dashboard.
-- [Understanding your reports](https://umbraco-web-analytics.vercel.app/guides/reports) — what each metric, breakdown, and control means.
-- [Document analytics](https://umbraco-web-analytics.vercel.app/guides/document-analytics) — show page-level reports on mapped documents.
+- [Quickstart](https://umbraco-web-analytics.vercel.app/quickstart): install, connect a provider, and verify the dashboard.
+- [Understanding your reports](https://umbraco-web-analytics.vercel.app/guides/reports): what each metric, breakdown, and control means.
+- [Document analytics](https://umbraco-web-analytics.vercel.app/guides/document-analytics): show page-level reports on mapped documents.
 - [Configuration reference](https://umbraco-web-analytics.vercel.app/reference/configuration) and [troubleshooting](https://umbraco-web-analytics.vercel.app/reference/troubleshooting).
 
 ## Contributing
