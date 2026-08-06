@@ -34,9 +34,11 @@
     <PackageReference Include="Umbraco.Cms.Web.Common" Version="$(UmbracoVersion)" />
     <PackageReference Include="Umbraco.Cms.Api.Common" Version="$(UmbracoVersion)" />
     <PackageReference Include="Umbraco.Cms.Api.Management" Version="$(UmbracoVersion)" />
-    <!-- Pin patched versions until Umbraco's transitive dependencies catch up. -->
-    <PackageReference Include="MessagePack" Version="3.1.7" />
-    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
+    <!-- Keep these at or above the versions Umbraco's transitive graph requires
+         (Umbraco 18.1.0 pulls MessagePack 3.1.8 and Microsoft.OpenApi 2.11.0),
+         so restore does not report an NU1605 downgrade under TreatWarningsAsErrors. -->
+    <PackageReference Include="MessagePack" Version="3.1.8" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.11.0" />
   </ItemGroup>
 
   <ItemGroup>

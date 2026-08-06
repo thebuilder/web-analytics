@@ -95,4 +95,4 @@ questions:
       - It can show analytics in mapped published document workspaces, scoped to the document route.
       - It reads analytics the provider already collects and does not install, replace, or configure public-website tracking.
     routes:
-      - /
+      - /overview
