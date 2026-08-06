@@ -6,6 +6,10 @@ export default defineConfig({
   title: "Web Analytics",
   description:
     "Bring Vercel Web Analytics and Plausible reports into the Umbraco backoffice.",
+  logo: {
+    image: "/logo.png",
+    text: "Web Analytics",
+  },
   github: {
     owner: "thebuilder",
     repo: "web-analytics",
@@ -25,7 +29,9 @@ export default defineConfig({
   },
   navigation: {
     tabs: [
-      { label: "Docs", path: "/" },
+      // A custom landing page owns "/", so the Docs tab links to the overview
+      // while keeping path "/" to stay highlighted across every docs route.
+      { label: "Docs", path: "/", href: "/overview" },
       { label: "Changelog", path: "/changelog", href: "/changelog" },
     ],
   },
