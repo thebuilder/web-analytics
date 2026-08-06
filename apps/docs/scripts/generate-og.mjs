@@ -31,7 +31,6 @@ const taglineLines = [
   "Vercel Web Analytics and Plausible reports,",
   "right inside the Umbraco backoffice.",
 ];
-const providers = "Vercel  •  Plausible";
 const url = "umbraco-web-analytics.vercel.app";
 const font = "'Inter', 'Helvetica Neue', Arial, sans-serif";
 
@@ -64,8 +63,7 @@ const svg = `<svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HE
   <text x="82" y="452" font-family="${font}" font-size="34" font-weight="400" fill="#A7ADC0">${esc(taglineLines[0])}</text>
   <text x="82" y="498" font-family="${font}" font-size="34" font-weight="400" fill="#A7ADC0">${esc(taglineLines[1])}</text>
 
-  <text x="82" y="566" font-family="${font}" font-size="26" font-weight="600" fill="#6E7789">${esc(providers)}</text>
-  <text x="${WIDTH - 80}" y="566" text-anchor="end" font-family="${font}" font-size="24" font-weight="500" fill="#5B6274">${esc(url)}</text>
+  <text x="82" y="566" font-family="${font}" font-size="26" font-weight="500" fill="#6E7789">${esc(url)}</text>
 </svg>`;
 
 await mkdir(resolve(root, "public"), { recursive: true });
