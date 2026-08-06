@@ -222,14 +222,18 @@
   margin: 0 auto 2.5rem;
   text-align: center;
 }
-.kicker {
-  display: inline-block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--blume-accent);
-  margin-bottom: 0.75rem;
+/* A short brand-gradient line marks each section. The bar-chart motif is
+   reserved for the logo, so the divider stays quiet. */
+.rule {
+  display: block;
+  width: 44px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--brand-gradient);
+  margin: 0 0 1.15rem;
+}
+.home-block__head .rule {
+  margin-inline: auto;
 }
 .home-block__head h2,
 .split__copy h2,
