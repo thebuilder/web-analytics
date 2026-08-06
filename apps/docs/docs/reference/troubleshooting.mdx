@@ -5,16 +5,28 @@ description: Resolve missing access, provider credential failures, empty reports
 
 ## Connection and data
 
+These apply to any connection, whichever provider it uses.
+
 | Symptom | Check |
 | --- | --- |
 | Token missing | Configure the matching `WebAnalytics__Providers__{Provider}__AccessToken`, or a connection override, then restart the application. |
+| No data appears | Confirm the provider tracks the public site, production traffic exists, and the selected date range is available from the provider. |
+| A panel is missing | Confirm the selected provider supports it. Unsupported capabilities are hidden, not connection errors. |
+
+### Vercel
+
+| Symptom | Check |
+| --- | --- |
 | Vercel returns `401` or `403` | Confirm the token is valid, scoped to the owning account or team, and can access the configured project. |
 | Vercel returns `400` | Verify the project ID and optional Team value. |
+
+### Plausible
+
+| Symptom | Check |
+| --- | --- |
 | Plausible returns `401` or `403` | Confirm the Stats API key can read the configured site. |
 | Plausible rejects a query | Verify that `SiteId` exactly matches the domain registered in Plausible. |
 | Self-hosted Plausible rejects a query or returns `404` | Configure `WebAnalytics__Providers__Plausible__BaseUrl` with the instance's public base URL and confirm it exposes `/api/v2/query`. |
-| No data appears | Confirm the provider tracks the public site, production traffic exists, and the selected date range is available from the provider. |
-| A panel is missing | Confirm the selected provider supports it. Unsupported capabilities are hidden, not connection errors. |
 
 ## Access and document analytics
 
