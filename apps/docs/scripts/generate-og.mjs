@@ -19,7 +19,7 @@ const WIDTH = 1200;
 const HEIGHT = 630;
 
 // Embed the product mark so the card is self-contained.
-const mark = await readFile(resolve(root, "public/logo.png"));
+const mark = await readFile(resolve(root, "public/web-analytics.png"));
 const markUri = `data:image/png;base64,${mark.toString("base64")}`;
 
 const esc = (s) =>
