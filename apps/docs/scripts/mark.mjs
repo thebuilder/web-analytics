@@ -8,8 +8,11 @@ export const MARK_RECTS =
   '<rect x="68" y="34" width="18" height="52" rx="5" fill="#f472b6"/>';
 
 // Standalone square SVG of the mark on a transparent background, at `size` px.
+// The viewBox is cropped tight to the bars (a small even pad around their
+// bounding box) so the favicon and the header logo fill their box instead of
+// floating small inside 30% padding. The tile and OG frame the mark themselves.
 export const markSvg = (size) =>
-  `<svg width="${size}" height="${size}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${MARK_RECTS}</svg>`;
+  `<svg width="${size}" height="${size}" viewBox="10 11 80 80" xmlns="http://www.w3.org/2000/svg">${MARK_RECTS}</svg>`;
 
 // The mark placed at a given offset/scale, for compositing into a larger SVG.
 export const markGroup = (x, y, scale) =>
