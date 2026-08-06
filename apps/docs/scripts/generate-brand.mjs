@@ -25,11 +25,11 @@ await writeFile(resolve(docsRoot, "favicon.png"), transparent);
 await writeFile(resolve(docsRoot, "public/logo.png"), transparent);
 
 // 2. Mark on a dark rounded tile -> NuGet / Umbraco Marketplace package icon.
+// Composite the tight-cropped mark dead-center so the bars fill the tile
+// confidently (~62%) instead of floating small inside it.
 const TILE = 512;
 const RADIUS = 114;
-const G = 360; // mark size within the tile
-const inset = Math.round((TILE - G) / 2);
-const tileSvg = `<svg width="${TILE}" height="${TILE}" viewBox="0 0 ${TILE} ${TILE}" xmlns="http://www.w3.org/2000/svg">
+const tileBg = `<svg width="${TILE}" height="${TILE}" viewBox="0 0 ${TILE} ${TILE}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#15152e"/><stop offset="1" stop-color="#08080f"/>
@@ -42,9 +42,15 @@ const tileSvg = `<svg width="${TILE}" height="${TILE}" viewBox="0 0 ${TILE} ${TI
   </defs>
   <rect width="${TILE}" height="${TILE}" rx="${RADIUS}" fill="url(#bg)"/>
   <rect width="${TILE}" height="${TILE}" rx="${RADIUS}" fill="url(#glow)"/>
-  ${markGroup(inset, inset, G / 100)}
 </svg>`;
-await writeFile(resolve(repoRoot, "icon.png"), await toPng(tileSvg));
+const tileMark = await toPng(markSvg(352));
+await writeFile(
+  resolve(repoRoot, "icon.png"),
+  await sharp(await toPng(tileBg))
+    .composite([{ input: tileMark, gravity: "center" }])
+    .png()
+    .toBuffer(),
+);
 
 // 3. Branded Open Graph card (1200x630).
 const W = 1200;
