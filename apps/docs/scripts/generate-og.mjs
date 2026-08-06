@@ -25,7 +25,6 @@ const markUri = `data:image/png;base64,${mark.toString("base64")}`;
 const esc = (s) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-const eyebrow = "UMBRACO CMS PACKAGE";
 const title = "Web Analytics";
 const taglineLines = [
   "Vercel Web Analytics and Plausible reports,",
@@ -56,12 +55,11 @@ const svg = `<svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HE
   <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#glow)"/>
   <rect x="0" y="0" width="${WIDTH}" height="6" fill="url(#accent)"/>
 
-  <image href="${markUri}" x="80" y="86" width="140" height="140"/>
+  <image href="${markUri}" x="80" y="118" width="140" height="140"/>
 
-  <text x="82" y="312" font-family="${font}" font-size="26" font-weight="600" letter-spacing="4" fill="#8A93AA">${esc(eyebrow)}</text>
-  <text x="80" y="392" font-family="${font}" font-size="90" font-weight="800" fill="#FFFFFF">${esc(title)}</text>
-  <text x="82" y="452" font-family="${font}" font-size="34" font-weight="400" fill="#A7ADC0">${esc(taglineLines[0])}</text>
-  <text x="82" y="498" font-family="${font}" font-size="34" font-weight="400" fill="#A7ADC0">${esc(taglineLines[1])}</text>
+  <text x="80" y="372" font-family="${font}" font-size="90" font-weight="800" fill="#FFFFFF">${esc(title)}</text>
+  <text x="82" y="432" font-family="${font}" font-size="34" font-weight="400" fill="#A7ADC0">${esc(taglineLines[0])}</text>
+  <text x="82" y="478" font-family="${font}" font-size="34" font-weight="400" fill="#A7ADC0">${esc(taglineLines[1])}</text>
 
   <text x="82" y="566" font-family="${font}" font-size="26" font-weight="500" fill="#6E7789">${esc(url)}</text>
 </svg>`;
