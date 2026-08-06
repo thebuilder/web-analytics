@@ -11,6 +11,8 @@
 }
 
 .home {
+  /* Echoes the logo's blue -> purple -> pink for subtle gradient accents. */
+  --brand-gradient: linear-gradient(105deg, #60a5fa, #a78bfa 52%, #f472b6);
   padding-bottom: 5rem;
   overflow: clip;
 }
@@ -31,10 +33,19 @@
   inset: -20% -10% auto -10%;
   height: 640px;
   background:
-    radial-gradient(60% 60% at 50% 0%, color-mix(in oklab, var(--blume-accent) 22%, transparent), transparent 70%);
-  filter: blur(8px);
+    radial-gradient(42% 55% at 32% 0%, color-mix(in oklab, #60a5fa 24%, transparent), transparent 72%),
+    radial-gradient(40% 52% at 55% 4%, color-mix(in oklab, #a78bfa 22%, transparent), transparent 72%),
+    radial-gradient(42% 50% at 76% 0%, color-mix(in oklab, #f472b6 16%, transparent), transparent 72%);
+  filter: blur(10px);
   pointer-events: none;
   z-index: 0;
+}
+
+.hero__mark {
+  width: 88px;
+  height: 88px;
+  margin-bottom: 0.25rem;
+  filter: drop-shadow(0 10px 28px color-mix(in oklab, #8b5cf6 40%, transparent));
 }
 
 .hero__inner {
@@ -63,11 +74,7 @@
   margin: 0;
 }
 .hero__accent {
-  background: linear-gradient(
-    100deg,
-    var(--blume-accent),
-    color-mix(in oklab, var(--blume-accent) 55%, var(--blume-foreground))
-  );
+  background: var(--brand-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -99,15 +106,35 @@
   font-weight: 600;
   text-decoration: none;
   border: 1px solid transparent;
-  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.25s ease;
 }
 .btn:active { transform: translateY(1px); }
 .btn--primary {
+  position: relative;
+  isolation: isolate;
   background: var(--blume-accent);
   color: var(--blume-accent-foreground);
 }
+/* Fade the brand gradient in on hover for a smooth solid -> gradient reveal. */
+.btn--primary::before {
+  content: "";
+  position: absolute;
+  /* Bleed over the 1px transparent border so the gradient reaches the edge and
+     the solid-blue background does not show as a ring on hover. */
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  /* Deeper, less saturated than the headline gradient so the CTA reads rich,
+     not neon. */
+  background: linear-gradient(102deg, #3576e0, #6a55d8 56%, #a65189);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.btn--primary:hover::before {
+  opacity: 1;
+}
 .btn--primary:hover {
-  background: color-mix(in oklab, var(--blume-accent) 88%, black);
+  box-shadow: 0 6px 16px color-mix(in oklab, #6a55d8 26%, transparent);
 }
 .btn--ghost {
   color: var(--blume-foreground);
@@ -344,15 +371,19 @@
   border-radius: calc(var(--blume-radius) * 1.6);
   border: 1px solid color-mix(in oklab, var(--blume-accent) 30%, var(--blume-border));
   background:
+    radial-gradient(72% 120% at 12% 0%, color-mix(in oklab, #60a5fa 16%, transparent), transparent 55%),
+    radial-gradient(72% 120% at 88% 12%, color-mix(in oklab, #f472b6 14%, transparent), transparent 55%),
     linear-gradient(160deg,
-      color-mix(in oklab, var(--blume-accent) 16%, var(--blume-background)),
-      var(--blume-background) 70%);
+      color-mix(in oklab, #a78bfa 12%, var(--blume-background)),
+      var(--blume-background) 72%);
 }
 .cta__glow {
   position: absolute;
   inset: auto -10% -60% -10%;
   height: 340px;
-  background: radial-gradient(50% 60% at 50% 100%, color-mix(in oklab, var(--blume-accent) 30%, transparent), transparent 70%);
+  background:
+    radial-gradient(46% 60% at 38% 100%, color-mix(in oklab, #7c6bf7 28%, transparent), transparent 70%),
+    radial-gradient(44% 58% at 66% 100%, color-mix(in oklab, #f472b6 18%, transparent), transparent 70%);
   pointer-events: none;
 }
 .cta h2 { position: relative; }
