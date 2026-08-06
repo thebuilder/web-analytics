@@ -86,7 +86,7 @@ public sealed class MockAnalyticsClientTests
     }
 
     [Fact]
-    public async Task Demo_totals_increase_slightly_over_the_previous_period()
+    public async Task Demo_totals_trend_upwards_over_the_previous_period()
     {
         var client = new MockAnalyticsClient();
         var connection = CreateRegistry(MockAnalyticsScenario.Complete, true).Get(MockKey)!;
@@ -106,8 +106,8 @@ public sealed class MockAnalyticsClientTests
         var visitorGrowth = (double)currentTotals.Visitors / previousTotals.Visitors;
         var pageViewGrowth = (double)currentTotals.PageViews / previousTotals.PageViews;
 
-        Assert.InRange(visitorGrowth, 1.01d, 1.04d);
-        Assert.InRange(pageViewGrowth, 1.01d, 1.04d);
+        Assert.InRange(visitorGrowth, 1.06d, 1.13d);
+        Assert.InRange(pageViewGrowth, 1.06d, 1.13d);
     }
 
     [Fact]

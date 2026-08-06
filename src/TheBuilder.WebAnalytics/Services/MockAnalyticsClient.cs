@@ -9,7 +9,7 @@ public sealed class MockAnalyticsClient :
     IAnalyticsEventPropertiesProviderClient,
     IAnalyticsFlagsProviderClient
 {
-    private const double DemoDailyGrowthRate = 0.0008d;
+    private const double DemoDailyGrowthRate = 0.003d;
     private const double DemoGrowthWindowDays = 1825d;
     private static readonly DateTimeOffset DemoGrowthBaseline = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -76,10 +76,10 @@ public sealed class MockAnalyticsClient :
         var points = timestamps.Select((timestamp, index) =>
         {
             var progress = timestamps.Length <= 1 ? 0d : index / (timestamps.Length - 1d);
-            var traffic = 0.88
-                + progress * 0.18
-                + BellCurve(progress, 0.18, 0.12) * 0.10
-                - BellCurve(progress, 0.48, 0.10) * 0.07
+            var traffic = 0.70
+                + progress * 0.52
+                + BellCurve(progress, 0.18, 0.12) * 0.08
+                - BellCurve(progress, 0.48, 0.10) * 0.06
                 + BellCurve(progress, 0.76, 0.15) * 0.09;
             var visitors = traffic * (0.98 - progress * 0.03);
             return new AnalyticsPoint(
