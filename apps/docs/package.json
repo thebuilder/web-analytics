@@ -8,11 +8,13 @@
     "dev": "blume dev",
     "build": "blume build",
     "check": "blume check",
+    "generate:brand": "node scripts/generate-brand.mjs",
     "validate": "blume validate"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
     "blume": "1.2.1",
+    "gray-matter": "4.0.3",
     "sharp": "0.34.5"
   }
 }
