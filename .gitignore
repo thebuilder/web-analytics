@@ -7,6 +7,8 @@
 apps/docs/.blume/
 apps/docs/.blume-verify/
 apps/docs/dist/
+apps/docs/public/opengraph-image.png
+apps/docs/public/social/
 artifacts/
 src/TheBuilder.WebAnalytics/wwwroot/App_Plugins/
 **/umbraco/Data/
