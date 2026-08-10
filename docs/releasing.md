@@ -1,6 +1,6 @@
 # Releasing the NuGet package
 
-Package versions are release-driven. The version in the project file is the local-development fallback; the publish workflow supplies the package version explicitly.
+GitHub Releases are the authoritative changelog and the release tag is the single source of package versions. The `0.1.0` versions in the project and client package files are local-build fallbacks only.
 
 ## One-time setup
 
@@ -29,6 +29,6 @@ The workflow publishes the prerelease package to nuget.org. NuGet package versio
 3. Ensure **Set as a pre-release** is not selected.
 4. Publish the release.
 
-Publishing the release triggers the workflow. It removes the optional leading `v`, packs `TheBuilder.WebAnalytics` as version `0.2.0`, runs the test suite, uploads the package as a workflow artifact, and publishes it to nuget.org with a short-lived OIDC credential.
+Publishing the release triggers the workflow. It removes the optional leading `v`, verifies the client, .NET projects, sample, docs, generated Umbraco manifest, NuGet metadata, and release-notes URL, then publishes that exact verified artifact to nuget.org with a short-lived OIDC credential. For example, `v0.1.0-preview.1` produces version `0.1.0-preview.1` everywhere and links its NuGet release notes to that GitHub Release.
 
 The GitHub Release type and version must agree: prereleases require a prerelease version, and stable releases require a stable version.

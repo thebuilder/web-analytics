@@ -1,7 +1,6 @@
 {
   "id": "TheBuilder.WebAnalytics",
   "name": "Web Analytics",
-  "version": "0.1.0",
   "allowTelemetry": false,
   "extensions": [
     {

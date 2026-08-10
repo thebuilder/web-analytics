@@ -1,0 +1,145 @@
+name: Verify package
+
+on:
+  workflow_call:
+    inputs:
+      package-version:
+        description: Version applied to the NuGet package and Umbraco manifest.
+        type: string
+        default: 0.1.0
+      release-tag:
+        description: GitHub Release tag linked from NuGet release notes.
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  client:
+    name: Client
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Audit changed client code
+        if: github.event_name == 'pull_request'
+        run: pnpm --filter thebuilder-web-analytics run audit --base '${{ github.event.pull_request.base.sha }}' --format github-annotations
+      - name: Test client
+        run: pnpm --filter thebuilder-web-analytics test
+      - name: Build client
+        env:
+          PACKAGE_VERSION: ${{ inputs.package-version }}
+        run: pnpm --filter thebuilder-web-analytics build
+
+  dotnet:
+    name: .NET (Umbraco ${{ matrix.umbraco-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        umbraco-version: [17.1.0, 17.*, 18.*]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Test package
+        run: dotnet test tests/TheBuilder.WebAnalytics.Tests/TheBuilder.WebAnalytics.Tests.csproj --configuration Release '-p:UmbracoVersion=${{ matrix.umbraco-version }}'
+
+  sample-and-docs:
+    name: Sample and docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build example
+        run: dotnet build samples/TheBuilder.WebAnalytics.Example/TheBuilder.WebAnalytics.Example.csproj --configuration Release
+      - name: Build docs
+        run: pnpm --filter @thebuilder/web-analytics-docs build
+
+  package:
+    name: Package
+    needs: [client, dotnet, sample-and-docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install backoffice dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Pack NuGet package
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ inputs.package-version }}
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: |
+          arguments=(
+            src/TheBuilder.WebAnalytics/TheBuilder.WebAnalytics.csproj
+            --configuration Release
+            --output artifacts
+            "-p:Version=$PACKAGE_VERSION"
+            -p:ContinuousIntegrationBuild=true
+          )
+          if [[ -n "$RELEASE_TAG" ]]; then
+            arguments+=("-p:PackageReleaseNotes=https://github.com/thebuilder/web-analytics/releases/tag/$RELEASE_TAG")
+          fi
+          dotnet pack "${arguments[@]}"
+      - name: Validate NuGet archive
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ inputs.package-version }}
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: |
+          package="$(find artifacts -name '*.nupkg' -print -quit)"
+          unzip -t "$package"
+          entries="$(unzip -Z1 "$package")"
+          nuspec="$(unzip -p "$package" TheBuilder.WebAnalytics.nuspec)"
+          manifest_version="$(unzip -p "$package" staticwebassets/App_Plugins/TheBuilder.WebAnalytics/umbraco-package.json | jq -r '.version')"
+          grep -Fqx 'README.md' <<< "$entries"
+          grep -Fqx 'staticwebassets/App_Plugins/TheBuilder.WebAnalytics/umbraco-package.json' <<< "$entries"
+          grep -Fqx 'staticwebassets/App_Plugins/TheBuilder.WebAnalytics/web-analytics.js' <<< "$entries"
+          test "$manifest_version" = "$PACKAGE_VERSION"
+          grep -Fq "<version>$PACKAGE_VERSION</version>" <<< "$nuspec"
+          if [[ -n "$RELEASE_TAG" ]]; then
+            grep -Fq "<releaseNotes>https://github.com/thebuilder/web-analytics/releases/tag/$RELEASE_TAG</releaseNotes>" <<< "$nuspec"
+          fi
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TheBuilder.WebAnalytics-package
+          path: artifacts/*.nupkg
+          if-no-files-found: error

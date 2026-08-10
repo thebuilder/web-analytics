@@ -77,4 +77,4 @@ The `apps/docs/` content is Markdown/MDX; see the files under `apps/docs/docs/` 
 
 ## Releasing
 
-Publishing packages to NuGet is release-driven and documented separately in [docs/releasing.md](docs/releasing.md). Published release notes appear in the [documentation changelog](https://umbraco-web-analytics.vercel.app/changelog/).
+Publishing packages to NuGet is release-driven and documented separately in [docs/releasing.md](docs/releasing.md). GitHub Releases are the authoritative changelog and are surfaced in the [documentation changelog](https://umbraco-web-analytics.vercel.app/changelog/).
