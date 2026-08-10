@@ -108,4 +108,4 @@ The full documentation site covers everything above in more depth, plus the repo
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the repository layout, local development setup (building the backoffice client, running the sample site, and running the tests), and how to submit a pull request. NuGet publishing guidance is in [docs/releasing.md](docs/releasing.md), and published release notes are in the [documentation changelog](https://umbraco-web-analytics.vercel.app/changelog/).
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the repository layout, local development setup (building the backoffice client, running the sample site, and running the tests), and how to submit a pull request. NuGet publishing guidance is in [docs/releasing.md](docs/releasing.md). GitHub Releases are the authoritative changelog and are surfaced in the [documentation changelog](https://umbraco-web-analytics.vercel.app/changelog/).

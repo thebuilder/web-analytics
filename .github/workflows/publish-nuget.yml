@@ -8,102 +8,61 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build and pack
+  version:
+    name: Resolve package version
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      value: ${{ steps.version.outputs.value }}
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Resolve package version
+      - name: Validate release version
         id: version
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           RELEASE_IS_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          raw_version="$RELEASE_TAG"
-          version="${raw_version#v}"
-
+          version="${RELEASE_TAG#v}"
           if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
-            echo "Expected a SemVer version such as v0.2.0 or 0.2.0-preview.1; got '$raw_version'." >&2
+            echo "Expected a SemVer version such as v0.1.0 or 0.1.0-preview.1; got '$RELEASE_TAG'." >&2
             exit 1
           fi
-
           if [[ "$RELEASE_IS_PRERELEASE" == "true" && "$version" != *-* ]]; then
             echo "GitHub prereleases must use a prerelease version; got '$version'." >&2
             exit 1
           fi
-
           if [[ "$RELEASE_IS_PRERELEASE" != "true" && "$version" == *-* ]]; then
             echo "Stable GitHub releases must use a stable version; got '$version'." >&2
             exit 1
           fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
 
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
-      - name: Install backoffice dependencies
-        run: |
-          corepack enable
-          pnpm install --frozen-lockfile
-
-      - name: Restore
-        run: dotnet restore TheBuilder.WebAnalytics.slnx
-
-      - name: Test
-        run: dotnet test TheBuilder.WebAnalytics.slnx --configuration Release --no-restore
-
-      - name: Pack
-        run: >-
-          dotnet pack src/TheBuilder.WebAnalytics/TheBuilder.WebAnalytics.csproj
-          --configuration Release
-          --no-restore
-          --output artifacts
-          -p:Version=${{ steps.version.outputs.version }}
-          -p:ContinuousIntegrationBuild=true
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: TheBuilder.WebAnalytics-${{ steps.version.outputs.version }}
-          path: |
-            artifacts/*.nupkg
-            artifacts/*.snupkg
-          if-no-files-found: error
+  verify:
+    name: Verify release
+    needs: version
+    uses: ./.github/workflows/verify.yml
+    with:
+      package-version: ${{ needs.version.outputs.value }}
+      release-tag: ${{ github.event.release.tag_name }}
 
   publish:
     name: Publish to nuget.org
-    needs: build
+    needs: [version, verify]
     runs-on: ubuntu-latest
     environment: nuget
     permissions:
       contents: read
       id-token: write
     steps:
-      - name: Download package artifact
+      - name: Download verified package
         uses: actions/download-artifact@v4
         with:
-          name: TheBuilder.WebAnalytics-${{ needs.build.outputs.version }}
+          name: TheBuilder.WebAnalytics-package
           path: artifacts
-
       - name: Exchange OIDC token for production API key
         id: login
         uses: NuGet/login@v1
         with:
           user: ${{ secrets.NUGET_USER }}
-
       - name: Publish package to nuget.org
         run: >-
           dotnet nuget push artifacts/*.nupkg
