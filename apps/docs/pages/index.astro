@@ -5,12 +5,20 @@
 // and renders correctly; skip type-checking to avoid the false positives.
 import PageLayout from "blume/components/layout/PageLayout.astro";
 import data from "blume:data";
+import {
+  EcosystemSection,
+  LandingRoot,
+} from "@thebuilder/umbraco-docs/astro";
 
 import "./_home/home.css";
 
 import overviewShot from "../docs/screenshots/analytics-overview.png";
 import documentShot from "../docs/screenshots/document-analytics-workspace.png";
 import settingsShot from "../docs/screenshots/settings.png";
+import {
+  ecosystemPackages,
+  webAnalyticsPackage,
+} from "../umbraco-package";
 
 const { config } = data;
 
@@ -96,7 +104,7 @@ const steps = [
   searchEnabled={config.search.enabled}
   siteUrl={config.site}
   ogEnabled={config.og.enabled}
-  ogImage="/opengraph-image.png"
+  ogImage="/social/index.png"
   page={{
     title: "Web Analytics for Umbraco",
     description:
@@ -104,7 +112,7 @@ const steps = [
     route: "/",
   }}
 >
-  <div class="home" data-home>
+  <LandingRoot class="home">
     {/* Hero */}
     <section class="hero">
       <div class="hero__glow" aria-hidden="true"></div>
@@ -317,7 +325,12 @@ const steps = [
         </div>
       </div>
     </section>
-  </div>
+
+    <EcosystemSection
+      packages={ecosystemPackages}
+      currentPackageId={webAnalyticsPackage.id}
+    />
+  </LandingRoot>
 
   {/* Footer */}
   <footer class="home-footer" slot="footer">
@@ -340,7 +353,7 @@ const steps = [
 </PageLayout>
 
 <script>
-  const root = document.querySelector<HTMLElement>("[data-home]");
+  const root = document.querySelector<HTMLElement>("[data-udocs-root]");
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   if (root && !prefersReduced && "IntersectionObserver" in window) {

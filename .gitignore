@@ -27,3 +27,4 @@ samples/TheBuilder.WebAnalytics.Example/appsettings-schema.json
 .idea/
 .vs/
 .blume-verify/
+apps/docs/public/social/

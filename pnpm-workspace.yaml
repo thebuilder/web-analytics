@@ -5,4 +5,5 @@ allowBuilds:
   esbuild: true
   sharp: true
 minimumReleaseAgeExclude:
-  - blume@1.2.1
+  - blume@1.4.3
+  - '@thebuilder/umbraco-docs@1.0.0'
