@@ -1,11 +1,11 @@
 import { defineConfig } from "blume";
 
 import { githubReleaseChangelogSource } from "./sources/github-releases";
+import { webAnalyticsPackage } from "./umbraco-package";
 
 export default defineConfig({
-  title: "Web Analytics",
-  description:
-    "Bring Vercel Web Analytics and Plausible reports into the Umbraco backoffice.",
+  title: webAnalyticsPackage.name,
+  description: webAnalyticsPackage.summary,
   logo: {
     image: "/logo.png",
     text: "Web Analytics",

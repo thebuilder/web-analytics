@@ -13,7 +13,6 @@
 .home {
   /* Echoes the logo's blue -> purple -> pink for subtle gradient accents. */
   --brand-gradient: linear-gradient(105deg, #60a5fa, #a78bfa 52%, #f472b6);
-  padding-bottom: 5rem;
   overflow: clip;
 }
 
@@ -248,6 +247,10 @@
 .home-block__head p { color: var(--blume-muted-foreground); font-size: 1.05rem; line-height: 1.6; margin: 0; }
 .home-block__head a { color: var(--blume-accent); text-decoration: none; }
 .home-block__head a:hover { text-decoration: underline; }
+
+/* Avoid stacking the shared section's bottom margin with this custom page's
+   footer spacing. The component's card and heading styles remain package-owned. */
+.home .udocs-ecosystem { margin-block: clamp(4rem, 9vw, 7rem) 0; }
 
 .trust {
   margin-top: clamp(3rem, 7vw, 5rem);

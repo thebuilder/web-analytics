@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true">
+  <defs>
+    <filter id="tile-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <filter id="placeholder-glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+  </defs>
+  <g opacity=".42" filter="url(#tile-glow)">
+    <rect x="20" y="84" width="92" height="116" rx="28" fill="#60a5fa"/>
+    <rect x="82" y="48" width="92" height="152" rx="28" fill="#9b83ec"/>
+    <rect x="144" y="84" width="92" height="116" rx="28" fill="#ed63ad"/>
+  </g>
+  <rect x="20" y="84" width="92" height="116" rx="28" fill="#60a5fa" opacity=".92"/>
+  <rect x="82" y="48" width="92" height="152" rx="28" fill="#9b83ec" opacity=".92"/>
+  <rect x="144" y="84" width="92" height="116" rx="28" fill="#ed63ad" opacity=".92"/>
+  <circle cx="128" cy="128" r="38" fill="#fff" opacity=".58" filter="url(#placeholder-glow)"/>
+  <circle cx="128" cy="128" r="20" fill="#fff" opacity=".72"/>
+</svg>
