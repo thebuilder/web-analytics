@@ -33,8 +33,8 @@ To let non-admin editors see reporting, grant the **Analytics** section to their
 
 | Provider | Identifier | Credential |
 | --- | --- | --- |
-| [Vercel Web Analytics](https://umbraco-web-analytics.vercel.app/providers/vercel) | Project ID (`prj_...`) and optional team | Scoped access token |
-| [Plausible](https://umbraco-web-analytics.vercel.app/providers/plausible) | Site ID, normally the registered domain | Stats API key |
+| [Vercel Web Analytics](https://web-analytics.thebuilder.dk/providers/vercel) | Project ID (`prj_...`) and optional team | Scoped access token |
+| [Plausible](https://web-analytics.thebuilder.dk/providers/plausible) | Site ID, normally the registered domain | Stats API key |
 
 Plausible Cloud's Stats API requires a Business plan. Self-hosted Plausible is supported when its instance exposes the v2 Stats API query endpoint.
 
@@ -95,17 +95,17 @@ Besides the provider credentials above, these tunables live under the `WebAnalyt
 | `Connections` | `[]` | Provider connection definitions. The first becomes the initial default. |
 | `EnableMockConnections` | `false` | Development-only deterministic connection presets. Never enable in production. |
 
-Connections are normally created through the Settings screen, but they can also be bootstrapped from configuration for deployment automation. The [configuration reference](https://umbraco-web-analytics.vercel.app/reference/configuration) documents every connection key and the full precedence rules.
+Connections are normally created through the Settings screen, but they can also be bootstrapped from configuration for deployment automation. The [configuration reference](https://web-analytics.thebuilder.dk/reference/configuration) documents every connection key and the full precedence rules.
 
 ## Documentation
 
 The full documentation site covers everything above in more depth, plus the reporting UI and per-provider capabilities:
 
-- [Quickstart](https://umbraco-web-analytics.vercel.app/quickstart): install, connect a provider, and verify the dashboard.
-- [Understanding your reports](https://umbraco-web-analytics.vercel.app/guides/reports): what each metric, breakdown, and control means.
-- [Document analytics](https://umbraco-web-analytics.vercel.app/guides/document-analytics): show page-level reports on mapped documents.
-- [Configuration reference](https://umbraco-web-analytics.vercel.app/reference/configuration) and [troubleshooting](https://umbraco-web-analytics.vercel.app/reference/troubleshooting).
+- [Quickstart](https://web-analytics.thebuilder.dk/quickstart): install, connect a provider, and verify the dashboard.
+- [Understanding your reports](https://web-analytics.thebuilder.dk/guides/reports): what each metric, breakdown, and control means.
+- [Document analytics](https://web-analytics.thebuilder.dk/guides/document-analytics): show page-level reports on mapped documents.
+- [Configuration reference](https://web-analytics.thebuilder.dk/reference/configuration) and [troubleshooting](https://web-analytics.thebuilder.dk/reference/troubleshooting).
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the repository layout, local development setup (building the backoffice client, running the sample site, and running the tests), and how to submit a pull request. NuGet publishing guidance is in [docs/releasing.md](docs/releasing.md). GitHub Releases are the authoritative changelog and are surfaced in the [documentation changelog](https://umbraco-web-analytics.vercel.app/changelog/).
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the repository layout, local development setup (building the backoffice client, running the sample site, and running the tests), and how to submit a pull request. NuGet publishing guidance is in [docs/releasing.md](docs/releasing.md). GitHub Releases are the authoritative changelog and are surfaced in the [documentation changelog](https://web-analytics.thebuilder.dk/changelog/).

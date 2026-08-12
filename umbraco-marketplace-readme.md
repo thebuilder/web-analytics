@@ -12,4 +12,4 @@ Web Analytics brings analytics from [**Vercel Web Analytics**](https://vercel.co
 
 Web Analytics fits into the Umbraco permissions and editorial workflows teams already know, making analytics available where content decisions happen.
 
-Ready to bring your analytics into the backoffice? See the [installation and configuration guide](https://umbraco-web-analytics.vercel.app/).
+Ready to bring your analytics into the backoffice? See the [installation and configuration guide](https://web-analytics.thebuilder.dk/).

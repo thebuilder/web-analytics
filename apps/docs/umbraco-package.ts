@@ -5,7 +5,7 @@ export const webAnalyticsPackage = defineUmbracoPackage({
   name: "Web Analytics",
   summary: "Connect analytics providers and bring site-wide and page-level insights into the Umbraco backoffice.",
   links: {
-    docs: "https://umbraco-web-analytics.vercel.app/",
+    docs: "https://web-analytics.thebuilder.dk/",
     nuget: "https://www.nuget.org/packages/TheBuilder.WebAnalytics",
     marketplace: "https://marketplace.umbraco.com/package/thebuilder.webanalytics",
     github: "https://github.com/thebuilder/web-analytics",
@@ -21,7 +21,7 @@ export const blurPlaceholderPackage = defineUmbracoPackage({
   name: "Blur Placeholder",
   summary: "Generate WebP, BlurHash, or ThumbHash placeholders for Umbraco Image media and deliver one frontend-ready string.",
   links: {
-    docs: "https://blur-placeholder.vercel.app/",
+    docs: "https://blur.thebuilder.dk/",
     nuget: "https://www.nuget.org/packages/TheBuilder.BlurPlaceholder",
     marketplace: "https://marketplace.umbraco.com/package/thebuilder.blurplaceholder",
     github: "https://github.com/thebuilder/blur-placeholder",
