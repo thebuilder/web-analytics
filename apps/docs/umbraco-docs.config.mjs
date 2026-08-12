@@ -7,6 +7,7 @@ export default defineOgConfig({
   prefix: "/og",
   brand: "TheBuilder · Web Analytics",
   accent: "#3544b1",
+  logo: "/logo.png",
   root: {
     title: "Web Analytics",
     description: "Bring Vercel Web Analytics and Plausible reports into the Umbraco backoffice.",
