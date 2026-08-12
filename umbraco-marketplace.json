@@ -10,7 +10,7 @@
   "Category": "Analytics & Insights",
   "Title": "Web Analytics",
   "Description": "Connect web analytics providers and bring site-wide and page-level insights into the Umbraco backoffice.",
-  "DocumentationUrl": "https://umbraco-web-analytics.vercel.app/",
+  "DocumentationUrl": "https://web-analytics.thebuilder.dk/",
   "IssueTrackerUrl": "https://github.com/thebuilder/web-analytics/issues",
   "LicenseTypes": [
     "Free"
