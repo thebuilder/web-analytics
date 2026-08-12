@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 export default defineOgConfig({
   contentDir: fileURLToPath(new URL("./docs", import.meta.url)),
   publicDir: fileURLToPath(new URL("./public", import.meta.url)),
-  prefix: "/social",
+  prefix: "/og",
   brand: "TheBuilder · Web Analytics",
   accent: "#3544b1",
   root: {
