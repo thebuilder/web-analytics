@@ -40,6 +40,11 @@ export default defineConfig({
     output: "static",
     site: "https://web-analytics.thebuilder.dk",
   },
+  seo: {
+    // Package-owned cards are generated into public/og before Blume builds.
+    // Disable Blume's generated /og routes so it cannot overwrite them.
+    og: { enabled: false },
+  },
   analytics: {
     vercel: true,
   },
