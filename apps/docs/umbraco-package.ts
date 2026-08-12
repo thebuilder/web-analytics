@@ -21,7 +21,7 @@ export const blurPlaceholderPackage = defineUmbracoPackage({
   name: "Blur Placeholder",
   summary: "Generate WebP, BlurHash, or ThumbHash placeholders for Umbraco Image media and deliver one frontend-ready string.",
   links: {
-    docs: "https://blur-placeholder.thebuilder.dk/",
+    docs: "https://blur.thebuilder.dk/",
     nuget: "https://www.nuget.org/packages/TheBuilder.BlurPlaceholder",
     marketplace: "https://marketplace.umbraco.com/package/thebuilder.blurplaceholder",
     github: "https://github.com/thebuilder/blur-placeholder",
