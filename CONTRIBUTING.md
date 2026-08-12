@@ -12,7 +12,7 @@ This repository is a pnpm and .NET workspace. The most relevant folders:
 | `src/TheBuilder.WebAnalytics/Client/` | The backoffice frontend (TypeScript, Lit, Vite). Built assets are emitted to `wwwroot/App_Plugins/`. |
 | `samples/TheBuilder.WebAnalytics.Example/` | A runnable Umbraco site that references the package for local development. |
 | `tests/TheBuilder.WebAnalytics.Tests/` | The .NET (xUnit) test project. Frontend tests (Vitest) live beside the client source. |
-| `apps/docs/` | The documentation site (Blume) published to <https://umbraco-web-analytics.vercel.app/>. |
+| `apps/docs/` | The documentation site (Blume) published to <https://web-analytics.thebuilder.dk/>. |
 | `docs/releasing.md` | How package versions are published to NuGet. |
 
 ## Prerequisites
@@ -44,7 +44,7 @@ The example project references the package directly, so it always uses your loca
 dotnet run --project samples/TheBuilder.WebAnalytics.Example
 ```
 
-On first launch Umbraco installs unattended and creates a local SQLite database. In `Development` the sample enables mock connections (`WebAnalytics:EnableMockConnections`), so the Analytics section shows deterministic sample data without any Vercel or Plausible credential. For live data, configure a real provider credential and connection exactly as a consumer would (see the [Quickstart](https://umbraco-web-analytics.vercel.app/quickstart)).
+On first launch Umbraco installs unattended and creates a local SQLite database. In `Development` the sample enables mock connections (`WebAnalytics:EnableMockConnections`), so the Analytics section shows deterministic sample data without any Vercel or Plausible credential. For live data, configure a real provider credential and connection exactly as a consumer would (see the [Quickstart](https://web-analytics.thebuilder.dk/quickstart)).
 
 For an efficient loop, run `pnpm client:watch` in one terminal and `dotnet run` in another.
 
@@ -77,4 +77,4 @@ The `apps/docs/` content is Markdown/MDX; see the files under `apps/docs/docs/` 
 
 ## Releasing
 
-Publishing packages to NuGet is release-driven and documented separately in [docs/releasing.md](docs/releasing.md). GitHub Releases are the authoritative changelog and are surfaced in the [documentation changelog](https://umbraco-web-analytics.vercel.app/changelog/).
+Publishing packages to NuGet is release-driven and documented separately in [docs/releasing.md](docs/releasing.md). GitHub Releases are the authoritative changelog and are surfaced in the [documentation changelog](https://web-analytics.thebuilder.dk/changelog/).

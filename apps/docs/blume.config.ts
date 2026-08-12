@@ -38,7 +38,7 @@ export default defineConfig({
   redirects: [{ from: "/getting-started", to: "/quickstart", status: 301 }],
   deployment: {
     output: "static",
-    site: "https://umbraco-web-analytics.vercel.app",
+    site: "https://web-analytics.thebuilder.dk",
   },
   analytics: {
     vercel: true,
