@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { dashboardCards, dashboardReportPlan, selectedCardDimension } from "./dashboard-cards.js";
 
 describe("dashboardCards", () => {
-  it("models pages globally and omits them for a document", () => {
+  it("models pages globally and for a document", () => {
     expect(reportPlan({ documentScoped: false }).dimensions).toContain("RequestPath");
-    expect(reportPlan({ documentScoped: true }).dimensions).not.toContain("RequestPath");
+    expect(reportPlan({ documentScoped: true }).dimensions).toContain("RequestPath");
   });
 
   it("models audience and UTM dimensions as tabbed cards without eagerly loading hidden UTM tabs", () => {

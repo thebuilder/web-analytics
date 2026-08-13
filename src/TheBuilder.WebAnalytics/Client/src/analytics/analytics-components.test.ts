@@ -397,7 +397,7 @@ describe("analytics presentation components", () => {
     expect(icons.map((icon) => icon.getAttribute("name"))).toEqual(["icon-desktop", "icon-mobile", "icon-ipad"]);
   });
 
-  it("keeps document traffic breakdowns ahead of optional reports", async () => {
+  it("keeps document pages and traffic breakdowns ahead of optional reports", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
     element.cards = dashboardCards(true, "unavailable");
     element.events = successState({ rows: [{ eventName: "Signup", visitors: 12, count: 18 }] });
@@ -405,14 +405,15 @@ describe("analytics presentation components", () => {
     await element.updateComplete;
 
     const cards = [...element.shadowRoot?.querySelectorAll("uui-box") ?? []];
-    expect(cards.slice(0, 4).map((card) => card.querySelector<HTMLElement & { headline: string }>("web-analytics-breakdown-table")?.headline)).toEqual([
+    expect(cards.slice(0, 5).map((card) => card.querySelector<HTMLElement & { headline: string }>("web-analytics-breakdown-table")?.headline)).toEqual([
+      "Pages",
       "Referrers",
       "Countries",
       "Devices",
       "Operating systems",
     ]);
-    expect(cards[4]?.querySelector("web-analytics-event-table")).not.toBeNull();
-    expect(cards[5]?.querySelector("web-analytics-flag-table")).not.toBeNull();
+    expect(cards[5]?.querySelector("web-analytics-event-table")).not.toBeNull();
+    expect(cards[6]?.querySelector("web-analytics-flag-table")).not.toBeNull();
   });
 
   it("keeps View all actions low priority while retaining emphasis for Retry", async () => {

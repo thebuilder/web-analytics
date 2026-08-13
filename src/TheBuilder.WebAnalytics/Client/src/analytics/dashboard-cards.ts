@@ -71,12 +71,12 @@ const UTM_CARD: DashboardCard = {
 };
 
 export function dashboardCards(
-  documentScoped: boolean,
+  _documentScoped: boolean,
   utmCapability: UtmCapability,
   referrerDimension: "ReferrerHostname" | "Referrer" = "ReferrerHostname",
 ): ReadonlyArray<DashboardCard> {
   const cards: DashboardCard[] = [
-    ...(documentScoped ? [] : [{ kind: "breakdown" as const, dimension: "RequestPath" as const, headline: "Pages", span: "wide" as const }]),
+    { kind: "breakdown", dimension: "RequestPath", headline: "Pages", span: "wide" },
     { kind: "breakdown", ...referrerDimensionOption(referrerDimension), span: "wide" },
     ...SHARED_CARDS,
   ];
