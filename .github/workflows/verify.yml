@@ -131,7 +131,7 @@ jobs:
           manifest_version="$(unzip -p "$package" staticwebassets/App_Plugins/TheBuilder.WebAnalytics/umbraco-package.json | jq -r '.version')"
           grep -Fqx 'README.md' <<< "$entries"
           grep -Fqx 'staticwebassets/App_Plugins/TheBuilder.WebAnalytics/umbraco-package.json' <<< "$entries"
-          grep -Fqx 'staticwebassets/App_Plugins/TheBuilder.WebAnalytics/web-analytics.js' <<< "$entries"
+          grep -Fqx 'staticwebassets/App_Plugins/TheBuilder.WebAnalytics/web-dashboard.js' <<< "$entries"
           test "$manifest_version" = "$PACKAGE_VERSION"
           grep -Fq "<version>$PACKAGE_VERSION</version>" <<< "$nuspec"
           if [[ -n "$RELEASE_TAG" ]]; then

@@ -7,7 +7,7 @@
       "name": "Web Analytics Bundle",
       "alias": "TheBuilder.WebAnalytics.Bundle",
       "type": "bundle",
-      "js": "/App_Plugins/TheBuilder.WebAnalytics/web-analytics.js"
+      "js": "/App_Plugins/TheBuilder.WebAnalytics/web-dashboard.js"
     }
   ]
 }
