@@ -30,7 +30,8 @@ export default defineConfig({
     lib: {
       entry: "src/bundle.manifests.ts", // Bundle registers one or more manifests
       formats: ["es"],
-      fileName: "web-analytics",
+      // Avoid a common ad-blocker filename pattern for the backoffice entry point.
+      fileName: "web-dashboard",
     },
     outDir: outputDirectory, // your web component will be saved in this location
     emptyOutDir: true,

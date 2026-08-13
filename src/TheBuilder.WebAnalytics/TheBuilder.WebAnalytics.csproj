@@ -27,7 +27,7 @@
     <BackofficeAssetsPattern>wwwroot/App_Plugins/TheBuilder.WebAnalytics/**/*</BackofficeAssetsPattern>
     <BackofficeAssetsDirectory>$(MSBuildProjectDirectory)/wwwroot/App_Plugins/TheBuilder.WebAnalytics</BackofficeAssetsDirectory>
     <BackofficeManifest>$(BackofficeAssetsDirectory)/umbraco-package.json</BackofficeManifest>
-    <BackofficeEntryPoint>$(BackofficeAssetsDirectory)/web-analytics.js</BackofficeEntryPoint>
+    <BackofficeEntryPoint>$(BackofficeAssetsDirectory)/web-dashboard.js</BackofficeEntryPoint>
     <BackofficeBuildStamp>$(MSBuildProjectDirectory)/obj/backoffice-$(Version).stamp</BackofficeBuildStamp>
   </PropertyGroup>
 
