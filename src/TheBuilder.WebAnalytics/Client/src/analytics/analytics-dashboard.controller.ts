@@ -555,7 +555,6 @@ export class AnalyticsDashboardController {
     const capabilities = this.#capabilities();
     const referrerDimension = capabilities.dimensions.includes("ReferrerHostname") ? "ReferrerHostname" : "Referrer";
     const plan = dashboardReportPlan(
-      Boolean(this.#documentId),
       utmCapability,
       this.state.acquisitionView,
       this.state.utmDimension,
