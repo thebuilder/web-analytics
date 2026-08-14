@@ -71,12 +71,11 @@ const UTM_CARD: DashboardCard = {
 };
 
 export function dashboardCards(
-  documentScoped: boolean,
   utmCapability: UtmCapability,
   referrerDimension: "ReferrerHostname" | "Referrer" = "ReferrerHostname",
 ): ReadonlyArray<DashboardCard> {
   const cards: DashboardCard[] = [
-    ...(documentScoped ? [] : [{ kind: "breakdown" as const, dimension: "RequestPath" as const, headline: "Pages", span: "wide" as const }]),
+    { kind: "breakdown", dimension: "RequestPath", headline: "Pages", span: "wide" },
     { kind: "breakdown", ...referrerDimensionOption(referrerDimension), span: "wide" },
     ...SHARED_CARDS,
   ];
@@ -85,13 +84,12 @@ export function dashboardCards(
 }
 
 export function dashboardReportPlan(
-  documentScoped: boolean,
   utmCapability: UtmCapability,
   acquisitionView: AcquisitionView,
   utmDimension: UtmDimension,
   referrerDimension: "ReferrerHostname" | "Referrer" = "ReferrerHostname",
 ): DashboardReportPlan {
-  const cards = dashboardCards(documentScoped, utmCapability, referrerDimension);
+  const cards = dashboardCards(utmCapability, referrerDimension);
   const dimensions = cards.flatMap((card) => card.kind === "breakdown"
     ? [card.dimension]
     : card.reportLoading === "eager" ? card.options.map(({ dimension }) => dimension) : []);

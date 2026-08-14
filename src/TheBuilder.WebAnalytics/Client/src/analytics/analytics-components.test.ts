@@ -194,7 +194,7 @@ describe("analytics presentation components", () => {
 
   it("keeps previous breakdown, event, and flag rows visible while filters refresh", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(false, "unavailable").filter((card) => card.kind === "breakdown" && card.dimension === "Country");
+    element.cards = dashboardCards("unavailable").filter((card) => card.kind === "breakdown" && card.dimension === "Country");
     element.breakdowns = {
       Country: loadingState(successState({ dimension: "Country", rows: [{ value: "DK", visitors: 12, pageViews: 18 }] })),
     };
@@ -251,7 +251,7 @@ describe("analytics presentation components", () => {
 
   it("emits audience changes from the breakdown tabs", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(false, "unavailable").filter((card) => card.kind === "tabbed-breakdown" && card.id === "audience");
+    element.cards = dashboardCards("unavailable").filter((card) => card.kind === "tabbed-breakdown" && card.id === "audience");
     element.audienceDimension = "DeviceType";
     element.breakdowns = {
       DeviceType: successState({ dimension: "DeviceType", rows: [] }),
@@ -276,7 +276,7 @@ describe("analytics presentation components", () => {
 
   it("keeps audience cards as percentages of the selected metric", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(false, "unavailable").filter((card) => card.kind === "tabbed-breakdown" && card.id === "audience");
+    element.cards = dashboardCards("unavailable").filter((card) => card.kind === "tabbed-breakdown" && card.id === "audience");
     element.audienceDimension = "DeviceType";
     element.metric = "visitors";
     element.breakdowns = {
@@ -306,7 +306,7 @@ describe("analytics presentation components", () => {
 
   it("keeps standard cards focused on the selected metric", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(false, "unavailable").filter((card) => card.kind === "breakdown" && card.dimension === "RequestPath");
+    element.cards = dashboardCards("unavailable").filter((card) => card.kind === "breakdown" && card.dimension === "RequestPath");
     element.metric = "pageViews";
     element.breakdowns = {
       RequestPath: successState({ dimension: "RequestPath", rows: [{ value: "/", visitors: 8_525, pageViews: 15_119 }] }),
@@ -397,27 +397,28 @@ describe("analytics presentation components", () => {
     expect(icons.map((icon) => icon.getAttribute("name"))).toEqual(["icon-desktop", "icon-mobile", "icon-ipad"]);
   });
 
-  it("keeps document traffic breakdowns ahead of optional reports", async () => {
+  it("keeps document pages and traffic breakdowns ahead of optional reports", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(true, "unavailable");
+    element.cards = dashboardCards("unavailable");
     element.events = successState({ rows: [{ eventName: "Signup", visitors: 12, count: 18 }] });
     document.body.append(element);
     await element.updateComplete;
 
     const cards = [...element.shadowRoot?.querySelectorAll("uui-box") ?? []];
-    expect(cards.slice(0, 4).map((card) => card.querySelector<HTMLElement & { headline: string }>("web-analytics-breakdown-table")?.headline)).toEqual([
+    expect(cards.slice(0, 5).map((card) => card.querySelector<HTMLElement & { headline: string }>("web-analytics-breakdown-table")?.headline)).toEqual([
+      "Pages",
       "Referrers",
       "Countries",
       "Devices",
       "Operating systems",
     ]);
-    expect(cards[4]?.querySelector("web-analytics-event-table")).not.toBeNull();
-    expect(cards[5]?.querySelector("web-analytics-flag-table")).not.toBeNull();
+    expect(cards[5]?.querySelector("web-analytics-event-table")).not.toBeNull();
+    expect(cards[6]?.querySelector("web-analytics-flag-table")).not.toBeNull();
   });
 
   it("keeps View all actions low priority while retaining emphasis for Retry", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(false, "unavailable").filter((card) => card.kind === "breakdown" && card.dimension === "Country");
+    element.cards = dashboardCards("unavailable").filter((card) => card.kind === "breakdown" && card.dimension === "Country");
     element.breakdowns = {
       Country: successState({ dimension: "Country", rows: [{ value: "DK", visitors: 12, pageViews: 18 }] }),
     };
@@ -448,7 +449,7 @@ describe("analytics presentation components", () => {
 
   it("groups Events and Flags as optional reports in the overview", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(false, "unavailable");
+    element.cards = dashboardCards("unavailable");
     element.events = successState({ rows: [] });
     document.body.append(element);
     await element.updateComplete;
@@ -463,7 +464,7 @@ describe("analytics presentation components", () => {
 
   it("keeps a lone optional report in one feature-grid track", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(true, "unavailable");
+    element.cards = dashboardCards("unavailable");
     element.supportsEvents = false;
     element.supportsFlags = true;
     element.events = successState({ rows: [] });
@@ -481,7 +482,7 @@ describe("analytics presentation components", () => {
 
   it("merges valid UTM reports into the referrers card with five parameter tabs", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(false, "available");
+    element.cards = dashboardCards("available");
     element.breakdowns = {
       ReferrerHostname: successState({ dimension: "ReferrerHostname", rows: [{ value: "google.com", visitors: 8, pageViews: 10 }] }),
       UtmSource: successState({ dimension: "UtmSource", rows: [{ value: "newsletter", visitors: 5, pageViews: 6 }] }),
@@ -524,7 +525,7 @@ describe("analytics presentation components", () => {
 
   it("keeps the UTM tab hidden until a UTM report is valid", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards(false, "unknown");
+    element.cards = dashboardCards("unknown");
     element.breakdowns = {
       ReferrerHostname: successState({ dimension: "ReferrerHostname", rows: [] }),
     };
