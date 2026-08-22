@@ -13,4 +13,25 @@ Web Analytics reads the traffic your site already sends to [Vercel Web Analytics
 
 Document reports follow Umbraco's existing Content permissions, so an editor who can browse a page can read its analytics without being granted the global Analytics section.
 
-Start with the [installation and configuration guide](https://web-analytics.thebuilder.dk/).
+## Install
+
+Needs Umbraco CMS 17.1 through 18.x, and a public site already collecting analytics with Vercel or Plausible. Plausible Cloud serves the Stats API on Business plans only.
+
+```sh
+dotnet add package TheBuilder.WebAnalytics
+```
+
+Services and backoffice extensions register themselves, so there is nothing else to wire up.
+
+## Set up a connection
+
+1. Put a read-only provider credential in server-side configuration, as either `WebAnalytics__Providers__Vercel__AccessToken` or `WebAnalytics__Providers__Plausible__AccessToken`. Use environment variables, .NET user secrets, or your host's secret store. Never `appsettings.json`.
+2. Restart the application so it picks up the credential.
+3. As an administrator, open **Settings → Web Analytics** and add a connection. Enter your Vercel project ID (`prj_...`) or your Plausible site ID.
+4. Select **Test connection**, then open the **Analytics** section.
+
+To give editors page-level reports as well, map a document root in the connection's **Page analytics** settings.
+
+## Documentation
+
+[web-analytics.thebuilder.dk](https://web-analytics.thebuilder.dk/) has the full quickstart, a guide to reading the reports, the configuration reference, and troubleshooting.
