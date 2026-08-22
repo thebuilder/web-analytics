@@ -33,40 +33,40 @@ const providers = [
     name: "Vercel Web Analytics",
     href: "/providers/vercel",
     detail:
-      "Connect a Vercel project with a scoped access token. Read visitors, page views, routes, and campaigns without ever storing the token in Umbraco.",
+      "Connect a Vercel project with a scoped access token. Visitors, page views, pages, campaigns, custom events, and feature flags, with the token never stored in Umbraco.",
   },
   {
     name: "Plausible",
     href: "/providers/plausible",
     detail:
-      "Point at Plausible Cloud or a self-hosted instance with a Stats API key. Explore events, properties, and privacy-friendly traffic from the backoffice.",
+      "Point at Plausible Cloud or a self-hosted instance with a Stats API key. Adds global event filtering and custom event properties on top of the core reports.",
   },
 ];
 
 const features = [
   {
     title: "Traffic reports",
-    body: "Visitors, page views, trends, acquisition, audience, pages, routes, and campaigns: the headline numbers, one click away.",
+    body: "Visitors and page views over time, plus pages, referrers, campaigns, countries, devices, browsers, and operating systems.",
     icon: "chart",
   },
   {
     title: "Document context",
-    body: "See analytics inside a published document's workspace, automatically scoped to that document's route.",
+    body: "An Analytics view inside a published document's workspace, filtered to that document's route. Toggle child paths to cover the whole section.",
     icon: "doc",
   },
   {
-    title: "Drill into detail",
-    body: "Compare date ranges, apply filters, and follow a headline number down to the context behind it.",
+    title: "Compare and filter",
+    body: "Each metric shows how it moved against the period before it. Turn any breakdown row into a filter across the whole dashboard.",
     icon: "filter",
   },
   {
     title: "Multi-site support",
-    body: "Add more than one connection to a single Umbraco installation and switch between them.",
+    body: "Connect several Vercel projects and Plausible sites to one Umbraco installation and switch between them.",
     icon: "layers",
   },
   {
     title: "Private credentials",
-    body: "Provider access lives in server-side configuration, never in the browser, never in Umbraco content.",
+    body: "Tokens live in server-side configuration. They are never written to Umbraco and never sent to the browser.",
     icon: "lock",
   },
   {
@@ -108,7 +108,7 @@ const steps = [
   page={{
     title: "Web Analytics for Umbraco",
     description:
-      "Bring Vercel Web Analytics and Plausible reports into the Umbraco backoffice: site-wide and page-level traffic where editors already work.",
+      "Vercel Web Analytics and Plausible reports inside the Umbraco backoffice, site-wide and per page, with no new tracking on your public site.",
     route: "/",
   }}
 >
@@ -131,10 +131,10 @@ const steps = [
           <span class="hero__accent">right inside Umbraco</span>.
         </h1>
         <p class="hero__lede reveal" style="--i: 2">
-          Web Analytics brings Vercel Web Analytics and Plausible reports into the
-          backoffice. Editors understand site-wide traffic and the performance of
-          the page they're working on, without leaving Umbraco or learning another
-          dashboard.
+          Web Analytics reads the traffic your site already sends to Vercel or
+          Plausible and reports it in the backoffice. Editors see the site-wide
+          numbers and how the page they're editing is doing, without leaving
+          Umbraco.
         </p>
         <div class="hero__actions reveal" style="--i: 3">
           <a class="btn btn--primary" href="/quickstart">Get started</a>
@@ -183,9 +183,9 @@ const steps = [
     {/* Trust line */}
     <section class="shell trust reveal">
       <p>
-        <strong>Reads the analytics you already collect.</strong>{" "}
-        No new tracking added to your public site, no credentials in the browser,
-        no separate platform to learn.
+        <strong>Nothing new on your public site.</strong>{" "}
+        Web Analytics only reads. Tracking on your site stays exactly as you set
+        it up, and the token never leaves server-side configuration.
       </p>
     </section>
 
@@ -193,8 +193,8 @@ const steps = [
     <section class="shell home-block">
       <div class="home-block__head reveal">
         <span class="rule" aria-hidden="true"></span>
-        <h2>Works with the analytics you already run</h2>
-        <p>Bring your existing provider. Reporting depth adapts to what each one exposes; the editorial experience stays the same.</p>
+        <h2>Bring your own provider</h2>
+        <p>Point it at a Vercel project or a Plausible site. Where a provider can't report something, the backoffice hides that panel instead of showing an error.</p>
       </div>
       <div class="providers">
         {providers.map((provider, index) => (
@@ -216,8 +216,8 @@ const steps = [
     <section class="shell home-block">
       <div class="home-block__head reveal">
         <span class="rule" aria-hidden="true"></span>
-        <h2>Insight where editors already work</h2>
-        <p>The traffic signals that matter for the current editorial task, within immediate reach, with nothing more to configure.</p>
+        <h2>What's in the dashboard</h2>
+        <p>One dashboard per connection, and the same reports again on any document you map.</p>
       </div>
       <div class="features">
         {features.map((feature, index) => (
@@ -256,10 +256,10 @@ const steps = [
           <span class="rule" aria-hidden="true"></span>
           <h2>Page performance, next to the content</h2>
           <p>
-            Map a document root and Web Analytics adds an Analytics workspace to
-            published documents, automatically filtered to that page's route.
-            Editors see how the page they're editing actually performs, without
-            hunting for it in a separate report.
+            Map a document root and every published document below it gains an
+            Analytics workspace, filtered to its own route. It follows Umbraco's
+            Content permissions, so an editor who can browse a page can read its
+            numbers without access to the global Analytics section.
           </p>
           <a class="btn btn--ghost" href="/guides/document-analytics">
             Read the guide
@@ -285,7 +285,7 @@ const steps = [
       <div class="home-block__head reveal">
         <span class="rule" aria-hidden="true"></span>
         <h2>Connected in three steps</h2>
-        <p>From package install to a working dashboard, the whole path lives on one <a href="/quickstart">quickstart</a> page.</p>
+        <p>All three steps, and what to check afterwards, are on the <a href="/quickstart">quickstart</a> page.</p>
       </div>
       <div class="steps-grid">
         <ol class="steps">
@@ -317,8 +317,8 @@ const steps = [
     <section class="shell home-block">
       <div class="cta reveal">
         <div class="cta__glow" aria-hidden="true"></div>
-        <h2>Bring analytics into the editorial workflow</h2>
-        <p>Install the package, connect the provider your site already uses, and give editors traffic context where they manage content.</p>
+        <h2>Put the numbers where the content is</h2>
+        <p>Install the package, point it at your Vercel project or Plausible site, and editors get their traffic reports without a second login.</p>
         <div class="hero__actions">
           <a class="btn btn--primary" href="/quickstart">Get started</a>
           <a class="btn btn--ghost btn--on-panel" href={marketplaceUrl} rel="noopener">Umbraco Marketplace</a>

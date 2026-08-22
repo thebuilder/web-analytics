@@ -1,19 +1,19 @@
 ---
 title: Vercel Web Analytics
-description: Reference for Vercel Web Analytics connection fields, reports, team projects, credential overrides, and common connection errors.
+description: Vercel Web Analytics connection fields, team projects, credential overrides, capabilities, and common connection errors.
 seo:
   image: /og/providers/vercel.png
 ---
 
-The [quickstart](/quickstart) owns the first-time setup flow. Use this page to look up Vercel-specific requirements, connection fields, and capabilities.
+The [quickstart](/quickstart) covers first-time setup. This page is for looking up Vercel-specific requirements, fields, and capabilities.
 
 ## About Vercel Web Analytics
 
-[Vercel Web Analytics](https://vercel.com/docs/analytics) is Vercel's analytics product for understanding traffic to a Vercel project. This package reads the reports Vercel already collects and makes them available in Umbraco; it does not add tracking to the public site.
+[Vercel Web Analytics](https://vercel.com/docs/analytics) reports traffic to a Vercel project. This package reads what Vercel has already collected and shows it in Umbraco. It does not add tracking to the public site.
 
 ## Requirements
 
-The connection needs a [Vercel access token](https://vercel.com/kb/guide/how-do-i-use-a-vercel-api-access-token) scoped to the account or team that owns the project. Configure the token server-side; it is never stored in Umbraco.
+The connection needs a [Vercel access token](https://vercel.com/kb/guide/how-do-i-use-a-vercel-api-access-token) scoped to the account or team that owns the project. The token lives in server-side configuration and is never stored in Umbraco.
 
 ## Connection fields
 
@@ -27,16 +27,16 @@ Add these values in **Settings → Web Analytics**. For connection errors such a
 
 ## Capabilities
 
-Vercel connections provide core totals, history, traffic breakdowns, UTM dimensions, event lists, event-property drill-downs, and feature flags.
+Vercel connections report core totals, history, traffic breakdowns, UTM dimensions, event lists, event-property drill-downs, and feature flags.
 
-Vercel does not support applying an event or event-property filter to a global report, and does not support selecting the ordering metric for a breakdown. The backoffice adapts to those capabilities.
+Vercel cannot apply an event or event-property filter to a global report, and cannot change the metric a breakdown is ordered by. The backoffice hides both controls on a Vercel connection.
 
 ## Connection-specific credential
 
-Use a connection override only when this connection needs a different credential from the shared Vercel token. The Settings UI shows the exact secret key, in the form:
+Use a connection override only when one connection needs a different credential from the shared Vercel token. The Settings screen shows the exact secret key:
 
 ```text
 WebAnalytics__ConnectionAccessTokens__{connection-guid}
 ```
 
-The override remains server-side and takes precedence over the shared provider credential.
+The override stays server-side and wins over the shared provider credential.

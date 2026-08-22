@@ -1,24 +1,24 @@
 ---
 title: Configuration reference
-description: Before the first Settings save, server configuration supplies non-secret values; afterward, Umbraco settings take precedence.
+description: Every WebAnalytics option, plus how server configuration and Umbraco-stored settings take precedence over each other.
 seo:
   image: /og/reference/configuration.png
 ---
 
 ## Configuration lifecycle and precedence
 
-Before an administrator first saves Settings → Web Analytics, server configuration supplies the active non-secret values. After that first save, Umbraco-stored non-secret connection settings become the source of truth.
+Server configuration supplies the non-secret values until an administrator first saves Settings → Web Analytics. After that save, the settings stored in Umbraco take over.
 
 1. At startup, the package reads `WebAnalytics` server configuration.
 2. Until an administrator saves **Settings → Web Analytics**, those non-secret values are the active configuration.
 3. After the first settings save, non-secret connection settings are stored in Umbraco and become the source of truth.
 4. Provider credentials always remain in server-side configuration. A connection-specific credential overrides the shared provider credential.
 
-Each Umbraco application instance keeps its own in-memory report cache. Restart every instance after changing saved settings or credentials so every process uses the same configuration.
+Each Umbraco application instance keeps its own in-memory report cache. Restart every instance after changing saved settings or credentials, otherwise processes disagree about the configuration.
 
-## Safe configuration-only example
+## Configuration-only example
 
-Use configuration-only setup when deployment automation must bootstrap connections. Do not put access tokens in this file.
+Bootstrap connections this way when deployment automation has to create them. Keep access tokens out of this file.
 
 ```json
 {
@@ -52,8 +52,8 @@ For Plausible, use `"Provider": "Plausible"` and set `SiteId` instead of `Projec
 | Key | Default | Description |
 | --- | --- | --- |
 | `Enabled` | `true` | Enables the Analytics section and configured document workspace views. |
-| `EnableMockConnections` | `false` | Enables deterministic development-only connection presets. Never enable in production. |
-| `DefaultRangeDays` | `30` | Initial reporting range. Valid values are 1–730. |
+| `EnableMockConnections` | `false` | Turns on deterministic development-only connection presets. Never enable in production. |
+| `DefaultRangeDays` | `30` | Initial reporting range, in days. Valid values are 1 to 730. |
 | `CacheDuration` | `00:05:00` | Per-instance in-memory cache duration. Valid from zero to one hour. |
 | `Connections` | `[]` | Provider connection definitions. The first becomes the initial default. |
 | `ConnectionAccessTokens` | Empty | Optional connection-specific credential overrides, keyed by connection GUID. An override takes precedence over the shared provider credential. Set one with `WebAnalytics__ConnectionAccessTokens__{connection-guid}`. |
@@ -74,12 +74,12 @@ For Plausible, use `"Provider": "Plausible"` and set `SiteId` instead of `Projec
 | `EventPropertyNames` | Plausible | Custom properties to discover and drill into. |
 | `EnableEvents` | All | Whether to show provider-supported custom events. |
 | `EnableFlags` | Vercel | Whether to show provider-supported feature flags. |
-| `MockScenario` | Development only | Selects deterministic mock report data when mock connections are enabled: `Complete`, `Utm`, `Flags`, or `Events`. |
+| `MockScenario` | Development only | Picks which mock report data to serve when mock connections are enabled. One of `Complete`, `Utm`, `Flags`, or `Events`. |
 | `DocumentRootKeys` | All | Root document GUIDs mapped to this connection. More than one connection may map the same root; editors select the provider in the document workspace. |
 | `EnableAllDocumentTypes` | All | Enables document analytics for every type below a mapped root. |
 | `EnabledDocumentTypeKeys` | All | Restricts document analytics to specific document-type GUIDs. |
 | `EnabledDocumentTypes` | All | Document-type aliases for configuration-only bootstrapping. |
 
 :::warning
-Keep provider credentials out of `appsettings.json` and source control. Use environment variables, user secrets, or the secret facility supplied by the hosting platform.
+Keep provider credentials out of `appsettings.json` and source control. Use environment variables, .NET user secrets, or your hosting platform's secret store.
 :::

@@ -1,6 +1,6 @@
 ---
 title: Overview
-description: Bring the analytics your site already collects into Umbraco, giving editors useful traffic reports in the backoffice and on mapped documents.
+description: Bring the analytics your site already collects into Umbraco, giving editors traffic reports in the backoffice and on mapped documents.
 seo:
   image: /og/overview.png
 sidebar:
@@ -9,36 +9,36 @@ sidebar:
 
 ## Supported providers
 
-Choose the reference for the analytics provider your site already has.
+Pick the reference for your provider.
 
 <CardGroup cols={2}>
   <Card title="Vercel Web Analytics" href="/providers/vercel">
-    Reference connection fields, team projects, feature flags, and Vercel-specific errors.
+    Connection fields, team projects, feature flags, and Vercel-specific errors.
   </Card>
   <Card title="Plausible" href="/providers/plausible">
-    Reference Cloud and self-hosted connections, event properties, and Plausible-specific errors.
+    Cloud and self-hosted connections, event properties, and Plausible-specific errors.
   </Card>
 </CardGroup>
 
-:::tip[Ready to connect your analytics?]
-[Follow the Quickstart](/quickstart) to install the package, connect the provider your site already uses, and verify the dashboard.
+:::tip[Setting up for the first time]
+[Follow the Quickstart](/quickstart) to install the package, connect your provider, and verify the dashboard.
 :::
 
 ![The global Analytics dashboard in the Umbraco backoffice](./screenshots/analytics-overview.png)
 
 ## What you get
 
-- **Traffic reports.** Explore visitors, page views, trends, referrers, campaigns, countries, devices, and pages. [Understand what each report means](/guides/reports).
-- **Document context.** Show analytics in mapped published document workspaces, scoped to the document's route.
-- **Useful detail.** Use date comparisons, filters, and drill-downs to move from a headline number to useful context.
-- **Multi-site support.** Add more than one connection to an Umbraco installation.
-- **Private credentials.** Keep provider access in server-side application configuration, never in the browser or Umbraco content.
-- **No tracking changes.** Read provider-collected data without installing, replacing, or configuring public-site tracking.
+- **Traffic reports.** Visitors, page views, history, pages, referrers, campaigns, countries, devices, browsers, and operating systems. [What each report means](/guides/reports).
+- **Document context.** Mapped published documents get their own Analytics view, filtered to that document's route.
+- **Comparison and filtering.** Each metric shows how it moved against the period before it. Any breakdown row can become a filter across the whole dashboard.
+- **Multi-site support.** One Umbraco installation can hold several Vercel projects and Plausible sites at once.
+- **Private credentials.** Provider tokens stay in server-side configuration. They never reach the browser or Umbraco content.
+- **No tracking changes.** The package reads what your provider already collects. It never installs, replaces, or configures tracking on the public site.
 
 ## Compatibility
 
-Web Analytics supports Umbraco CMS 17.1 through 18.x. [Vercel Web Analytics](/providers/vercel) and [Plausible](/providers/plausible) both provide core reports, event lists and details, and event-property drill-downs. The interface hides provider capabilities that are not available instead of presenting them as errors.
+Web Analytics supports Umbraco CMS 17.1 through 18.x. [Vercel](/providers/vercel) and [Plausible](/providers/plausible) both report core traffic, event lists and details, and event-property drill-downs. They diverge past that point, and each provider page lists exactly what its connection can do.
 
-## Need the details?
+## Reference
 
-The [configuration reference](/reference/configuration) explains configuration precedence, credentials, cache behaviour, and every supported option. Use [troubleshooting](/reference/troubleshooting) for missing access, connection errors, empty reports, and multi-instance deployment issues.
+The [configuration reference](/reference/configuration) lists every supported option, plus how precedence, credentials, and caching work. [Troubleshooting](/reference/troubleshooting) starts from the symptom: missing access, a connection error, an empty report, or settings that differ between instances.

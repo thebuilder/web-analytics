@@ -4,11 +4,11 @@
 [![NuGet downloads](https://img.shields.io/nuget/dt/TheBuilder.WebAnalytics)](https://www.nuget.org/packages/TheBuilder.WebAnalytics)
 [![License](https://img.shields.io/github/license/thebuilder/web-analytics)](https://github.com/thebuilder/web-analytics/blob/main/LICENSE)
 
-Bring Vercel Web Analytics and Plausible reports into the Umbraco backoffice. Editors can understand site-wide traffic and the performance of the page they are working on without leaving Umbraco.
+Read the traffic your site already sends to Vercel Web Analytics or Plausible, and report it inside the Umbraco backoffice. Editors get the site-wide numbers and the numbers for the page they are editing, without leaving Umbraco.
 
 ![Web Analytics overview in the Umbraco backoffice](https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/apps/docs/docs/screenshots/analytics-overview.png)
 
-Web Analytics reads analytics already collected by the configured provider. It does **not** install, replace, or configure tracking on your public website.
+Web Analytics is read-only. It does **not** install, replace, or configure tracking on your public website.
 
 ## Install
 
@@ -18,7 +18,7 @@ Web Analytics supports Umbraco CMS 17.1 through 18.x. Add it to the Umbraco web 
 dotnet add package TheBuilder.WebAnalytics
 ```
 
-Your public site must already collect analytics with Vercel or Plausible; this package reads that data and does not add tracking of its own.
+Your public site must already collect analytics with Vercel or Plausible. This package reads that data and adds no tracking of its own.
 
 The package registers its services and backoffice extensions automatically. Then:
 
@@ -40,15 +40,15 @@ Plausible Cloud's Stats API requires a Business plan. Self-hosted Plausible is s
 
 ## Configure a credential
 
-Provider credentials are always read from **server-side configuration** and are never stored in Umbraco or exposed to the browser. Keep them out of `appsettings.json` and source control. Use environment variables, [.NET user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), or your hosting platform's secret store. Restart every application instance after adding or rotating a credential.
+Provider credentials are always read from **server-side configuration**. They are never stored in Umbraco and never sent to the browser. Keep them out of `appsettings.json` and source control: use environment variables, [.NET user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), or your hosting platform's secret store. Restart every application instance after adding or rotating a credential.
 
-The configuration keys use the standard .NET double-underscore (`__`) delimiter for environment variables, or `:` for user secrets and JSON.
+Configuration keys use the standard .NET double-underscore (`__`) delimiter in environment variables, or `:` in user secrets and JSON.
 
 ### Vercel
 
 1. Create a [Vercel access token](https://vercel.com/kb/guide/how-do-i-use-a-vercel-api-access-token) scoped to the account or team that owns the project.
-2. Provide it as `WebAnalytics__Providers__Vercel__AccessToken`.
-3. Note the project ID (`prj_...`), and the team ID (`team_...`) or slug for a team-owned project, to enter in Settings.
+2. Set it as `WebAnalytics__Providers__Vercel__AccessToken`.
+3. Note the project ID (`prj_...`), plus the team ID (`team_...`) or slug for a team-owned project. You enter those in Settings.
 
 ```sh
 dotnet user-secrets set "WebAnalytics:Providers:Vercel:AccessToken" "your_token" --project path/to/Your.Umbraco.Web.csproj
@@ -57,9 +57,9 @@ dotnet user-secrets set "WebAnalytics:Providers:Vercel:AccessToken" "your_token"
 ### Plausible
 
 1. Create a [Plausible Stats API key](https://plausible.io/docs/stats-api) for the site you want to connect.
-2. Provide it as `WebAnalytics__Providers__Plausible__AccessToken`.
-3. Note the Site ID (normally the registered domain) to enter in Settings.
-4. For a self-hosted instance, set `WebAnalytics__Providers__Plausible__BaseUrl` to its public base URL (it must expose `/api/v2/query`). Cloud users keep the default `https://plausible.io/`.
+2. Set it as `WebAnalytics__Providers__Plausible__AccessToken`.
+3. Note the Site ID, normally the registered domain. You enter it in Settings.
+4. On a self-hosted instance, set `WebAnalytics__Providers__Plausible__BaseUrl` to its public base URL, which must expose `/api/v2/query`. Cloud users keep the default `https://plausible.io/`.
 
 ```sh
 dotnet user-secrets set "WebAnalytics:Providers:Plausible:AccessToken" "your_stats_api_key" --project path/to/Your.Umbraco.Web.csproj
@@ -68,7 +68,7 @@ dotnet user-secrets set "WebAnalytics:Providers:Plausible:BaseUrl" "https://anal
 
 ### Per-connection credential override (optional)
 
-When one connection needs a different credential from the shared provider token, set a connection-specific override keyed by the connection GUID. The Settings screen shows the exact key. An override takes precedence over the shared provider credential.
+When one connection needs a different credential from the shared provider token, set an override keyed by that connection's GUID. The Settings screen shows the exact key. An override wins over the shared provider credential.
 
 ```text
 WebAnalytics__ConnectionAccessTokens__{connection-guid}
@@ -76,7 +76,7 @@ WebAnalytics__ConnectionAccessTokens__{connection-guid}
 
 ## Configuration
 
-The Settings screen (**Settings → Web Analytics**) is the normal way to manage connections. Configuration precedence works as follows:
+The Settings screen (**Settings → Web Analytics**) is the normal way to manage connections. Precedence works like this:
 
 - At startup the package reads the `WebAnalytics` section from server configuration.
 - Until an administrator first saves Settings, those non-secret values are the active configuration.
@@ -85,7 +85,7 @@ The Settings screen (**Settings → Web Analytics**) is the normal way to manage
 
 Each application instance keeps its own in-memory report cache, so restart every instance after changing saved settings or credentials.
 
-Besides the provider credentials above, these tunables live under the `WebAnalytics` section:
+Besides the provider credentials above, the `WebAnalytics` section takes these options:
 
 | Key | Default | Description |
 | --- | --- | --- |
@@ -93,13 +93,13 @@ Besides the provider credentials above, these tunables live under the `WebAnalyt
 | `DefaultRangeDays` | `30` | Initial reporting range, in days. Valid values are 1 to 730. |
 | `CacheDuration` | `00:05:00` | Per-instance in-memory cache duration. Valid from zero to one hour. |
 | `Connections` | `[]` | Provider connection definitions. The first becomes the initial default. |
-| `EnableMockConnections` | `false` | Development-only deterministic connection presets. Never enable in production. |
+| `EnableMockConnections` | `false` | Deterministic development-only connection presets. Never enable in production. |
 
-Connections are normally created through the Settings screen, but they can also be bootstrapped from configuration for deployment automation. The [configuration reference](https://web-analytics.thebuilder.dk/reference/configuration) documents every connection key and the full precedence rules.
+Connections are normally created through the Settings screen, but deployment automation can bootstrap them from configuration instead. The [configuration reference](https://web-analytics.thebuilder.dk/reference/configuration) documents every connection key and the full precedence rules.
 
 ## Documentation
 
-The full documentation site covers everything above in more depth, plus the reporting UI and per-provider capabilities:
+The documentation site covers everything above in more depth, plus the reporting UI and per-provider capabilities:
 
 - [Quickstart](https://web-analytics.thebuilder.dk/quickstart): install, connect a provider, and verify the dashboard.
 - [Understanding your reports](https://web-analytics.thebuilder.dk/guides/reports): what each metric, breakdown, and control means.
@@ -108,4 +108,4 @@ The full documentation site covers everything above in more depth, plus the repo
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the repository layout, local development setup (building the backoffice client, running the sample site, and running the tests), and how to submit a pull request. NuGet publishing guidance is in [docs/releasing.md](docs/releasing.md). GitHub Releases are the authoritative changelog and are surfaced in the [documentation changelog](https://web-analytics.thebuilder.dk/changelog/).
+Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the repository layout, local development setup, and how to open a pull request. [docs/releasing.md](docs/releasing.md) covers NuGet publishing. GitHub Releases are the authoritative changelog and are mirrored in the [documentation changelog](https://web-analytics.thebuilder.dk/changelog/).

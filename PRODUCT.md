@@ -38,7 +38,7 @@ Avoid the density, configuration burden, and specialist terminology of enterpris
 2. **Native before novel.** Use Umbraco's interaction patterns, components, language, and visual hierarchy so the extension feels built in.
 3. **Simple by default.** Present the common path first and progressively reveal configuration or reporting depth only when it becomes relevant.
 4. **Trust through clarity.** Explain scope, limitations, credentials, errors, and data availability in plain language close to the affected control.
-5. **Delight through fluency.** Earn delight through fast feedback, thoughtful defaults, and polished transitions—not decoration or added complexity.
+5. **Delight through fluency.** Earn delight through fast feedback, thoughtful defaults, and polished transitions, not decoration or added complexity.
 
 ## Accessibility & Inclusion
 

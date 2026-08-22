@@ -1,10 +1,10 @@
 # Contributing to Web Analytics
 
-Thanks for your interest in improving Web Analytics for Umbraco. This guide covers the repository layout, how to set up a local development environment, and how to get a change merged. For how released package versions reach NuGet, see [docs/releasing.md](docs/releasing.md).
+Thanks for helping improve Web Analytics for Umbraco. This guide covers the repository layout, how to set up a local development environment, and how to get a change merged. [docs/releasing.md](docs/releasing.md) covers how a released version reaches NuGet.
 
 ## Repository layout
 
-This repository is a pnpm and .NET workspace. The most relevant folders:
+The repository is a pnpm and .NET workspace. The folders you are most likely to touch:
 
 | Path | What it is |
 | --- | --- |
@@ -17,9 +17,9 @@ This repository is a pnpm and .NET workspace. The most relevant folders:
 
 ## Prerequisites
 
-- [.NET SDK 10.0](https://dotnet.microsoft.com/download): builds the package, sample, and tests.
-- [Node.js 24](https://nodejs.org/): builds the backoffice client and the docs site.
-- [pnpm](https://pnpm.io/) via [Corepack](https://nodejs.org/api/corepack.html). Run `corepack enable` once; the pinned pnpm version is resolved automatically from `package.json`.
+- [.NET SDK 10.0](https://dotnet.microsoft.com/download) builds the package, sample, and tests.
+- [Node.js 24](https://nodejs.org/) builds the backoffice client and the docs site.
+- [pnpm](https://pnpm.io/) via [Corepack](https://nodejs.org/api/corepack.html). Run `corepack enable` once. The pinned pnpm version comes from `package.json`.
 
 Install the JavaScript dependencies from the repository root:
 
@@ -29,7 +29,7 @@ pnpm install
 
 ## Build the backoffice client
 
-The backoffice UI is a separate frontend build. A plain `dotnet build` of the sample does **not** rebuild it; the client is only built automatically when the NuGet package is packed. During development, build (or watch) the client yourself so its assets land in `wwwroot/App_Plugins/`:
+The backoffice UI is a separate frontend build. A plain `dotnet build` of the sample does **not** rebuild it. Only packing the NuGet package triggers the client build, so during development you run it yourself. The assets land in `wwwroot/App_Plugins/`:
 
 ```sh
 pnpm client:build   # one-off build
@@ -44,9 +44,9 @@ The example project references the package directly, so it always uses your loca
 dotnet run --project samples/TheBuilder.WebAnalytics.Example
 ```
 
-On first launch Umbraco installs unattended and creates a local SQLite database. In `Development` the sample enables mock connections (`WebAnalytics:EnableMockConnections`), so the Analytics section shows deterministic sample data without any Vercel or Plausible credential. For live data, configure a real provider credential and connection exactly as a consumer would (see the [Quickstart](https://web-analytics.thebuilder.dk/quickstart)).
+On first launch Umbraco installs unattended and creates a local SQLite database. In `Development` the sample turns on mock connections (`WebAnalytics:EnableMockConnections`), so the Analytics section shows deterministic sample data without any Vercel or Plausible credential. For live data, set up a real provider credential and connection the way a consumer would. See the [Quickstart](https://web-analytics.thebuilder.dk/quickstart).
 
-For an efficient loop, run `pnpm client:watch` in one terminal and `dotnet run` in another.
+Run `pnpm client:watch` in one terminal and `dotnet run` in another for the fastest loop.
 
 ## Run the tests and checks
 
@@ -56,7 +56,7 @@ pnpm client:check                                           # frontend type-chec
 dotnet test tests/TheBuilder.WebAnalytics.Tests/TheBuilder.WebAnalytics.Tests.csproj   # .NET tests
 ```
 
-The .NET suite runs against Umbraco 17.1, the latest 17.x, and the latest 18.x in CI. Target a specific line locally by passing the version, for example `-p:UmbracoVersion=18.*`.
+CI runs the .NET suite against Umbraco 17.1, the latest 17.x, and the latest 18.x. Target one line locally by passing the version, for example `-p:UmbracoVersion=18.*`.
 
 ## Work on the documentation site
 
@@ -66,15 +66,15 @@ pnpm docs:build      # production build
 pnpm docs:check      # validate content and links
 ```
 
-The `apps/docs/` content is Markdown/MDX; see the files under `apps/docs/docs/` for structure.
+The content in `apps/docs/` is Markdown and MDX. The files under `apps/docs/docs/` show the structure.
 
 ## Submitting a change
 
 1. Create a branch for your change.
-2. Keep pull requests focused, and update the relevant docs under `apps/docs/` when behaviour changes.
-3. Run the frontend and .NET tests above so CI passes on the first try. The `Validate` workflow builds the client, runs both test suites across the supported Umbraco versions, and validates the NuGet package.
-4. Open a pull request against `main` with a clear description of the change and its motivation.
+2. Keep pull requests focused, and update the docs under `apps/docs/` when behaviour changes.
+3. Run the frontend and .NET tests above so CI passes first time. The `Validate` workflow builds the client, runs both test suites across the supported Umbraco versions, and validates the NuGet package.
+4. Open a pull request against `main` explaining what changed and why.
 
 ## Releasing
 
-Publishing packages to NuGet is release-driven and documented separately in [docs/releasing.md](docs/releasing.md). GitHub Releases are the authoritative changelog and are surfaced in the [documentation changelog](https://web-analytics.thebuilder.dk/changelog/).
+Publishing to NuGet is release-driven and documented separately in [docs/releasing.md](docs/releasing.md). GitHub Releases are the authoritative changelog and are mirrored in the [documentation changelog](https://web-analytics.thebuilder.dk/changelog/).

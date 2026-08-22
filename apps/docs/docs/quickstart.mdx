@@ -5,13 +5,13 @@ seo:
   image: /og/quickstart.png
 ---
 
-This is the complete first-time setup path for Web Analytics. Stay on this page from package installation to a working dashboard.
+Everything a first-time setup needs is on this page, from installing the package to a dashboard with numbers in it.
 
 ## 1. Check the prerequisites
 
-Web Analytics supports Umbraco CMS 17.1 through 18.x. Your public site must already collect analytics with Vercel Web Analytics or Plausible; this package reads that data and does **not** add tracking to the public website.
+Web Analytics supports Umbraco CMS 17.1 through 18.x. Your public site must already collect analytics with Vercel Web Analytics or Plausible. This package reads that data and does **not** add tracking to the public website.
 
-You also need a read-only provider credential that can access the Vercel project or Plausible site you want to connect.
+You also need a read-only provider credential that can reach the Vercel project or Plausible site you want to connect.
 
 ## 2. Install the package
 
@@ -21,16 +21,16 @@ Add Web Analytics to the Umbraco web project:
 dotnet add package TheBuilder.WebAnalytics
 ```
 
-The package registers its services and backoffice extensions automatically. Build and deploy the Umbraco application as usual; NuGet static web assets include the package's `App_Plugins` files.
+The package registers its services and backoffice extensions automatically. Build and deploy the Umbraco application as usual. The `App_Plugins` files ship as NuGet static web assets, so there is nothing to copy by hand.
 
 ## 3. Choose a provider and configure its credential
 
-Choose the provider that already collects analytics for your site. Store its credential in application secret configuration, not `appsettings.json` and never source control. Restart every Umbraco application instance after adding or rotating a credential.
+Choose the provider that already collects analytics for your site. Store its credential in secret configuration. Not `appsettings.json`, and never source control. Restart every Umbraco application instance after adding or rotating a credential.
 
 ### Vercel Web Analytics
 
 1. Create a Vercel token scoped to the account or team that owns the project.
-2. Configure it as `WebAnalytics__Providers__Vercel__AccessToken` in your hosting platform's secret or app-setting facility.
+2. Set it as `WebAnalytics__Providers__Vercel__AccessToken` in your hosting platform's secret or app-setting store.
 3. Copy the project ID, beginning with `prj_...`. For a team-owned project, also copy the team ID (`team_...`) or team slug.
 
 For local development, set the token with .NET user secrets:
@@ -43,9 +43,9 @@ dotnet user-secrets set "WebAnalytics:Providers:Vercel:AccessToken" "your_token"
 ### Plausible
 
 1. Create a Plausible Stats API key for the site you want to connect. Plausible Cloud requires a Business plan for Stats API access.
-2. Configure it as `WebAnalytics__Providers__Plausible__AccessToken` in your hosting platform's secret or app-setting facility.
+2. Set it as `WebAnalytics__Providers__Plausible__AccessToken` in your hosting platform's secret or app-setting store.
 3. Copy the Site ID, normally the registered domain, exactly as it appears in Plausible.
-4. If you use a self-hosted instance, configure its public base URL as `WebAnalytics__Providers__Plausible__BaseUrl`. It must expose `/api/v2/query` to the Umbraco application.
+4. On a self-hosted instance, set its public base URL as `WebAnalytics__Providers__Plausible__BaseUrl`. The Umbraco application must be able to reach `/api/v2/query` there.
 
 For local development, set the values with .NET user secrets:
 
@@ -61,22 +61,22 @@ As an administrator, open **Settings → Web Analytics**.
 
 1. Select **Add connection**.
 2. Choose Vercel or Plausible. The provider cannot be changed after creation.
-3. Enter the provider identifier: a Vercel project ID and optional team, or a Plausible Site ID.
+3. Enter the provider identifier. That is a Vercel project ID and optional team, or a Plausible Site ID.
 4. Select **Save settings**.
 
 ![A Plausible connection in the Web Analytics settings screen](./screenshots/settings.png)
 
 ## 5. Test the connection
 
-Select **Test connection** and review the credential status. The settings screen reports whether it detected a shared credential or a connection override; it does not display or store a token.
+Select **Test connection**. The settings screen reports whether it found a shared credential or a connection override. It never displays or stores the token itself.
 
-If the test fails, use [troubleshooting](/reference/troubleshooting). A provider may hide an unsupported panel; that is different from a failed connection.
+If the test fails, see [troubleshooting](/reference/troubleshooting). A panel missing from the dashboard later is a separate thing. It means the provider does not report that dimension, not that the connection broke.
 
 ## 6. Verify the Analytics dashboard
 
-Open the global **Analytics** section. Check that totals and history load, then use a known date range with recorded production traffic.
+Open the **Analytics** section and check that totals and history load. Pick a date range you know had production traffic, otherwise an empty chart tells you nothing.
 
 ## Next steps
 
-- [Understand your reports](/guides/reports) to learn what each metric, breakdown, and control on the dashboard means.
-- Configure [document analytics](/guides/document-analytics) when editors should see a report while editing a mapped document.
+- [Understanding your reports](/guides/reports) explains what each metric, breakdown, and control on the dashboard means.
+- [Document analytics](/guides/document-analytics) puts a report in the workspace of a mapped document, so editors see it while editing.

@@ -20,7 +20,7 @@ GitHub Releases are the authoritative changelog and the release tag is the singl
 3. Select **Set as a pre-release**.
 4. Publish the release.
 
-The workflow publishes the prerelease package to nuget.org. NuGet package versions are immutable, so increment the prerelease number for every publish.
+The workflow publishes the prerelease package to nuget.org. NuGet versions are immutable, so bump the prerelease number for every publish.
 
 ## Publish a stable release
 
@@ -29,6 +29,6 @@ The workflow publishes the prerelease package to nuget.org. NuGet package versio
 3. Ensure **Set as a pre-release** is not selected.
 4. Publish the release.
 
-Publishing the release triggers the workflow. It removes the optional leading `v`, verifies the client, .NET projects, sample, docs, generated Umbraco manifest, NuGet metadata, and release-notes URL, then publishes that exact verified artifact to nuget.org with a short-lived OIDC credential. For example, `v0.1.0-preview.1` produces version `0.1.0-preview.1` everywhere and links its NuGet release notes to that GitHub Release.
+Publishing the release triggers the workflow. It strips the optional leading `v`, verifies the client, .NET projects, sample, docs, generated Umbraco manifest, NuGet metadata, and release-notes URL, then pushes that exact verified artifact to nuget.org with a short-lived OIDC credential. Tag `v0.1.0-preview.1` produces version `0.1.0-preview.1` everywhere, with its NuGet release notes pointing at that GitHub Release.
 
 The GitHub Release type and version must agree: prereleases require a prerelease version, and stable releases require a stable version.
