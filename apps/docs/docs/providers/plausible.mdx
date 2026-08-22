@@ -1,21 +1,21 @@
 ---
 title: Plausible
-description: Reference for Plausible Cloud and self-hosted connections, including fields, endpoint requirements, event properties, reports, and common errors.
+description: Plausible Cloud and self-hosted connection fields, endpoint requirements, event properties, capabilities, and common errors.
 seo:
   image: /og/providers/plausible.png
 ---
 
-The [quickstart](/quickstart) owns the first-time setup flow. Use this page to look up Plausible-specific requirements, connection fields, and capabilities.
+The [quickstart](/quickstart) covers first-time setup. This page is for looking up Plausible-specific requirements, fields, and capabilities.
 
 ## About Plausible
 
-[Plausible](https://plausible.io/) is a privacy-friendly, open-source web analytics platform available as a hosted service or self-hosted instance. This package reads the reports Plausible already collects and makes them available in Umbraco; it does not add tracking to the public site.
+[Plausible](https://plausible.io/) is an open-source analytics platform, run either as a hosted service or on your own instance. This package reads what Plausible has already collected and shows it in Umbraco. It does not add tracking to the public site.
 
 ## Cloud and self-hosted requirements
 
-The connection needs a [Plausible Stats API key](https://plausible.io/docs/stats-api) in server-side configuration. Plausible Cloud's Stats API requires a Business plan.
+The connection needs a [Plausible Stats API key](https://plausible.io/docs/stats-api) in server-side configuration. On Plausible Cloud, the Stats API requires a Business plan.
 
-Self-hosted Plausible is supported when the instance exposes the v2 Stats API query endpoint. Its public base URL must use HTTP or HTTPS and cannot include user information, a query, or a fragment. The Umbraco application must be able to reach its `/api/v2/query` endpoint.
+A self-hosted instance works as long as it exposes the v2 Stats API query endpoint. Its public base URL must use HTTP or HTTPS and cannot carry user information, a query, or a fragment. The Umbraco application must be able to reach `/api/v2/query` there.
 
 ## Connection fields
 
@@ -29,7 +29,7 @@ Add these values in **Settings → Web Analytics**. For connection errors such a
 
 ## Event properties
 
-Add custom event-property names when the site records properties beyond Plausible's built-in fields. You can configure up to 20 names, each with at most 100 characters.
+Add custom event-property names when the site records properties beyond Plausible's built-in fields. Up to 20 names, each at most 100 characters.
 
 | Property | Built in for |
 | --- | --- |
@@ -38,6 +38,6 @@ Add custom event-property names when the site records properties beyond Plausibl
 
 ## Capabilities
 
-Plausible connections provide core totals, history, traffic breakdowns, UTM dimensions, event lists, event-property drill-downs, global event and event-property filtering, and selectable breakdown ordering.
+Plausible connections report core totals, history, traffic breakdowns, UTM dimensions, event lists, event-property drill-downs, global event and event-property filtering, and selectable breakdown ordering.
 
-Plausible does not expose Vercel feature flags, so the flags panel is hidden for this provider.
+Plausible has no feature flags, so the backoffice hides that panel on a Plausible connection.

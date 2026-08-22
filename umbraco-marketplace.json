@@ -9,7 +9,7 @@
   },
   "Category": "Analytics & Insights",
   "Title": "Web Analytics",
-  "Description": "Connect web analytics providers and bring site-wide and page-level insights into the Umbraco backoffice.",
+  "Description": "Report the traffic your site already sends to Vercel Web Analytics or Plausible inside the Umbraco backoffice, site-wide and per page.",
   "DocumentationUrl": "https://web-analytics.thebuilder.dk/",
   "IssueTrackerUrl": "https://github.com/thebuilder/web-analytics/issues",
   "LicenseTypes": [
@@ -23,15 +23,15 @@
     },
     {
       "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/apps/docs/docs/screenshots/settings.png",
-      "Caption": "Set up Vercel and Plausible connections, confirm shared credentials, and configure reporting from the Settings section."
+      "Caption": "Add Vercel and Plausible connections, confirm the credential was found, and map document roots from the Settings section."
     },
     {
       "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/apps/docs/docs/screenshots/audience-events-and-flags.png",
-      "Caption": "Understand audience devices and locations alongside provider-supported events and features."
+      "Caption": "Break traffic down by device and browser, next to custom events and Vercel feature flags."
     },
     {
       "ImageUrl": "https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/apps/docs/docs/screenshots/custom-event-details.png",
-      "Caption": "Drill into event activity and compare visitors with total events when supported by the provider."
+      "Caption": "Drill into a custom event and its recorded properties, comparing visitors against total events."
     }
   ],
   "Tags": [

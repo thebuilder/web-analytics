@@ -1,42 +1,42 @@
 ---
 title: Document analytics
-description: Map document roots and types to show reports automatically filtered to the selected published route. Document reports do not require global Analytics-section access.
+description: Map document roots and types to show reports filtered to the selected published route. Document reports do not require global Analytics-section access.
 seo:
   image: /og/guides/document-analytics.png
 ---
 
-Document mappings are optional. A connection without a mapping remains available in the global Analytics section but does not add a document workspace report. Document reports do not require global Analytics-section access.
+Document mappings are optional. An unmapped connection still appears in the global Analytics section; it just does not add a report to any document. Document reports do not require access to the global Analytics section.
 
 ## Map an Umbraco site root
 
-For each site that needs page-level reports, choose the root document in the connection's **Page analytics** settings. A document uses the connections from its nearest mapped ancestor; it does not use connections from merely any ancestor root. A mapped document report is automatically filtered to its selected published route.
+For each site that needs page-level reports, pick the root document in the connection's **Page analytics** settings. A document uses the connections mapped to its *nearest* mapped ancestor, not every mapped ancestor above it. Its report covers that document's published route.
 
-Then either enable all document types below that root or choose the specific document types that should show the Analytics workspace view.
+Then either enable every document type below that root, or pick the specific types that should show the Analytics workspace view.
 
 ![A Vercel connection mapped to the Home document root](../screenshots/page-analytics-setup.png)
 
-You can map more than one connection to the same root, for example when the site reports to both Vercel and Plausible. When more than one mapped connection supports the document type, the workspace shows a provider selector. Its selection is remembered in that browser for the mapped root, so choosing a provider for one site does not change another site's report.
+More than one connection can map to the same root, which is what you want when a site reports to both Vercel and Plausible. The workspace then shows a provider selector. The browser remembers that choice per mapped root, so picking a provider for one site leaves the other sites alone.
 
 ## Choose the path scope
 
-Document analytics initially reports only the selected document's published path. Enable **Include child paths** in the workspace header to report on that path and every path below it. This is useful for section or landing pages; leave it disabled to inspect only the selected page.
+A document report starts at that document's own path. Enable **Include child paths** in the workspace header to take in everything below it too, which is what a section or landing page usually needs. Leave it off to look at the single page.
 
 ## When the workspace appears
 
-A document shows its Analytics workspace view only when all of these conditions are met:
+A document shows its Analytics workspace view only when all of this is true:
 
 - It is published and has a published route.
-- Its nearest configured document root must specifically resolve to one or more connections, not merely any ancestor root.
+- Its nearest mapped ancestor resolves to at least one connection. A mapped root further up the tree does not count.
 - Its document type is enabled for at least one of those connections.
-- The current user can access the Content section and browse that document.
+- The current user can reach the Content section and browse that document.
 
-This lets an editor inspect the page they are working on without first finding it in a global report.
+An editor can then inspect the page they are working on without hunting for it in a global report.
 
 ![The Analytics workspace on a mapped Home document](../screenshots/document-analytics-workspace.png)
 
 ## Multi-site example
 
-Imagine one Umbraco installation with two site roots:
+Take one Umbraco installation with two site roots:
 
 | Root document | Connection | Result |
 | --- | --- | --- |
@@ -45,11 +45,11 @@ Imagine one Umbraco installation with two site roots:
 
 If a nested root is mapped too, it wins for documents below it because it is the nearest mapped ancestor.
 
-You can also map both a Vercel project and a Plausible site to `Brand A`. Editors then choose the provider they need from the document workspace header.
+You can also map both a Vercel project and a Plausible site to `Brand A`. Editors then pick the provider they want from the document workspace header.
 
 ## Permissions
 
-Global and document analytics are intentionally separate:
+Global and document access are separate on purpose:
 
 | User | Global Analytics | Document Analytics | Settings |
 | --- | --- | --- | --- |
@@ -57,8 +57,8 @@ Global and document analytics are intentionally separate:
 | Analytics-section user | Yes | Only with Content access and document browse permission | No |
 | Editor with Content access and document browse permission | No | Yes, where mapped and published | No |
 
-This means an editor can see analytics for a document they can browse without gaining access to global site reporting.
+So an editor can read analytics for a document they can browse without being granted global site reporting.
 
 ## Troubleshoot a missing workspace
 
-Check publication and route state first, then the nearest root mapping and document-type setting. If the workspace still does not appear, verify Content-section access and document browse permission. See [troubleshooting](/reference/troubleshooting) for the full symptom checklist.
+Check publication and route state first, then the nearest root mapping and the document-type setting. If the workspace still does not appear, check Content-section access and browse permission for that document. [Troubleshooting](/reference/troubleshooting) has the full symptom checklist.
