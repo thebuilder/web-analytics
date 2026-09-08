@@ -157,7 +157,8 @@
   padding: 0.55rem 0.6rem 0.55rem 1rem;
   border-radius: var(--blume-radius);
   border: 1px solid var(--blume-border);
-  background: var(--blume-code-background, var(--blume-muted));
+  background: var(--blume-code-background);
+  color: var(--blume-foreground);
   font-family: var(--blume-font-mono);
   font-size: 0.9rem;
   max-width: 100%;
@@ -191,7 +192,8 @@
   margin: 2.5rem 0 0;
   border-radius: calc(var(--blume-radius) * 1.4);
   border: 1px solid var(--blume-border);
-  background: var(--blume-muted);
+  background: var(--blume-code-background);
+  color: var(--blume-foreground);
   overflow: hidden;
   box-shadow:
     0 1px 0 0 color-mix(in oklab, var(--blume-foreground) 4%, transparent),
@@ -205,12 +207,14 @@
   padding: 0.7rem 0.9rem;
   border-bottom: 1px solid var(--blume-border);
   background: color-mix(in oklab, var(--blume-muted) 70%, var(--blume-background));
+  color: var(--blume-muted-foreground);
 }
 .shot__bar span {
   width: 0.65rem;
   height: 0.65rem;
   border-radius: 999px;
-  background: color-mix(in oklab, var(--blume-muted-foreground) 40%, transparent);
+  background: currentColor;
+  opacity: 0.4;
 }
 .shot img { display: block; width: 100%; height: auto; }
 
