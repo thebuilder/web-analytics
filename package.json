@@ -1,7 +1,7 @@
 {
   "name": "thebuilder-web-analytics-workspace",
   "private": true,
-  "packageManager": "pnpm@11.13.0",
+  "packageManager": "pnpm@11.13.1",
   "scripts": {
     "build": "pnpm --recursive --if-present run build",
     "check": "pnpm --recursive --if-present run check",
