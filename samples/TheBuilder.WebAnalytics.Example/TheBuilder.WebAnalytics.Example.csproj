@@ -4,14 +4,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <CompressionEnabled>false</CompressionEnabled> <!-- Disable compression. E.g. for umbraco backoffice files. These files should be precompressed by node and not let dotnet handle it -->
-    <UmbracoVersion Condition="'$(UmbracoVersion)' == ''">17.4.0</UmbracoVersion>
+    <UmbracoVersion Condition="'$(UmbracoVersion)' == ''">17.6.2</UmbracoVersion>
     <DefineConstants Condition="$(UmbracoVersion.StartsWith('18.'))">$(DefineConstants);UMBRACO_18_OR_LATER</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Umbraco.Cms" Version="$(UmbracoVersion)" />
     <PackageReference Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="$(UmbracoVersion)" />
-    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
   </ItemGroup>
 
   <ItemGroup>
