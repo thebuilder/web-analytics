@@ -2,6 +2,7 @@ packages:
   - apps/*
   - src/TheBuilder.WebAnalytics/Client
 allowBuilds:
+  '@scarf/scarf': false
   esbuild: true
   sharp: true
 minimumReleaseAgeExclude:
