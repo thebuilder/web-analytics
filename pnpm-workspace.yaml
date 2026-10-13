@@ -7,4 +7,4 @@ allowBuilds:
   sharp: true
 minimumReleaseAgeExclude:
   - blume@1.4.3
-  - '@thebuilder/umbraco-docs@1.0.4'
+  - '@thebuilder/umbraco-docs@1.0.4 || 1.1.0'
