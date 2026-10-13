@@ -1,11 +1,17 @@
 import { resolve } from "node:path";
 
-import type { ContentSource, SourceEntry } from "blume/core/sources/types.ts";
+import type {
+  ContentSource,
+  SourceContext,
+  SourceEntry,
+} from "blume/core/sources/types.ts";
 import { githubReleasesSource } from "blume/sources/github-releases.ts";
 
 type ReleaseSourceOptions = {
   owner: string;
   repo: string;
+  /** The site's own URL, so links back to it become root-relative. */
+  site?: string;
 };
 
 const excludeSearchFromRaw = (raw: string): string =>
@@ -20,26 +26,12 @@ const excludeFromSearch = (entry: SourceEntry): SourceEntry => ({
   raw: entry.raw ? excludeSearchFromRaw(entry.raw) : undefined,
 });
 
-export const githubReleaseChangelogSource = ({
-  owner,
-  repo,
-}: ReleaseSourceOptions): ContentSource => {
-  const isDev = process.argv.includes("dev");
-  const source = githubReleasesSource(
-    {
-      name: "changelog",
-      owner,
-      prefix: "changelog",
-      repo,
-    },
-    {
-      cacheDir: resolve(".blume/cache/changelog"),
-      mode: isDev ? "dev" : "build",
-      projectRoot: process.cwd(),
-      refresh: !isDev,
-    },
-  );
-  const read = source.read;
+// Wraps Blume's GitHub Releases engine so every release page stays out of
+// search. Blume rebuilds a custom() source on each scan's context through
+// withContext, so the wrapper re-applies itself there, otherwise the rebuilt
+// engine would drop the search exclusion.
+const withSearchExcluded = (source: ContentSource): ContentSource => {
+  const { read, withContext } = source;
 
   return {
     ...source,
@@ -54,5 +46,31 @@ export const githubReleaseChangelogSource = ({
     read: read
       ? async (ref: string) => excludeSearchFromRaw(await read(ref))
       : undefined,
+    withContext: withContext
+      ? (ctx: SourceContext) => withSearchExcluded(withContext(ctx))
+      : undefined,
   };
 };
+
+export const githubReleaseChangelogSource = ({
+  owner,
+  repo,
+  site,
+}: ReleaseSourceOptions): ContentSource =>
+  withSearchExcluded(
+    githubReleasesSource(
+      {
+        name: "changelog",
+        owner,
+        prefix: "changelog",
+        repo,
+        site,
+      },
+      // Placeholder until Blume calls withContext with the scan's context.
+      {
+        cacheDir: resolve(".blume/cache/changelog"),
+        mode: "build",
+        projectRoot: process.cwd(),
+      },
+    ),
+  );

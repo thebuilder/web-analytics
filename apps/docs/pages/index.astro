@@ -5,6 +5,7 @@
 // and renders correctly; skip type-checking to avoid the false positives.
 import PageLayout from "blume/components/layout/PageLayout.astro";
 import data from "blume:data";
+import { loadUmbracoPackages } from "@thebuilder/umbraco-docs";
 import {
   EcosystemSection,
   LandingRoot,
@@ -15,10 +16,10 @@ import "./_home/home.css";
 import overviewShot from "../docs/screenshots/analytics-overview.png";
 import documentShot from "../docs/screenshots/document-analytics-workspace.png";
 import settingsShot from "../docs/screenshots/settings.png";
-import {
-  ecosystemPackages,
-  webAnalyticsPackage,
-} from "../umbraco-package";
+import { webAnalyticsPackage } from "../umbraco-package";
+
+// The other packages come from the hub at umbraco.thebuilder.dk, so this list never needs editing here.
+const ecosystemPackages = await loadUmbracoPackages();
 
 const { config } = data;
 

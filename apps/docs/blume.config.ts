@@ -1,7 +1,11 @@
 import { defineConfig } from "blume";
+import { vercel } from "blume/analytics";
+import { custom, filesystem } from "blume/sources";
 
 import { githubReleaseChangelogSource } from "./sources/github-releases";
 import { webAnalyticsPackage } from "./umbraco-package";
+
+const site = "https://web-analytics.thebuilder.dk";
 
 export default defineConfig({
   title: webAnalyticsPackage.name,
@@ -17,14 +21,14 @@ export default defineConfig({
   },
   content: {
     sources: [
-      { type: "filesystem", root: "docs" },
-      {
-        type: "custom",
-        source: githubReleaseChangelogSource({
+      filesystem({ root: "docs" }),
+      custom(
+        githubReleaseChangelogSource({
           owner: "thebuilder",
           repo: "web-analytics",
+          site,
         }),
-      },
+      ),
     ],
   },
   navigation: {
@@ -36,19 +40,14 @@ export default defineConfig({
     ],
   },
   redirects: [{ from: "/getting-started", to: "/quickstart", status: 301 }],
-  deployment: {
-    output: "static",
-    site: "https://web-analytics.thebuilder.dk",
-  },
+  deployment: { site },
   seo: {
     // Package-owned cards are generated into public/og before Blume builds.
     // Disable Blume's generated /og routes so it cannot overwrite them.
     og: { enabled: false },
   },
-  analytics: {
-    vercel: true,
-  },
-  ai: {
+  analytics: [vercel()],
+  agents: {
     llmsTxt: true,
   },
 });
