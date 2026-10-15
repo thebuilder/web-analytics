@@ -14,9 +14,10 @@
     "check:og": "umbraco-docs-og --check"
   },
   "devDependencies": {
-    "@thebuilder/umbraco-docs": "^1.2.0",
+    "@thebuilder/umbraco-docs": "^1.5.1",
     "@types/node": "24.10.1",
     "blume": "2.2.3",
-    "sharp": "0.35.4"
+    "sharp": "0.35.4",
+    "vgpu": "0.6.0"
   }
 }

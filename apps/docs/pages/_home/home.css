@@ -13,7 +13,8 @@
 .home {
   /* Echoes the logo's blue -> purple -> pink for subtle gradient accents. */
   --brand-gradient: linear-gradient(105deg, #60a5fa, #a78bfa 52%, #f472b6);
-  overflow: clip;
+  /* Only sideways: the particles reach up behind the header, above this element. */
+  overflow-x: clip;
 }
 
 /* Avoid orphaned words and ragged wraps on every heading. */
@@ -21,171 +22,14 @@
   text-wrap: pretty;
 }
 
-/* ---------- Hero ---------- */
-.hero {
-  position: relative;
-  padding-top: clamp(3rem, 8vw, 6rem);
-}
-
-.hero__glow {
-  position: absolute;
-  inset: -20% -10% auto -10%;
-  height: 640px;
-  background:
-    radial-gradient(42% 55% at 32% 0%, color-mix(in oklab, #60a5fa 24%, transparent), transparent 72%),
-    radial-gradient(40% 52% at 55% 4%, color-mix(in oklab, #a78bfa 22%, transparent), transparent 72%),
-    radial-gradient(42% 50% at 76% 0%, color-mix(in oklab, #f472b6 16%, transparent), transparent 72%);
-  filter: blur(10px);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.hero__mark {
-  width: 72px;
-  height: 72px;
-  margin-bottom: 0.5rem;
-  filter: drop-shadow(0 10px 28px color-mix(in oklab, #8b5cf6 40%, transparent));
-}
-
-.hero__inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 1.5rem;
-}
-
-.hero__compat {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--blume-muted-foreground);
-}
-
-.hero__title {
-  font-family: var(--blume-font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  font-size: clamp(2.4rem, 6vw, 4rem);
-  max-width: 18ch;
-  margin: 0;
-}
-.hero__accent {
-  background: var(--brand-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.hero__lede {
-  max-width: 44rem;
-  margin: 0;
-  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
-  line-height: 1.65;
-  color: var(--blume-muted-foreground);
-}
-
-.hero__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: center;
-}
-
 /* ---------- Buttons ---------- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 1.25rem;
-  border-radius: var(--blume-radius);
-  font-size: 0.95rem;
-  font-weight: 600;
-  text-decoration: none;
-  border: 1px solid transparent;
-  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.25s ease;
-}
-.btn:active { transform: translateY(1px); }
-.btn--primary {
-  position: relative;
-  isolation: isolate;
-  background: var(--blume-accent);
-  color: var(--blume-accent-foreground);
-}
-/* Fade the brand gradient in on hover for a smooth solid -> gradient reveal. */
-.btn--primary::before {
-  content: "";
-  position: absolute;
-  /* Bleed over the 1px transparent border so the gradient reaches the edge and
-     the solid-blue background does not show as a ring on hover. */
-  inset: -1px;
-  z-index: -1;
-  border-radius: inherit;
-  /* Deeper, less saturated than the headline gradient so the CTA reads rich,
-     not neon. */
-  background: linear-gradient(102deg, #3576e0, #6a55d8 56%, #a65189);
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-.btn--primary:hover::before {
-  opacity: 1;
-}
-.btn--primary:hover {
-  box-shadow: 0 6px 16px color-mix(in oklab, #6a55d8 26%, transparent);
-}
-.btn--ghost {
-  color: var(--blume-foreground);
-  border-color: var(--blume-border);
-  background: color-mix(in oklab, var(--blume-muted) 40%, transparent);
-}
-.btn--ghost:hover {
-  border-color: color-mix(in oklab, var(--blume-accent) 45%, var(--blume-border));
-  background: color-mix(in oklab, var(--blume-muted) 75%, transparent);
-}
-.btn--on-panel {
-  background: color-mix(in oklab, var(--blume-background) 12%, transparent);
-  border-color: color-mix(in oklab, var(--blume-foreground) 18%, transparent);
-}
-
-/* ---------- Install command ---------- */
-.install {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.55rem 0.6rem 0.55rem 1rem;
-  border-radius: var(--blume-radius);
-  border: 1px solid var(--blume-border);
-  background: var(--blume-code-background);
-  color: var(--blume-foreground);
-  font-family: var(--blume-font-mono);
-  font-size: 0.9rem;
-  max-width: 100%;
-}
-.install__prompt { color: var(--blume-muted-foreground); user-select: none; }
-.install__code {
-  color: var(--blume-foreground);
-  white-space: nowrap;
-  overflow-x: auto;
-}
-.install__copy {
-  display: inline-grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: calc(var(--blume-radius) * 0.75);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--blume-muted-foreground);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-.install__copy:hover { background: color-mix(in oklab, var(--blume-foreground) 8%, transparent); color: var(--blume-foreground); }
-.install__icon { grid-area: 1 / 1; }
-.install__icon--done { opacity: 0; transform: scale(0.6); transition: opacity 0.15s ease, transform 0.15s ease; }
-.install__copy.is-copied .install__icon--copy { opacity: 0; }
-.install__copy.is-copied .install__icon--done { opacity: 1; transform: scale(1); color: var(--blume-accent); }
+.home .button { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; padding-inline: 1.25rem; border: 1px solid var(--blume-border); border-radius: var(--blume-radius); color: var(--blume-foreground); font-weight: 600; text-decoration: none; }
+.home .button:hover { border-color: var(--blume-accent); }
+/* Frosted over the hero particles; the shared styles blur what's behind it. */
+.home .button--secondary { border-color: color-mix(in oklab, var(--blume-foreground) 18%, transparent); background: color-mix(in oklab, var(--blume-background) 55%, transparent); }
+/* Blume picks the label color that meets AA on the accent: white in light mode, dark in dark mode. */
+.home .button--primary { border-color: var(--blume-accent); background: var(--blume-accent); color: var(--blume-accent-foreground); box-shadow: 0 .625rem 1.9rem color-mix(in oklab, var(--blume-accent) 23%, transparent); }
+.home .button--primary:hover { background: color-mix(in oklab, var(--blume-accent) 88%, black); color: var(--blume-accent-foreground); }
 
 /* ---------- Screenshot frame ---------- */
 .shot {
@@ -406,7 +250,13 @@
   font-size: 1.05rem;
   line-height: 1.6;
 }
-.cta .hero__actions { position: relative; }
+.cta__actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
 
 /* ---------- Footer ---------- */
 .home-footer {
@@ -440,12 +290,9 @@
   .features { grid-template-columns: repeat(2, 1fr); }
   .split, .steps-grid { grid-template-columns: 1fr; }
   .split__copy { text-align: center; }
-  .split__copy .btn { margin-inline: auto; }
 }
 @media (max-width: 620px) {
   .providers, .features { grid-template-columns: 1fr; }
-  .install { width: 100%; }
-  .btn { flex: 1 1 auto; justify-content: center; }
 }
 
 /* ---------- Reveal animation (opt-in via JS, motion-safe) ---------- */

@@ -1,3 +1,4 @@
+import { docsTheme } from "@thebuilder/umbraco-docs";
 import { defineConfig } from "blume";
 import { vercel } from "blume/analytics";
 import { custom, filesystem } from "blume/sources";
@@ -11,7 +12,7 @@ export default defineConfig({
   title: webAnalyticsPackage.name,
   description: webAnalyticsPackage.summary,
   logo: {
-    image: "/logo.png",
+    image: "/logo-mark.svg",
     text: "Web Analytics",
   },
   github: {
@@ -46,6 +47,8 @@ export default defineConfig({
     // Disable Blume's generated /og routes so it cannot overwrite them.
     og: { enabled: false },
   },
+  // The docs family's shared accent and fonts, so every package site looks alike.
+  theme: { ...docsTheme },
   analytics: [vercel()],
   agents: {
     llmsTxt: true,
