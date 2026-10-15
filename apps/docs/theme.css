@@ -1,0 +1,4 @@
+/* The docs family's prose column, a little wider than Blume's 42rem so pages sit better on wide screens. */
+:root {
+  --blume-content-width: 48rem;
+}
