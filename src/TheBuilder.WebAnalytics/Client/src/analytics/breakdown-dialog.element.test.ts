@@ -14,7 +14,10 @@ import type { WebAnalyticsBreakdownDialogElement } from "./breakdown-dialog.elem
 import type { WebAnalyticsBreakdownTableElement } from "./breakdown-table.element.js";
 import "./breakdown-dialog.element.js";
 
-beforeEach(() => { HTMLDialogElement.prototype.showModal = vi.fn(); });
+// jsdom has no showModal, and since 30.1 it won't focus inside a closed dialog, so the stub opens it.
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.setAttribute("open", ""); });
+});
 afterEach(() => { document.body.replaceChildren(); });
 
 describe("breakdown dialog", () => {

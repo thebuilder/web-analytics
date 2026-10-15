@@ -1,7 +1,17 @@
-# Web Analytics for Umbraco
+<p align="center">
+  <img src="https://raw.githubusercontent.com/thebuilder/web-analytics/refs/heads/main/apps/docs/public/logo-mark.svg" width="112" height="112" alt="Web Analytics logo" />
+</p>
+
+<h1 align="center">Web Analytics for Umbraco</h1>
+
+<p align="center">
+  See the traffic your site sends to Vercel Web Analytics or Plausible<br />
+  inside the Umbraco backoffice, site-wide and per page.
+</p>
 
 [![NuGet version](https://img.shields.io/nuget/v/TheBuilder.WebAnalytics)](https://www.nuget.org/packages/TheBuilder.WebAnalytics)
 [![NuGet downloads](https://img.shields.io/nuget/dt/TheBuilder.WebAnalytics)](https://www.nuget.org/packages/TheBuilder.WebAnalytics)
+[![Umbraco Marketplace](https://img.shields.io/badge/Umbraco-Marketplace-3544b1)](https://marketplace.umbraco.com/package/thebuilder.webanalytics)
 [![License](https://img.shields.io/github/license/thebuilder/web-analytics)](https://github.com/thebuilder/web-analytics/blob/main/LICENSE)
 
 Read the traffic your site already sends to Vercel Web Analytics or Plausible, and report it inside the Umbraco backoffice. Editors get the site-wide numbers and the numbers for the page they are editing, without leaving Umbraco.
@@ -99,7 +109,7 @@ Connections are normally created through the Settings screen, but deployment aut
 
 ## Documentation
 
-The documentation site covers everything above in more depth, plus the reporting UI and per-provider capabilities:
+The [documentation site](https://web-analytics.thebuilder.dk/) covers everything above in more depth, plus the reporting UI and per-provider capabilities:
 
 - [Quickstart](https://web-analytics.thebuilder.dk/quickstart): install, connect a provider, and verify the dashboard.
 - [Understanding your reports](https://web-analytics.thebuilder.dk/guides/reports): what each metric, breakdown, and control means.
@@ -109,3 +119,7 @@ The documentation site covers everything above in more depth, plus the reporting
 ## Contributing
 
 Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the repository layout, local development setup, and how to open a pull request. [docs/releasing.md](docs/releasing.md) covers NuGet publishing. GitHub Releases are the authoritative changelog and are mirrored in the [documentation changelog](https://web-analytics.thebuilder.dk/changelog/).
+
+## License
+
+MIT. See [LICENSE](LICENSE).

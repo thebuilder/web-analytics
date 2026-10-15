@@ -1,7 +1,7 @@
 // Single source of truth for the Web Analytics mark: three ascending bars in the
 // brand blue / purple / pink, bottom-aligned in a 100x100 viewBox with even
 // padding. Every brand asset (favicon, header + hero logo, NuGet/Marketplace
-// tile, OG card) is generated from this by scripts/generate-brand.mjs.
+// tile, OG card, hero particles) is generated from this by scripts/generate-brand.mjs.
 export const MARK_RECTS =
   '<rect x="14" y="52" width="18" height="34" rx="5" fill="#60a5fa"/>' +
   '<rect x="41" y="16" width="18" height="70" rx="5" fill="#a78bfa"/>' +
