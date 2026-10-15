@@ -17,14 +17,14 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.99.0",
-    "@umbraco-cms/backoffice": "^17.6.2",
-    "chalk": "^6.0.0",
+    "@umbraco-cms/backoffice": "^17.7.1",
+    "chalk": "^6.0.1",
     "cross-env": "^10.1.0",
-    "fallow": "3.24.1",
-    "jsdom": "^30.0.1",
+    "fallow": "3.33.1",
+    "jsdom": "^30.1.2",
     "node-fetch": "^3.3.2",
-    "typescript": "^5.9.3",
-    "vite": "^8.2.2",
-    "vitest": "^5.0.0"
+    "typescript": "^6.0.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4"
   }
 }
