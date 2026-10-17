@@ -2,7 +2,7 @@
   "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json",
   "AuthorDetails": {
     "Name": "Daniel Schmidt",
-    "Description": "Developer focused on useful, editor-friendly digital experiences and integrations.",
+    "Description": "Lead Engineer at Charlie Tango, working on headless Umbraco sites and the tools around them.",
     "Url": "https://github.com/thebuilder",
     "ImageUrl": "https://github.com/thebuilder.png",
     "SyncContributorsFromRepository": true
