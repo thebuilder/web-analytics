@@ -2,7 +2,8 @@
 //
 //   node scripts/generate-brand.mjs
 //
-//   apps/docs/favicon.png            transparent mark (browser tab)
+//   apps/docs/public/favicon.png     transparent mark (browser tab, in public/ so Blume links it
+//                                    instead of inlining it ahead of the Open Graph tags)
 //   apps/docs/public/logo-mark.svg   transparent mark (header, hero particles, OG card)
 //   apps/docs/public/logo.png        transparent mark (kept for links to the old path)
 //   icon.png (repo root)             mark on a dark tile (NuGet / Marketplace)
@@ -23,7 +24,7 @@ const toPng = (svg) => sharp(Buffer.from(svg)).png().toBuffer();
 // 1. Transparent mark -> favicon + header/hero logo.
 await writeFile(resolve(docsRoot, "public/logo-mark.svg"), `${markSvg(256)}\n`);
 const transparent = await toPng(markSvg(256));
-await writeFile(resolve(docsRoot, "favicon.png"), transparent);
+await writeFile(resolve(docsRoot, "public/favicon.png"), transparent);
 await writeFile(resolve(docsRoot, "public/logo.png"), transparent);
 
 // 2. Mark on a dark rounded tile -> NuGet / Umbraco Marketplace package icon.
