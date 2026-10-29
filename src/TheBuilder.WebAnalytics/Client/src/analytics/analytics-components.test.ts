@@ -352,8 +352,39 @@ describe("analytics presentation components", () => {
     await table.updateComplete;
     expect([...table.shadowRoot?.querySelectorAll("thead th") ?? []].map((header) => header.textContent?.trim())).toEqual(["Pages", "Page views"]);
     expect([...table.shadowRoot?.querySelectorAll(".metric-number") ?? []].map((value) => value.textContent)).toEqual(["15,119"]);
-    expect(table.shadowRoot?.querySelector(".metric-cell .filter-action")).not.toBeNull();
-    expect(table.shadowRoot?.querySelector(".row-value .filter-action")).toBeNull();
+    expect(table.shadowRoot?.querySelector(".filter-action")).toBeNull();
+  });
+
+  it("filters by a row when the row or its label is clicked, but not when its link is", async () => {
+    const element = document.createElement("web-analytics-breakdown-table") as WebAnalyticsBreakdownTableElement;
+    element.dimension = "RequestPath";
+    element.linkValues = true;
+    element.baseUrl = "https://example.com";
+    element.filters = [{ dimension: "RequestPath", value: "/pricing" }];
+    element.rows = [
+      { value: "/", visitors: 10, pageViews: 20 },
+      { value: "/pricing", visitors: 5, pageViews: 8 },
+    ];
+    const onToggle = vi.fn();
+    element.addEventListener("toggle-filter", (event) => onToggle((event as CustomEvent).detail));
+    document.body.append(element);
+    await element.updateComplete;
+
+    const rows = [...element.shadowRoot?.querySelectorAll<HTMLTableRowElement>("tbody tr") ?? []];
+    rows[0].querySelector<HTMLElement>(".metric-number")!.click();
+    rows[0].querySelector<HTMLButtonElement>(".row-label")!.click();
+    const link = rows[0].querySelector<HTMLAnchorElement>(".open-link")!;
+    link.addEventListener("click", (event) => event.preventDefault());
+    link.click();
+
+    expect(onToggle.mock.calls).toEqual([
+      [{ dimension: "RequestPath", value: "/" }],
+      [{ dimension: "RequestPath", value: "/" }],
+    ]);
+    expect(link.href).toBe("https://example.com/");
+    expect(rows[0].querySelector(".row-label")?.getAttribute("aria-pressed")).toBe("false");
+    expect(rows[1].querySelector(".row-label")?.getAttribute("aria-pressed")).toBe("true");
+    expect(rows[1].querySelector(".row-label")?.getAttribute("title")).toBe("Remove /pricing filter");
   });
 
   it.each(["ReferrerHostname", "Referrer"] as const)("renders %s rows as secure external links with favicons for attributed hosts", async (dimension) => {
@@ -366,7 +397,7 @@ describe("analytics presentation components", () => {
     document.body.append(element);
     await element.updateComplete;
 
-    const link = element.shadowRoot?.querySelector<HTMLAnchorElement>(".row-label a");
+    const link = element.shadowRoot?.querySelector<HTMLAnchorElement>(".open-link");
     expect(link?.href).toBe("https://google.com/");
     expect(link?.target).toBe("_blank");
     expect(link?.rel).toBe("noopener noreferrer");
@@ -375,7 +406,8 @@ describe("analytics presentation components", () => {
     expect(favicons).toHaveLength(1);
     expect(favicons?.[0]?.src).toBe("https://www.google.com/s2/favicons?domain=google.com&sz=32");
     expect(favicons?.[0]?.getAttribute("referrerpolicy")).toBe("no-referrer");
-    expect([...element.shadowRoot?.querySelectorAll(".row-label") ?? []].map((label) => label.textContent?.trim())).toEqual(["google.com (opens in a new tab)", "Unknown"]);
+    expect([...element.shadowRoot?.querySelectorAll(".row-label") ?? []].map((label) => label.textContent?.trim())).toEqual(["google.com", "Unknown"]);
+    expect(link?.textContent?.trim()).toBe("Open google.com in a new tab");
     expect([...element.shadowRoot?.querySelectorAll(".metric-number") ?? []].map((value) => value.textContent)).toEqual(["22,304", "30,000", "1", "1"]);
   });
 
