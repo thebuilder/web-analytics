@@ -61,7 +61,7 @@ class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
     const hoverGuide: Plugin<"line"> = {
       id: "webAnalyticsHoverGuide",
       afterDatasetsDraw: (chart) => {
-        const activeElement = chart.tooltip?.getActiveElements()[0];
+        const activeElement = chart.tooltip?.getActiveElements().find(({ datasetIndex }) => datasetIndex === 1);
         if (!activeElement) return;
 
         const { ctx, chartArea } = chart;
@@ -80,17 +80,28 @@ class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
       },
     };
     const locale = this.localize.lang() || undefined;
+    const data = this.points.map((point) => this.#value(point));
     this.#chart = new Chart(canvas, {
       type: "line",
       data: {
         labels: this.points.map((point) => formatAnalyticsDate(point.timestamp, this.interval, locale, this.timeZone)),
+        // Chart.js fills each styled segment separately, which leaves a hairline seam where the
+        // dashed in-progress segment starts. The fill gets its own unstyled dataset to avoid it.
         datasets: [{
           label,
-          data: this.points.map((point) => this.#value(point)),
-          borderColor: lineColor,
-          borderWidth: 2.25,
+          data,
+          borderWidth: 0,
           backgroundColor: fillColor,
           fill: true,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          tension: 0.2,
+        }, {
+          label,
+          data,
+          borderColor: lineColor,
+          borderWidth: 2.25,
+          fill: false,
           pointRadius: 0,
           pointHoverRadius: 4,
           tension: 0.2,
@@ -111,6 +122,7 @@ class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
         maintainAspectRatio: false,
         plugins: {
           tooltip: {
+            filter: (item) => item.datasetIndex === 1,
             backgroundColor: surfaceColor,
             bodyColor: guideColor,
             borderColor,
