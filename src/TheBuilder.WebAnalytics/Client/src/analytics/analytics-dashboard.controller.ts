@@ -589,9 +589,8 @@ export class AnalyticsDashboardController {
     const plan = dashboardReportPlan(
       utmCapability,
       this.state.acquisitionView,
-      this.state.utmDimension,
+      { pages: this.state.pagesDimension, audience: this.state.audienceDimension, utm: this.state.utmDimension },
       referrerDimension,
-      this.state.pagesDimension,
     );
     const supported = new Set(capabilities.dimensions);
     const cards = plan.cards.reduce<DashboardCard[]>((result, card) => {
@@ -600,8 +599,8 @@ export class AnalyticsDashboardController {
         return result;
       }
       const options = card.options.filter(({ dimension }) => supported.has(dimension));
-      // Without alternatives, the Pages card stays a plain card instead of showing a single tab.
-      if (card.id === "pages" && options.length === 1) {
+      // Without alternatives, a collapsible card shows as a plain card instead of a single tab.
+      if (card.collapsesToSingleOption && options.length === 1) {
         result.push({ kind: "breakdown", dimension: options[0].dimension, headline: options[0].headline, span: card.span });
       } else if (options.length) {
         result.push({ ...card, options });

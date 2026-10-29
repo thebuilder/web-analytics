@@ -3,7 +3,7 @@ import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { AnalyticsBreakdown, AnalyticsDimension, AnalyticsEventsReport, AnalyticsFlagsReport } from "../api/types.gen.js";
 import { breakdownMetricTotal, topBreakdownRows, type TrafficMetric } from "./breakdown-rows.js";
-import { isPageDimension, selectedCardDimension, type AcquisitionView, type DashboardCard } from "./dashboard-cards.js";
+import { isPageDimension, selectedCardDimension, type AcquisitionView, type CardSelections, type DashboardCard } from "./dashboard-cards.js";
 import type { AnalyticsEventFilter, AnalyticsFilter, AnalyticsFlagFilter, AudienceDimension, PagesDimension, UtmDimension } from "./dashboard-url-state.js";
 import { topEventRows } from "./event-rows.js";
 import "./breakdown-table.element.js";
@@ -38,15 +38,15 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
 
   #tabsForCard(card: Extract<DashboardCard, { kind: "tabbed-breakdown" }>): ReportTabGroup {
     return {
-      ariaLabel: card.id === "pages" ? "Page report" : "Audience technology",
+      ariaLabel: card.tabsLabel,
       idPrefix: `${card.id}-card-tab`,
       options: card.options.map(({ dimension, label }) => ({ value: dimension, label })),
-      selected: card.id === "pages" ? this.pagesDimension : this.audienceDimension,
+      selected: this.#selections()[card.id],
     };
   }
 
-  #tabChangeEvent(card: Extract<DashboardCard, { kind: "tabbed-breakdown" }>): string {
-    return card.id === "pages" ? "pages-change" : card.id === "audience" ? "audience-change" : "utm-change";
+  #selections(): CardSelections {
+    return { pages: this.pagesDimension, audience: this.audienceDimension, utm: this.utmDimension };
   }
 
   #acquisitionTabs(utmAvailable: boolean): ReportTabGroup {
@@ -65,7 +65,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
   #utmTabs(card: Extract<DashboardCard, { kind: "tabbed-breakdown" }>): ReportTabGroup {
     return {
       appearance: "secondary",
-      ariaLabel: "UTM parameter",
+      ariaLabel: card.tabsLabel,
       idPrefix: "utm-card-tab",
       options: card.options.map(({ dimension, label }) => ({ value: dimension, label })),
       selected: this.utmDimension,
@@ -118,7 +118,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
   }
 
   #renderCard(card: DashboardCard) {
-    const selected = selectedCardDimension(card, this.audienceDimension, this.utmDimension, this.pagesDimension);
+    const selected = selectedCardDimension(card, this.#selections());
     const state = this.breakdowns[selected.dimension];
     const loading = isInitialLoading(state);
     const allRows = state ? stateData(state)?.rows ?? [] : [];
@@ -143,7 +143,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
             .baseUrl=${this.baseUrl}
             .linkValues=${linkValues}
             .headingTabs=${headingTabs}
-            @heading-tab-change=${(event: CustomEvent<{ value: AnalyticsDimension }>) => card.kind === "tabbed-breakdown" && this.#dispatch(this.#tabChangeEvent(card), { dimension: event.detail.value })}
+            @heading-tab-change=${(event: CustomEvent<{ value: AnalyticsDimension }>) => card.kind === "tabbed-breakdown" && this.#dispatch(`${card.id}-change`, { dimension: event.detail.value })}
             .unavailable=${unavailable}>
           </web-analytics-breakdown-table>`,
       hint: planLimited && unavailable ? html`<p class="hint breakdown-hint">UTM reporting availability depends on your analytics plan and reporting window.</p>` : undefined,
@@ -158,8 +158,8 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
     const utmAvailable = Boolean(utmCard);
     const showingUtm = utmAvailable && this.acquisitionView === "utm" && utmCard;
     const selected = showingUtm
-      ? selectedCardDimension(utmCard, this.audienceDimension, this.utmDimension)
-      : selectedCardDimension(referrerCard, this.audienceDimension, this.utmDimension);
+      ? selectedCardDimension(utmCard, this.#selections())
+      : selectedCardDimension(referrerCard, this.#selections());
     const report = this.breakdowns[selected.dimension];
     const loading = isInitialLoading(report);
     const allRows = report ? stateData(report)?.rows ?? [] : [];

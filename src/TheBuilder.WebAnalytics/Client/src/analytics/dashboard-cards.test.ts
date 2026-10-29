@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dashboardCards, dashboardReportPlan, selectedCardDimension } from "./dashboard-cards.js";
+import type { UtmDimension } from "./dashboard-url-state.js";
 
 describe("dashboardCards", () => {
   it("models pages", () => {
@@ -35,27 +36,27 @@ describe("dashboardCards", () => {
   });
 
   it("loads only the selected page report", () => {
-    expect(dashboardReportPlan("available", "referrers", "UtmSource", "ReferrerHostname", "ExitPage").dimensions)
+    expect(dashboardReportPlan("available", "referrers", { pages: "ExitPage", audience: "DeviceType", utm: "UtmSource" }).dimensions)
       .toEqual(expect.arrayContaining(["ExitPage"]));
     expect(reportPlan().dimensions).not.toEqual(expect.arrayContaining(["EntryPage"]));
   });
 
   it("selects the active option from a tabbed card", () => {
     const audience = dashboardCards("available").find((card) => card.kind === "tabbed-breakdown" && card.id === "audience");
-    expect(audience && selectedCardDimension(audience, "BrowserName", "UtmSource").dimension).toBe("BrowserName");
+    expect(audience && selectedCardDimension(audience, { pages: "RequestPath", audience: "BrowserName", utm: "UtmSource" }).dimension).toBe("BrowserName");
   });
 });
 
 type ReportPlanOverrides = {
   utmCapability?: Parameters<typeof dashboardReportPlan>[0];
   acquisitionView?: Parameters<typeof dashboardReportPlan>[1];
-  utmDimension?: Parameters<typeof dashboardReportPlan>[2];
+  utmDimension?: UtmDimension;
 };
 
 function reportPlan(overrides: ReportPlanOverrides = {}) {
   return dashboardReportPlan(
     overrides.utmCapability ?? "available",
     overrides.acquisitionView ?? "referrers",
-    overrides.utmDimension ?? "UtmSource",
+    { pages: "RequestPath", audience: "DeviceType", utm: overrides.utmDimension ?? "UtmSource" },
   );
 }

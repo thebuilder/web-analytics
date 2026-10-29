@@ -10,6 +10,11 @@ export type DimensionOption<TDimension extends AnalyticsDimension = AnalyticsDim
 
 export type BreakdownDialogGroup = "pages" | "audience" | "acquisition";
 
+export type TabbedCardId = "pages" | "audience" | "utm";
+
+/** The selected tab of each tabbed card, keyed by card id. */
+export type CardSelections = { pages: PagesDimension; audience: AudienceDimension; utm: UtmDimension };
+
 export type DashboardCard =
   | {
       kind: "breakdown";
@@ -19,9 +24,14 @@ export type DashboardCard =
     }
   | {
       kind: "tabbed-breakdown";
-      id: "pages" | "audience" | "utm";
+      id: TabbedCardId;
+      /** Accessible name of the card's tab list. */
+      tabsLabel: string;
       options: ReadonlyArray<DimensionOption>;
-      reportLoading: "eager" | "on-demand";
+      /** eager loads every tab with the dashboard, selected loads only the open tab, on-demand loads when its view opens. */
+      reportLoading: "eager" | "selected" | "on-demand";
+      /** Whether the card turns into a plain card when the connection supports only one of its tabs. */
+      collapsesToSingleOption: boolean;
       span: "normal" | "wide";
       planLimited: boolean;
     };
@@ -68,15 +78,17 @@ export function referrerDimensionOption(dimension: "ReferrerHostname" | "Referre
 
 const SHARED_CARDS: ReadonlyArray<DashboardCard> = [
   { kind: "breakdown", dimension: "Country", headline: "Countries", span: "normal" },
-  { kind: "tabbed-breakdown", id: "audience", options: AUDIENCE_OPTIONS, reportLoading: "eager", span: "normal", planLimited: false },
+  { kind: "tabbed-breakdown", id: "audience", tabsLabel: "Audience technology", options: AUDIENCE_OPTIONS, reportLoading: "eager", collapsesToSingleOption: true, span: "normal", planLimited: false },
   { kind: "breakdown", dimension: "OsName", headline: "Operating systems", span: "normal" },
 ];
 
 const UTM_CARD: DashboardCard = {
   kind: "tabbed-breakdown",
   id: "utm",
+  tabsLabel: "UTM parameter",
   options: UTM_OPTIONS,
   reportLoading: "on-demand",
+  collapsesToSingleOption: false,
   span: "wide",
   planLimited: true,
 };
@@ -86,7 +98,7 @@ export function dashboardCards(
   referrerDimension: "ReferrerHostname" | "Referrer" = "ReferrerHostname",
 ): ReadonlyArray<DashboardCard> {
   const cards: DashboardCard[] = [
-    { kind: "tabbed-breakdown", id: "pages", options: PAGES_OPTIONS, reportLoading: "on-demand", span: "wide", planLimited: false },
+    { kind: "tabbed-breakdown", id: "pages", tabsLabel: "Page report", options: PAGES_OPTIONS, reportLoading: "selected", collapsesToSingleOption: true, span: "wide", planLimited: false },
     { kind: "breakdown", ...referrerDimensionOption(referrerDimension), span: "wide" },
     ...SHARED_CARDS,
   ];
@@ -97,32 +109,26 @@ export function dashboardCards(
 export function dashboardReportPlan(
   utmCapability: UtmCapability,
   acquisitionView: AcquisitionView,
-  utmDimension: UtmDimension,
+  selections: CardSelections,
   referrerDimension: "ReferrerHostname" | "Referrer" = "ReferrerHostname",
-  pagesDimension: PagesDimension = "RequestPath",
 ): DashboardReportPlan {
   const cards = dashboardCards(utmCapability, referrerDimension);
   const dimensions = cards.flatMap((card) => card.kind === "breakdown"
     ? [card.dimension]
     : card.reportLoading === "eager"
       ? card.options.map(({ dimension }) => dimension)
-      : card.id === "pages" ? [pagesDimension] : []);
+      : card.reportLoading === "selected" ? [selectedCardDimension(card, selections).dimension] : []);
 
   if (utmCapability === "unknown") dimensions.push("UtmSource");
-  if (utmCapability === "available" && acquisitionView === "utm") dimensions.push(utmDimension);
+  if (utmCapability === "available" && acquisitionView === "utm") dimensions.push(selections.utm);
 
   return { cards, dimensions };
 }
 
-export function selectedCardDimension(
-  card: DashboardCard,
-  audience: AudienceDimension,
-  utm: UtmDimension,
-  pages: PagesDimension = "RequestPath",
-): DimensionOption {
+export function selectedCardDimension(card: DashboardCard, selections: CardSelections): DimensionOption {
   if (card.kind === "breakdown") {
     return { dimension: card.dimension, headline: card.headline, label: card.headline };
   }
-  const selected = card.id === "audience" ? audience : card.id === "pages" ? pages : utm;
+  const selected = selections[card.id];
   return card.options.find(({ dimension }) => dimension === selected) ?? card.options[0];
 }

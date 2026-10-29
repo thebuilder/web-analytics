@@ -699,6 +699,21 @@ describe("AnalyticsDashboardController", () => {
     expect(controller.cards()[0]).toEqual({ kind: "breakdown", dimension: "RequestPath", headline: "Pages", span: "wide" });
   });
 
+  it("shows Audience as a plain card when the provider reports only devices", async () => {
+    const api = dashboardApi();
+    const capabilities = { ...fullCapabilities, dimensions: fullCapabilities.dimensions.filter((dimension) => dimension !== "BrowserName") };
+    api.connections.mockImplementation(async () => ok({
+      enabled: true,
+      defaultRangeDays: 30,
+      connections: [{ key: "11111111-1111-1111-1111-111111111111", displayName: "Main", provider: "Plausible", capabilities, isDefault: true, isConfigured: true, baseUrl: "https://example.com", warnings: [] }],
+    }));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.capabilities).toBeDefined());
+
+    expect(controller.cards()).toContainEqual({ kind: "breakdown", dimension: "DeviceType", headline: "Devices", span: "normal" });
+  });
+
   it("loads entry and exit pages only when their tab is opened", async () => {
     const api = dashboardApi();
     const capabilities = { ...fullCapabilities, dimensions: [...fullCapabilities.dimensions, "EntryPage", "ExitPage"] as typeof fullCapabilities.dimensions };
