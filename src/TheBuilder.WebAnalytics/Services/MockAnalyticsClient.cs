@@ -18,6 +18,8 @@ public sealed class MockAnalyticsClient :
         {
             [AnalyticsDimension.RequestPath] = [new("/", 12840, 7240), new("/products", 8950, 5110), new("/pricing", 5670, 3420), new("/guides/analytics", 3280, 2160)],
             [AnalyticsDimension.Route] = [new("/", 12840, 7240), new("/products", 8950, 5110), new("/pricing", 5670, 3420), new("/guides/[slug]", 3280, 2160)],
+            [AnalyticsDimension.EntryPage] = [new("/", 9120, 5480), new("/guides/analytics", 3940, 2610), new("/pricing", 2760, 1830), new("/products", 2210, 1490)],
+            [AnalyticsDimension.ExitPage] = [new("/pricing", 6830, 3970), new("/", 5410, 3260), new("/products", 4190, 2540), new("/guides/analytics", 1860, 1220)],
             [AnalyticsDimension.ReferrerHostname] = [new("google.com", 9340, 6110), new("linkedin.com", 4280, 2870), new("vercel.com", 3160, 2040), new("Direct", 2870, 1830)],
             [AnalyticsDimension.Country] = [new("DK", 10540, 6420), new("US", 8360, 4910), new("DE", 4720, 2890), new("GB", 3910, 2410)],
             [AnalyticsDimension.DeviceType] = [new("Desktop", 18940, 10420), new("Mobile", 9210, 6030), new("Tablet", 1280, 810)],
@@ -115,7 +117,8 @@ public sealed class MockAnalyticsClient :
         var scaled = filtered.Select(row => new AnalyticsBreakdownRow(
             row.Value,
             Scale(row.PageViews, scale),
-            Scale(row.Visitors, scale)));
+            Scale(row.Visitors, scale),
+            BreakdownEngagement(scenario, dimension, row.Value)));
         return Task.FromResult<IReadOnlyList<AnalyticsBreakdownRow>>(Filter(scaled, search, limit, row => row.Value));
     }
 
@@ -323,6 +326,16 @@ public sealed class MockAnalyticsClient :
             ViewsPerVisit: visits == 0 ? 0 : Math.Round(pageViews / visits, 2),
             BounceRate: bounceRate,
             VisitDuration: Math.Round(162d + drift * 18d));
+    }
+
+    private static AnalyticsEngagement? BreakdownEngagement(MockAnalyticsScenario scenario, AnalyticsDimension dimension, string value)
+    {
+        if (scenario is not MockAnalyticsScenario.Complete || dimension is AnalyticsDimension.EventName) return null;
+        var seed = value.Aggregate(17, (hash, character) => hash * 31 + character) & 0x7fff;
+        var bounceRate = 28d + seed % 31;
+        return dimension is AnalyticsDimension.RequestPath or AnalyticsDimension.Route
+            ? new AnalyticsEngagement(BounceRate: bounceRate, TimeOnPage: 35d + seed % 140, ScrollDepth: 40d + seed % 51)
+            : new AnalyticsEngagement(BounceRate: bounceRate, VisitDuration: 70d + seed % 190);
     }
 
     private static long Scale(long value, double scale) => Math.Max(0, (long)Math.Round(value * scale));

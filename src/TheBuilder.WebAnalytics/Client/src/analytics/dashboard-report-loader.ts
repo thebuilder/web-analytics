@@ -3,7 +3,7 @@ import { dashboardApi, type DashboardApi } from "./dashboard-api.js";
 import { reportErrorMessage } from "./report-error.js";
 import { settleRequest, type SettledRequestResult } from "./request-coordinator.js";
 import { isUtmDimension } from "./utm-capability.js";
-import type { TrafficMetric } from "./dashboard-url-state.js";
+import type { TrafficMetric } from "./breakdown-rows.js";
 
 type SummaryOptions = NonNullable<Parameters<DashboardApi["summary"]>[0]>;
 export type DashboardReportQuery = NonNullable<SummaryOptions["query"]>;

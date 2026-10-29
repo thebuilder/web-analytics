@@ -12,6 +12,8 @@ internal static class PlausibleProvider
         AnalyticsProviderCapabilities.FromClient<PlausibleAnalyticsClient>(
             [
                 AnalyticsDimension.RequestPath,
+                AnalyticsDimension.EntryPage,
+                AnalyticsDimension.ExitPage,
                 AnalyticsDimension.Referrer,
                 AnalyticsDimension.Country,
                 AnalyticsDimension.DeviceType,

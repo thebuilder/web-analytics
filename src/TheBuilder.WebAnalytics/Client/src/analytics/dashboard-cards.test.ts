@@ -34,6 +34,12 @@ describe("dashboardCards", () => {
     }
   });
 
+  it("loads only the selected page report", () => {
+    expect(dashboardReportPlan("available", "referrers", "UtmSource", "ReferrerHostname", "ExitPage").dimensions)
+      .toEqual(expect.arrayContaining(["ExitPage"]));
+    expect(reportPlan().dimensions).not.toEqual(expect.arrayContaining(["EntryPage"]));
+  });
+
   it("selects the active option from a tabbed card", () => {
     const audience = dashboardCards("available").find((card) => card.kind === "tabbed-breakdown" && card.id === "audience");
     expect(audience && selectedCardDimension(audience, "BrowserName", "UtmSource").dimension).toBe("BrowserName");

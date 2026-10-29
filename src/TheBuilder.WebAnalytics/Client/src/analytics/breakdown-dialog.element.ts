@@ -10,9 +10,9 @@ import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { AnalyticsBreakdownRow, AnalyticsDimension } from "../api/types.gen.js";
 import { renderAnalyticsDialogFrame } from "./analytics-dialog-frame.js";
-import { analyticsDialogStyles } from "./analytics-dialog.styles.js";
+import { analyticsDialogStyles, analyticsWideDialogStyles } from "./analytics-dialog.styles.js";
 import { breakdownDimensionLabel, type TrafficMetric } from "./breakdown-rows.js";
-import { AUDIENCE_OPTIONS, breakdownDialogGroup, referrerDimensionOption, UTM_OPTIONS, type DimensionOption } from "./dashboard-cards.js";
+import { AUDIENCE_OPTIONS, PAGES_OPTIONS, breakdownDialogGroup, referrerDimensionOption, UTM_OPTIONS, type DimensionOption } from "./dashboard-cards.js";
 import type { AnalyticsFilter, UtmDimension } from "./dashboard-url-state.js";
 import { notifyDialogSearch, openDialog, searchInputValue } from "./dialog-lifecycle.js";
 import { isUtmDimension } from "./utm-capability.js";
@@ -60,6 +60,10 @@ export class WebAnalyticsBreakdownDialogElement extends UmbElementMixin(LitEleme
     return this.availableDimensions.length === 0 || this.availableDimensions.includes(dimension);
   }
 
+  #pagesOptions(): ReadonlyArray<DimensionOption> {
+    return PAGES_OPTIONS.filter(({ dimension }) => this.#supports(dimension));
+  }
+
   #audienceOptions(): ReadonlyArray<DimensionOption> {
     return AUDIENCE_OPTIONS.filter(({ dimension }) => this.#supports(dimension));
   }
@@ -83,6 +87,16 @@ export class WebAnalyticsBreakdownDialogElement extends UmbElementMixin(LitEleme
 
   #headingTabs(): ReportTabGroup | undefined {
     const group = breakdownDialogGroup(this.dimension);
+    if (group === "pages") {
+      const options = this.#pagesOptions();
+      if (options.length < 2) return undefined;
+      return {
+        ariaLabel: "Page report",
+        idPrefix: "expanded-pages-tab",
+        options: options.map(({ dimension, label }) => ({ value: dimension, label })),
+        selected: this.dimension ?? "RequestPath",
+      };
+    }
     if (group === "audience") {
       const options = this.#audienceOptions();
       return {
@@ -121,6 +135,10 @@ export class WebAnalyticsBreakdownDialogElement extends UmbElementMixin(LitEleme
 
   #selectHeading(value: string): void {
     const group = breakdownDialogGroup(this.dimension);
+    if (group === "pages") {
+      this.#selectDimension(this.#pagesOptions().find(({ dimension }) => dimension === value));
+      return;
+    }
     if (group === "audience") {
       this.#selectDimension(this.#audienceOptions().find(({ dimension }) => dimension === value));
       return;
@@ -181,7 +199,7 @@ export class WebAnalyticsBreakdownDialogElement extends UmbElementMixin(LitEleme
     });
   }
 
-  static styles = [UmbTextStyles, analyticsDialogStyles, css`
+  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsWideDialogStyles, css`
     uui-input { box-sizing: border-box; width: 100%; }
     uui-input [slot="prepend"] { align-items: center; display: flex; margin-inline: var(--uui-size-space-3) var(--uui-size-space-2); }
     .results { overflow: auto; scrollbar-gutter: stable; }

@@ -58,7 +58,9 @@ public enum AnalyticsDimension
     UtmCampaign,
     UtmTerm,
     UtmContent,
-    EventName
+    EventName,
+    EntryPage,
+    ExitPage
 }
 
 public sealed record AnalyticsCapabilities(
@@ -133,7 +135,7 @@ public sealed record AnalyticsSummary(
     AnalyticsTotals? PreviousTotals,
     IReadOnlyList<AnalyticsPoint> Points);
 
-public sealed record AnalyticsBreakdownRow(string Value, long PageViews, long Visitors);
+public sealed record AnalyticsBreakdownRow(string Value, long PageViews, long Visitors, AnalyticsEngagement? Engagement = null);
 
 public sealed record AnalyticsBreakdown(
     AnalyticsDimension Dimension,

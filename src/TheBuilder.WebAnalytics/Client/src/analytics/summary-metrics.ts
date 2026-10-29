@@ -39,6 +39,14 @@ export function summaryMetricValue(source: MetricSource | undefined, metric: Das
   return source.engagement?.[metric] ?? undefined;
 }
 
+const BREAKDOWN_ENGAGEMENT: ReadonlyArray<DashboardMetric> = ["bounceRate", "visitDuration", "timeOnPage", "scrollDepth"];
+
+// Expanded breakdowns add a column for each engagement metric that at least one row reports.
+export function breakdownEngagementMetrics(rows: ReadonlyArray<MetricSource>): ReadonlyArray<SummaryMetric> {
+  return SUMMARY_METRICS.filter(({ metric }) =>
+    BREAKDOWN_ENGAGEMENT.includes(metric) && rows.some((row) => summaryMetricValue(row, metric) !== undefined));
+}
+
 // Visitors and page views are always shown; engagement metrics appear when the provider reports them.
 export function availableSummaryMetrics(totals: MetricSource | undefined): ReadonlyArray<SummaryMetric> {
   return SUMMARY_METRICS.filter(({ metric }) =>

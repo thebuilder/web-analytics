@@ -19,6 +19,7 @@ import type { AnalyticsFilter } from "./dashboard-url-state.js";
 import { renderAnalyticsFilterAction } from "./analytics-filter-action.js";
 import { googleFaviconUrl } from "./favicon.js";
 import { renderReportTabs, reportTabsStyles, selectedReportTabId, type ReportTabGroup } from "./report-tabs.js";
+import { breakdownEngagementMetrics, formatSummaryValue, summaryMetricValue, type SummaryMetric } from "./summary-metrics.js";
 
 const BREAKDOWN_PANEL_ID = "breakdown-report-panel";
 
@@ -64,17 +65,21 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
     const percentageTotal = this.total > 0 ? this.total : breakdownMetricTotal(rows, this.metric);
     const visitorTotal = breakdownMetricTotal(rows, "visitors");
     const message = this.unavailable ?? (rows.length === 0 ? this.emptyMessage : undefined);
+    const engagement = this.#engagementColumns(rows);
 
     const labelledBy = [this.headingTabs, this.subheadingTabs]
       .map((group) => group ? selectedReportTabId(group) : undefined)
       .filter(Boolean)
       .join(" ");
     return html`
-      <table id=${BREAKDOWN_PANEL_ID} class=${this.compact ? "compact-table" : nothing} aria-labelledby=${labelledBy || nothing}>
+      <table
+        id=${BREAKDOWN_PANEL_ID}
+        class=${this.compact ? "compact-table" : engagement.length ? "engagement-table" : nothing}
+        aria-labelledby=${labelledBy || nothing}>
         <caption>${this.headline}</caption>
-        ${this.#renderHeading()}
+        ${this.#renderHeading(engagement)}
         <tbody>${message ? html`
-          <tr class="message-row"><td colspan=${this.compact ? "2" : "3"}><p>${message}</p></td></tr>
+          <tr class="message-row"><td colspan=${this.compact ? 2 : 3 + engagement.length}><p>${message}</p></td></tr>
         ` : rows.map((row, index) => {
           const isReferrer = this.dimension === "ReferrerHostname" || this.dimension === "Referrer";
           const href = isReferrer
@@ -155,6 +160,12 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
             ` : html`
               <td><span class="metric-cell">${this.metric === "visitors" || expandedPercentageMode ? filterAction : nothing}${expandedPercentage}<span class="metric-number">${this.localize.number(row.visitors)}</span></span></td>
               <td><span class="metric-cell">${this.metric === "pageViews" && !expandedPercentageMode ? filterAction : nothing}<span class="metric-number">${this.localize.number(row.pageViews)}</span></span></td>
+              ${engagement.map(({ metric }) => {
+                const value = summaryMetricValue(row, metric);
+                return html`<td class="engagement-value">${value === undefined
+                  ? html`<span aria-hidden="true">-</span><span class="visually-hidden">No data</span>`
+                  : formatSummaryValue(metric, value, (number, options) => this.localize.number(number, options))}</td>`;
+              })}
             `}
           </tr>
         `;})}</tbody>
@@ -166,7 +177,11 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
     return this.metric === "visitors" ? "Visitors" : "Page views";
   }
 
-  #renderHeading() {
+  #engagementColumns(rows: AnalyticsBreakdownRow[]): ReadonlyArray<SummaryMetric> {
+    return this.compact ? [] : breakdownEngagementMetrics(rows);
+  }
+
+  #renderHeading(engagement: ReadonlyArray<SummaryMetric> = []) {
     return html`
       <thead>
         <tr>
@@ -179,10 +194,10 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
             : this.rowLabel ?? this.headline}</th>
           ${this.compact
             ? html`<th scope="col">${this.#metricLabel()}</th>`
-            : html`<th scope="col">Visitors</th><th scope="col">Page views</th>`}
+            : html`<th scope="col">Visitors</th><th scope="col">Page views</th>${engagement.map(({ label }) => html`<th scope="col" class="engagement-heading">${label}</th>`)}`}
         </tr>
         ${this.subheadingTabs ? html`
-          <tr class="subheading-row"><th scope="col" colspan=${this.compact ? "2" : "3"}>${this.subheadingTabs
+          <tr class="subheading-row"><th scope="col" colspan=${this.compact ? 2 : 3 + engagement.length}>${this.subheadingTabs
             ? renderReportTabs(this.subheadingTabs, (value) => this.dispatchEvent(new CustomEvent("subheading-tab-change", {
                 bubbles: true,
                 composed: true,
@@ -195,7 +210,7 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
   }
 
   static styles = [reportTabsStyles, css`
-    :host { display: block; overflow: visible; }
+    :host { container-type: inline-size; display: block; overflow: visible; }
     table {
       --bar-inset: var(--uui-size-space-3);
       --metric-column-width: 8.5rem;
@@ -205,9 +220,16 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
       table-layout: fixed;
       width: 100%;
     }
+    /* Bars span the label and the two traffic columns; engagement columns sit beside them. */
     table:not(.compact-table) {
       --metric-column-width: 9.5rem;
       --metric-columns-width: calc(var(--metric-column-width) * 2);
+    }
+    table.engagement-table { --metric-column-width: 7rem; }
+    thead th.engagement-heading { width: 7.5rem; }
+    .engagement-value { color: var(--uui-color-text-alt); }
+    @container (max-width: 40rem) {
+      .engagement-heading, .engagement-value { display: none; }
     }
     caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     thead th { block-size: 2.5rem; border-bottom: 1px solid var(--uui-color-border); font-weight: 700; }

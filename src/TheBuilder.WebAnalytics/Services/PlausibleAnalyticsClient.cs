@@ -30,7 +30,7 @@ public sealed class PlausibleAnalyticsClient(
         AnalyticsQuery query,
         CancellationToken cancellationToken)
     {
-        var (response, engagementMetrics) = await QueryTrafficAsync(connection, query, [], cancellationToken);
+        var (response, engagementMetrics) = await QueryTrafficAsync(connection, query, [], EngagementMetrics(query), cancellationToken);
         var row = SingleRow(response);
         return new AnalyticsTotals(
             Metric(row, 0, "pageviews"),
@@ -65,6 +65,7 @@ public sealed class PlausibleAnalyticsClient(
             connection,
             query,
             [dimension],
+            EngagementMetrics(query),
             cancellationToken,
             includeTimeLabels: true);
         var labels = response.Meta?.TimeLabels
@@ -93,14 +94,14 @@ public sealed class PlausibleAnalyticsClient(
         AnalyticsTrafficMetric? orderBy = null)
     {
         var plausibleDimension = ToApiDimension(dimension);
-        var response = await QueryAsync(
+        var (response, engagementMetrics) = await QueryTrafficAsync(
             connection,
             query,
-            ["pageviews", "visitors"],
             [plausibleDimension],
-            limit,
-            string.IsNullOrWhiteSpace(search) ? null : (plausibleDimension, search.Trim()),
+            BreakdownEngagementMetrics(query, dimension),
             cancellationToken,
+            limit: limit,
+            search: string.IsNullOrWhiteSpace(search) ? null : (plausibleDimension, search.Trim()),
             orderBy: orderBy switch
             {
                 AnalyticsTrafficMetric.PageViews => "pageviews",
@@ -111,7 +112,8 @@ public sealed class PlausibleAnalyticsClient(
         return response.Results!.Select(row => new AnalyticsBreakdownRow(
             Dimension(row, 0, plausibleDimension),
             Metric(row, 0, "pageviews"),
-            Metric(row, 1, "visitors"))).ToArray();
+            Metric(row, 1, "visitors"),
+            Engagement(row, engagementMetrics))).ToArray();
     }
 
     public async Task<IReadOnlyList<AnalyticsEventRow>> GetEventsAsync(
@@ -265,10 +267,13 @@ public sealed class PlausibleAnalyticsClient(
         AnalyticsConnection connection,
         AnalyticsQuery query,
         string[] dimensions,
+        string[] engagementMetrics,
         CancellationToken cancellationToken,
-        bool includeTimeLabels = false)
+        bool includeTimeLabels = false,
+        int? limit = null,
+        (string Dimension, string Value)? search = null,
+        string? orderBy = null)
     {
-        var engagementMetrics = EngagementMetrics(query);
         while (true)
         {
             try
@@ -278,10 +283,11 @@ public sealed class PlausibleAnalyticsClient(
                     query,
                     [.. TrafficMetrics, .. engagementMetrics],
                     dimensions,
-                    null,
-                    null,
+                    limit,
+                    search,
                     cancellationToken,
-                    includeTimeLabels: includeTimeLabels);
+                    includeTimeLabels: includeTimeLabels,
+                    orderBy: orderBy);
                 return (response, engagementMetrics);
             }
             catch (AnalyticsProviderApiException failure) when (
@@ -310,6 +316,18 @@ public sealed class PlausibleAnalyticsClient(
             : ["views_per_visit", "bounce_rate", "visit_duration"];
     }
 
+    // Session metrics cannot be split by goal, and only page rows have a time on page or scroll depth.
+    private static string[] BreakdownEngagementMetrics(AnalyticsQuery query, AnalyticsDimension dimension)
+    {
+        if (EngagementMetrics(query).Length == 0) return [];
+        return dimension switch
+        {
+            AnalyticsDimension.EventName => [],
+            AnalyticsDimension.RequestPath => ["bounce_rate", "time_on_page", "scroll_depth"],
+            _ => ["bounce_rate", "visit_duration"]
+        };
+    }
+
     private static AnalyticsEngagement? Engagement(PlausibleRow row, string[] engagementMetrics)
     {
         if (engagementMetrics.Length == 0) return null;
@@ -318,12 +336,13 @@ public sealed class PlausibleAnalyticsClient(
             var index = Array.IndexOf(engagementMetrics, name);
             return index < 0 ? null : OptionalMetric(row, TrafficMetrics.Length + index, name);
         }
-        return new AnalyticsEngagement(
+        var engagement = new AnalyticsEngagement(
             ViewsPerVisit: Value("views_per_visit"),
             BounceRate: Value("bounce_rate"),
             VisitDuration: Value("visit_duration"),
             TimeOnPage: Value("time_on_page"),
             ScrollDepth: Value("scroll_depth"));
+        return engagement == new AnalyticsEngagement() ? null : engagement;
     }
 
     private async Task<PlausibleResponse> QueryAsync(
@@ -455,6 +474,8 @@ public sealed class PlausibleAnalyticsClient(
     internal static string ToApiDimension(AnalyticsDimension dimension) => dimension switch
     {
         AnalyticsDimension.RequestPath => "event:page",
+        AnalyticsDimension.EntryPage => "visit:entry_page",
+        AnalyticsDimension.ExitPage => "visit:exit_page",
         AnalyticsDimension.Referrer => "visit:referrer",
         AnalyticsDimension.Country => "visit:country",
         AnalyticsDimension.DeviceType => "visit:device",

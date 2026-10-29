@@ -2,9 +2,9 @@ import { LitElement, css, customElement, html, property, type TemplateResult } f
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { AnalyticsBreakdown, AnalyticsDimension, AnalyticsEventsReport, AnalyticsFlagsReport } from "../api/types.gen.js";
-import { breakdownMetricTotal, topBreakdownRows } from "./breakdown-rows.js";
-import { selectedCardDimension, type AcquisitionView, type DashboardCard } from "./dashboard-cards.js";
-import type { AnalyticsEventFilter, AnalyticsFilter, AnalyticsFlagFilter, AudienceDimension, TrafficMetric, UtmDimension } from "./dashboard-url-state.js";
+import { breakdownMetricTotal, topBreakdownRows, type TrafficMetric } from "./breakdown-rows.js";
+import { isPageDimension, selectedCardDimension, type AcquisitionView, type DashboardCard } from "./dashboard-cards.js";
+import type { AnalyticsEventFilter, AnalyticsFilter, AnalyticsFlagFilter, AudienceDimension, PagesDimension, UtmDimension } from "./dashboard-url-state.js";
 import { topEventRows } from "./event-rows.js";
 import "./breakdown-table.element.js";
 import "./event-table.element.js";
@@ -22,6 +22,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
   @property({ attribute: false }) eventFilter?: AnalyticsEventFilter;
   @property({ attribute: false }) flagFilter?: AnalyticsFlagFilter;
   @property() metric: TrafficMetric = "visitors";
+  @property() pagesDimension: PagesDimension = "RequestPath";
   @property() audienceDimension: AudienceDimension = "DeviceType";
   @property() acquisitionView: AcquisitionView = "referrers";
   @property() utmDimension: UtmDimension = "UtmSource";
@@ -37,11 +38,15 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
 
   #tabsForCard(card: Extract<DashboardCard, { kind: "tabbed-breakdown" }>): ReportTabGroup {
     return {
-      ariaLabel: "Audience technology",
+      ariaLabel: card.id === "pages" ? "Page report" : "Audience technology",
       idPrefix: `${card.id}-card-tab`,
       options: card.options.map(({ dimension, label }) => ({ value: dimension, label })),
-      selected: this.audienceDimension,
+      selected: card.id === "pages" ? this.pagesDimension : this.audienceDimension,
     };
+  }
+
+  #tabChangeEvent(card: Extract<DashboardCard, { kind: "tabbed-breakdown" }>): string {
+    return card.id === "pages" ? "pages-change" : card.id === "audience" ? "audience-change" : "utm-change";
   }
 
   #acquisitionTabs(utmAvailable: boolean): ReportTabGroup {
@@ -113,7 +118,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
   }
 
   #renderCard(card: DashboardCard) {
-    const selected = selectedCardDimension(card, this.audienceDimension, this.utmDimension);
+    const selected = selectedCardDimension(card, this.audienceDimension, this.utmDimension, this.pagesDimension);
     const state = this.breakdowns[selected.dimension];
     const loading = isInitialLoading(state);
     const allRows = state ? stateData(state)?.rows ?? [] : [];
@@ -121,7 +126,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
     const total = breakdownMetricTotal(allRows, this.metric);
     const unavailable = state?.status === "error" ? state.message : undefined;
     const planLimited = card.kind === "tabbed-breakdown" && card.planLimited;
-    const linkValues = selected.dimension === "RequestPath" || selected.dimension === "Route";
+    const linkValues = isPageDimension(selected.dimension);
     const headingTabs = card.kind === "tabbed-breakdown" ? this.#tabsForCard(card) : undefined;
     return this.#renderCardFrame({
       busy: state?.status === "loading",
@@ -138,7 +143,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
             .baseUrl=${this.baseUrl}
             .linkValues=${linkValues}
             .headingTabs=${headingTabs}
-            @heading-tab-change=${(event: CustomEvent<{ value: AnalyticsDimension }>) => card.kind === "tabbed-breakdown" && this.#dispatch(card.id === "audience" ? "audience-change" : "utm-change", { dimension: event.detail.value })}
+            @heading-tab-change=${(event: CustomEvent<{ value: AnalyticsDimension }>) => card.kind === "tabbed-breakdown" && this.#dispatch(this.#tabChangeEvent(card), { dimension: event.detail.value })}
             .unavailable=${unavailable}>
           </web-analytics-breakdown-table>`,
       hint: planLimited && unavailable ? html`<p class="hint breakdown-hint">UTM reporting availability depends on your analytics plan and reporting window.</p>` : undefined,

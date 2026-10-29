@@ -134,12 +134,22 @@ public sealed record AnalyticsConnection(
     public bool IsConfigured => IsMock || HasAccessToken &&
         !string.IsNullOrWhiteSpace(AnalyticsProviderCatalog.Default.Get(Provider).GetIdentifier(this));
 
+    // Mock connections behave like Vercel, plus the Plausible entry and exit page reports so the demo shows every card.
+    private static AnalyticsCapabilities MockCapabilities
+    {
+        get
+        {
+            var vercel = AnalyticsProviderCatalog.Default.Get(AnalyticsProvider.Vercel).Capabilities;
+            return vercel with { Dimensions = [.. vercel.Dimensions, AnalyticsDimension.EntryPage, AnalyticsDimension.ExitPage] };
+        }
+    }
+
     public AnalyticsCapabilities Capabilities
     {
         get
         {
             var supported = IsMock
-                ? AnalyticsProviderCatalog.Default.Get(AnalyticsProvider.Vercel).Capabilities
+                ? MockCapabilities
                 : AnalyticsProviderCatalog.Default.Get(Provider).Capabilities;
             return supported with
             {

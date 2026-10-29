@@ -1,5 +1,5 @@
 import type { AnalyticsDimension } from "../api/types.gen.js";
-import type { AudienceDimension, UtmDimension } from "./dashboard-url-state.js";
+import type { AudienceDimension, PagesDimension, UtmDimension } from "./dashboard-url-state.js";
 import { isUtmDimension, type UtmCapability } from "./utm-capability.js";
 
 export type DimensionOption<TDimension extends AnalyticsDimension = AnalyticsDimension> = {
@@ -8,7 +8,7 @@ export type DimensionOption<TDimension extends AnalyticsDimension = AnalyticsDim
   label: string;
 };
 
-export type BreakdownDialogGroup = "audience" | "acquisition";
+export type BreakdownDialogGroup = "pages" | "audience" | "acquisition";
 
 export type DashboardCard =
   | {
@@ -19,7 +19,7 @@ export type DashboardCard =
     }
   | {
       kind: "tabbed-breakdown";
-      id: "audience" | "utm";
+      id: "pages" | "audience" | "utm";
       options: ReadonlyArray<DimensionOption>;
       reportLoading: "eager" | "on-demand";
       span: "normal" | "wide";
@@ -31,6 +31,12 @@ export type DashboardReportPlan = {
   cards: ReadonlyArray<DashboardCard>;
   dimensions: ReadonlyArray<AnalyticsDimension>;
 };
+
+export const PAGES_OPTIONS: ReadonlyArray<DimensionOption<PagesDimension>> = [
+  { dimension: "RequestPath", headline: "Pages", label: "Pages" },
+  { dimension: "EntryPage", headline: "Entry pages", label: "Entry pages" },
+  { dimension: "ExitPage", headline: "Exit pages", label: "Exit pages" },
+];
 
 export const AUDIENCE_OPTIONS: ReadonlyArray<DimensionOption<AudienceDimension>> = [
   { dimension: "DeviceType", headline: "Devices", label: "Devices" },
@@ -45,7 +51,12 @@ export const UTM_OPTIONS: ReadonlyArray<DimensionOption<UtmDimension>> = [
   { dimension: "UtmContent", headline: "UTM content", label: "Content" },
 ];
 
+export function isPageDimension(dimension?: AnalyticsDimension): boolean {
+  return dimension === "RequestPath" || dimension === "Route" || dimension === "EntryPage" || dimension === "ExitPage";
+}
+
 export function breakdownDialogGroup(dimension?: AnalyticsDimension): BreakdownDialogGroup | undefined {
+  if (dimension === "RequestPath" || dimension === "EntryPage" || dimension === "ExitPage") return "pages";
   if (dimension === "DeviceType" || dimension === "BrowserName") return "audience";
   if (dimension === "ReferrerHostname" || dimension === "Referrer" || (dimension && isUtmDimension(dimension))) return "acquisition";
   return undefined;
@@ -75,7 +86,7 @@ export function dashboardCards(
   referrerDimension: "ReferrerHostname" | "Referrer" = "ReferrerHostname",
 ): ReadonlyArray<DashboardCard> {
   const cards: DashboardCard[] = [
-    { kind: "breakdown", dimension: "RequestPath", headline: "Pages", span: "wide" },
+    { kind: "tabbed-breakdown", id: "pages", options: PAGES_OPTIONS, reportLoading: "on-demand", span: "wide", planLimited: false },
     { kind: "breakdown", ...referrerDimensionOption(referrerDimension), span: "wide" },
     ...SHARED_CARDS,
   ];
@@ -88,11 +99,14 @@ export function dashboardReportPlan(
   acquisitionView: AcquisitionView,
   utmDimension: UtmDimension,
   referrerDimension: "ReferrerHostname" | "Referrer" = "ReferrerHostname",
+  pagesDimension: PagesDimension = "RequestPath",
 ): DashboardReportPlan {
   const cards = dashboardCards(utmCapability, referrerDimension);
   const dimensions = cards.flatMap((card) => card.kind === "breakdown"
     ? [card.dimension]
-    : card.reportLoading === "eager" ? card.options.map(({ dimension }) => dimension) : []);
+    : card.reportLoading === "eager"
+      ? card.options.map(({ dimension }) => dimension)
+      : card.id === "pages" ? [pagesDimension] : []);
 
   if (utmCapability === "unknown") dimensions.push("UtmSource");
   if (utmCapability === "available" && acquisitionView === "utm") dimensions.push(utmDimension);
@@ -104,10 +118,11 @@ export function selectedCardDimension(
   card: DashboardCard,
   audience: AudienceDimension,
   utm: UtmDimension,
+  pages: PagesDimension = "RequestPath",
 ): DimensionOption {
   if (card.kind === "breakdown") {
     return { dimension: card.dimension, headline: card.headline, label: card.headline };
   }
-  const selected = card.id === "audience" ? audience : utm;
+  const selected = card.id === "audience" ? audience : card.id === "pages" ? pages : utm;
   return card.options.find(({ dimension }) => dimension === selected) ?? card.options[0];
 }

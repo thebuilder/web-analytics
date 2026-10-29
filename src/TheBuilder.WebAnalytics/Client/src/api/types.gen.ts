@@ -13,6 +13,7 @@ export type AnalyticsBreakdownRow = {
     value: string;
     pageViews: number;
     visitors: number;
+    engagement?: AnalyticsEngagement | null;
 };
 
 export type AnalyticsCapabilities = {
@@ -72,7 +73,7 @@ export type AnalyticsCredentialDescriptor = {
     documentationUrl: string;
 };
 
-export type AnalyticsDimension = 'RequestPath' | 'Route' | 'ReferrerHostname' | 'Referrer' | 'Country' | 'DeviceType' | 'BrowserName' | 'OsName' | 'UtmSource' | 'UtmMedium' | 'UtmCampaign' | 'UtmTerm' | 'UtmContent' | 'EventName';
+export type AnalyticsDimension = 'RequestPath' | 'Route' | 'ReferrerHostname' | 'Referrer' | 'Country' | 'DeviceType' | 'BrowserName' | 'OsName' | 'UtmSource' | 'UtmMedium' | 'UtmCampaign' | 'UtmTerm' | 'UtmContent' | 'EventName' | 'EntryPage' | 'ExitPage';
 
 export type AnalyticsDocumentRoute = {
     connection: string;

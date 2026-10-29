@@ -77,7 +77,7 @@ public sealed class PlausibleAnalyticsClientTests
     [Fact]
     public async Task Breakdown_maps_common_dimension_filters_and_search()
     {
-        var handler = new RecordingHandler("""{"results":[{"dimensions":["Google"],"metrics":[12,8]}]}""");
+        var handler = new RecordingHandler("""{"results":[{"dimensions":["Google"],"metrics":[12,8,40,95]}]}""");
         var client = CreateClient(handler);
         var query = CreateQuery() with
         {
@@ -88,13 +88,59 @@ public sealed class PlausibleAnalyticsClientTests
         var rows = await client.GetBreakdownAsync(
             CreateConnection(), query, AnalyticsDimension.Referrer, 10, "goo", CancellationToken.None);
 
-        Assert.Equal(new AnalyticsBreakdownRow("Google", 12, 8), Assert.Single(rows));
+        Assert.Equal(
+            new AnalyticsBreakdownRow("Google", 12, 8, new AnalyticsEngagement(BounceRate: 40, VisitDuration: 95)),
+            Assert.Single(rows));
         Assert.Contains("visit:referrer", handler.Body);
         Assert.Contains("visit:country", handler.Body);
         Assert.Contains("event:page", handler.Body);
         Assert.Contains("contains", handler.Body);
         using var body = JsonDocument.Parse(handler.Body!);
         Assert.Equal("visitors", body.RootElement.GetProperty("order_by")[0][0].GetString());
+    }
+
+    [Fact]
+    public async Task Page_breakdowns_include_time_on_page_and_scroll_depth()
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":["/pricing"],"metrics":[12,8,30,64,72]}]}""");
+        var client = CreateClient(handler);
+
+        var row = Assert.Single(await client.GetBreakdownAsync(
+            CreateConnection(), CreateQuery(), AnalyticsDimension.RequestPath, 10, null, CancellationToken.None));
+
+        Assert.Equal(new AnalyticsEngagement(BounceRate: 30, TimeOnPage: 64, ScrollDepth: 72), row.Engagement);
+        using var body = JsonDocument.Parse(handler.Body!);
+        Assert.Equal(
+            ["pageviews", "visitors", "bounce_rate", "time_on_page", "scroll_depth"],
+            body.RootElement.GetProperty("metrics").EnumerateArray().Select(metric => metric.GetString()));
+    }
+
+    [Theory]
+    [InlineData(AnalyticsDimension.EntryPage, "visit:entry_page")]
+    [InlineData(AnalyticsDimension.ExitPage, "visit:exit_page")]
+    public async Task Entry_and_exit_page_breakdowns_use_visit_dimensions(AnalyticsDimension dimension, string expected)
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":["/"],"metrics":[12,8,40,95]}]}""");
+        var client = CreateClient(handler);
+
+        var row = Assert.Single(await client.GetBreakdownAsync(
+            CreateConnection(), CreateQuery(), dimension, 10, null, CancellationToken.None));
+
+        Assert.Equal("/", row.Value);
+        using var body = JsonDocument.Parse(handler.Body!);
+        Assert.Equal(expected, body.RootElement.GetProperty("dimensions")[0].GetString());
+    }
+
+    [Fact]
+    public async Task Goal_breakdowns_leave_engagement_out()
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":["Signup"],"metrics":[9,7]}]}""");
+        var client = CreateClient(handler);
+
+        var row = Assert.Single(await client.GetBreakdownAsync(
+            CreateConnection(), CreateQuery(), AnalyticsDimension.EventName, 10, null, CancellationToken.None));
+
+        Assert.Equal(new AnalyticsBreakdownRow("Signup", 9, 7), row);
     }
 
     [Fact]
@@ -373,7 +419,7 @@ public sealed class PlausibleAnalyticsClientTests
     [Fact]
     public async Task Referrer_breakdown_preserves_provider_values_and_metrics()
     {
-        var handler = new RecordingHandler("""{"results":[{"dimensions":["https://www.example.com/one"],"metrics":[5,3]},{"dimensions":["example.com/two"],"metrics":[7,4]}]}""");
+        var handler = new RecordingHandler("""{"results":[{"dimensions":["https://www.example.com/one"],"metrics":[5,3,null,null]},{"dimensions":["example.com/two"],"metrics":[7,4,null,null]}]}""");
         var client = CreateClient(handler);
 
         var rows = await client.GetBreakdownAsync(

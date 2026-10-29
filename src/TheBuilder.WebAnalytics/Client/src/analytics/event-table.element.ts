@@ -75,7 +75,7 @@ export class WebAnalyticsEventTableElement extends UmbElementMixin(LitElement) {
     return html`
       ${renderAnalyticsMetricTable({
         caption: "Events",
-        rowHeading: "Event",
+        rowHeading: "Events",
         totalHeading: "Total events",
         loading: this.loading,
         skeletonRows: this.skeletonRows,

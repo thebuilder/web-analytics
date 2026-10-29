@@ -75,7 +75,7 @@ export class WebAnalyticsFlagTableElement extends UmbElementMixin(LitElement) {
       ${renderAnalyticsMetricTable({
         caption: "Feature flags",
         rowHeading: "Flags",
-        totalHeading: "Total",
+        totalHeading: "Page views",
         loading: this.loading,
         skeletonRows: 3,
         rows: body,

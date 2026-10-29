@@ -4,7 +4,7 @@ import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { UUIInputElement } from "@umbraco-cms/backoffice/external/uui";
 import type { AnalyticsEventDetails, AnalyticsEventProperty } from "../api/types.gen.js";
 import { renderAnalyticsDialogFrame } from "./analytics-dialog-frame.js";
-import { analyticsDialogStyles, analyticsEventDialogStyles } from "./analytics-dialog.styles.js";
+import { analyticsDialogStyles, analyticsWideDialogStyles } from "./analytics-dialog.styles.js";
 import { analyticsTableSkeletonStyles, renderAnalyticsTableSkeletonRows } from "./analytics-table-skeleton.js";
 import { openDialog } from "./dialog-lifecycle.js";
 import { renderReportTabs, reportTabsStyles } from "./report-tabs.js";
@@ -185,7 +185,7 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     });
   }
 
-  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsEventDialogStyles, analyticsTableSkeletonStyles, reportTabsStyles, css`
+  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsWideDialogStyles, analyticsTableSkeletonStyles, reportTabsStyles, css`
     .dialog-content { display: flex; flex-direction: column; position: relative; }
     .property-controls { border-bottom: 1px solid var(--uui-color-border); display: grid; flex: 0 0 auto; gap: var(--uui-size-space-3); padding: 0 var(--analytics-dialog-inline-padding) var(--uui-size-space-4); }
     .property-controls uui-input { box-sizing: border-box; width: 100%; }

@@ -3,7 +3,7 @@ import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { AnalyticsEventRow } from "../api/types.gen.js";
 import { renderAnalyticsDialogFrame } from "./analytics-dialog-frame.js";
-import { analyticsDialogStyles, analyticsEventDialogStyles } from "./analytics-dialog.styles.js";
+import { analyticsDialogStyles, analyticsWideDialogStyles } from "./analytics-dialog.styles.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
 import { notifyDialogSearch, openDialog, searchInputValue } from "./dialog-lifecycle.js";
 import "./event-table.element.js";
@@ -48,7 +48,7 @@ export class WebAnalyticsEventDialogElement extends UmbElementMixin(LitElement) 
     });
   }
 
-  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsEventDialogStyles, css`
+  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsWideDialogStyles, css`
     uui-input { box-sizing: border-box; width: 100%; }
     uui-input [slot="prepend"] { align-items: center; display: flex; margin-inline: var(--uui-size-space-3) var(--uui-size-space-2); }
     .results { overflow: auto; scrollbar-gutter: stable; }

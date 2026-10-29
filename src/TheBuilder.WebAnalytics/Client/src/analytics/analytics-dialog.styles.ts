@@ -105,6 +105,6 @@ export const analyticsDialogStyles = css`
   }
 `;
 
-export const analyticsEventDialogStyles = css`
+export const analyticsWideDialogStyles = css`
   dialog { --analytics-dialog-max-width: 58rem; }
 `;

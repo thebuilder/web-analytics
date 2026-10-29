@@ -339,7 +339,7 @@ describe("analytics presentation components", () => {
 
   it("keeps standard cards focused on the selected metric", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
-    element.cards = dashboardCards("unavailable").filter((card) => card.kind === "breakdown" && card.dimension === "RequestPath");
+    element.cards = [{ kind: "breakdown", dimension: "RequestPath", headline: "Pages", span: "wide" }];
     element.metric = "pageViews";
     element.breakdowns = {
       RequestPath: successState({ dimension: "RequestPath", rows: [{ value: "/", visitors: 8_525, pageViews: 15_119 }] }),

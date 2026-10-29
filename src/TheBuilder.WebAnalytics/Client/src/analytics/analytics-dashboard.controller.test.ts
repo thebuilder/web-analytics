@@ -677,6 +677,39 @@ describe("AnalyticsDashboardController", () => {
     expect(api.summary).not.toHaveBeenCalled();
   });
 
+  it("keeps Pages a plain card when the provider has no entry or exit pages", async () => {
+    const controller = new AnalyticsDashboardController(vi.fn(), dashboardApi(), environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.capabilities).toBeDefined());
+
+    expect(controller.cards()[0]).toEqual({ kind: "breakdown", dimension: "RequestPath", headline: "Pages", span: "wide" });
+  });
+
+  it("loads entry and exit pages only when their tab is opened", async () => {
+    const api = dashboardApi();
+    const capabilities = { ...fullCapabilities, dimensions: [...fullCapabilities.dimensions, "EntryPage", "ExitPage"] as typeof fullCapabilities.dimensions };
+    api.connections.mockImplementation(async () => ok({
+      enabled: true,
+      defaultRangeDays: 30,
+      connections: [{ key: "11111111-1111-1111-1111-111111111111", displayName: "Main", provider: "Plausible", capabilities, isDefault: true, isConfigured: true, baseUrl: "https://example.com", warnings: [] }],
+    }));
+    const target = environment();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, target);
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.breakdowns.RequestPath?.status).toBe("success"));
+
+    const pages = controller.cards()[0];
+    expect(pages.kind === "tabbed-breakdown" && pages.options.map(({ dimension }) => dimension)).toEqual(["RequestPath", "EntryPage", "ExitPage"]);
+    expect(api.breakdown.mock.calls.map(([options]) => options.path.dimension)).not.toContain("EntryPage");
+    api.breakdown.mockClear();
+
+    controller.setPagesDimension("EntryPage");
+
+    await vi.waitFor(() => expect(controller.state.breakdowns.EntryPage?.status).toBe("success"));
+    expect(api.breakdown.mock.calls.map(([options]) => options.path.dimension)).toEqual(["EntryPage"]);
+    expect(target.currentUrl().searchParams.get("pages")).toBe("EntryPage");
+  });
+
   it("uses only UTM Source to detect Plus capability", async () => {
     const api = dashboardApi();
     const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
