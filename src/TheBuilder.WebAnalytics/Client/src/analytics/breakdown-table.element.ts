@@ -118,7 +118,7 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
             ? html`<span class="metric-share" title=${`${visitorPercentage.precise} of visitors`}>${visitorPercentage.display}</span>`
             : nothing;
           return html`
-          <tr class=${activeFilter ? "filtered" : nothing} @click=${(event: Event) => this.#rowClick(event, toggleFilter)}>
+          <tr class=${activeFilter ? "data-row filtered" : "data-row"} @click=${(event: Event) => this.#rowClick(event, toggleFilter)}>
             <th scope="row">
               <span class="bar" style=${`--bar-width:${barRatio * 100}%;--bar-minimum:${metricValue > 0 ? "4px" : "0px"}`}></span>
               <span class="row-value">
@@ -166,9 +166,12 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
     `;
   }
 
-  // The label button and the open-page link handle their own clicks; a click anywhere else on the row filters.
+  // The label button, the open-page link and the focusable share tooltip handle their own clicks, and
+  // finishing a text selection is not a click on the row. A click anywhere else on the row filters.
   #rowClick(event: Event, toggleFilter: () => void): void {
-    if (event.composedPath().some((target) => target instanceof HTMLElement && target.matches("a, button"))) return;
+    if (event.composedPath().some((target) => target instanceof HTMLElement && target.matches("a, button, [tabindex]"))) return;
+    const root = this.shadowRoot as (ShadowRoot & { getSelection?: () => Selection | null }) | null;
+    if ((root?.getSelection?.() ?? document.getSelection())?.toString()) return;
     toggleFilter();
   }
 
@@ -225,7 +228,7 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
       --metric-columns-width: calc(var(--metric-column-width) * 2);
     }
     table.engagement-table { --metric-column-width: 7rem; }
-    thead th.engagement-heading { width: 7.5rem; }
+    thead th.engagement-heading:nth-child(n + 2) { width: 7.5rem; }
     .engagement-value { color: var(--uui-color-text-alt); }
     @container (max-width: 40rem) {
       .engagement-heading, .engagement-value { display: none; }
@@ -242,7 +245,7 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
     .metric-cell { align-items: center; display: flex; gap: var(--uui-size-space-2); justify-content: flex-end; }
     .metric-number { font-weight: 700; min-inline-size: 0; }
     .metric-share { color: color-mix(in srgb, var(--uui-color-text) 60%, transparent); font-weight: 700; margin-inline-end: var(--uui-size-space-3); }
-    tbody tr { cursor: pointer; }
+    .data-row { cursor: pointer; }
     tbody th { position: relative; font-weight: 500; min-width: 10rem; }
     .row-value { align-items: center; display: flex; gap: var(--uui-size-space-3); min-inline-size: 0; position: relative; z-index: 1; }
     .row-label { appearance: none; background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; min-inline-size: 0; overflow: hidden; padding: 0; text-align: left; text-overflow: ellipsis; white-space: nowrap; }

@@ -677,6 +677,20 @@ describe("AnalyticsDashboardController", () => {
     expect(api.summary).not.toHaveBeenCalled();
   });
 
+  it("resets an engagement metric to visitors when the new report no longer has it", async () => {
+    const api = dashboardApi();
+    const target = environment();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, target);
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    controller.setMetric("visitDuration");
+
+    controller.toggleFilter("RequestPath", "/pricing");
+
+    await vi.waitFor(() => expect(controller.state.metric).toBe("visitors"));
+    expect(target.currentUrl().searchParams.get("metric")).not.toBe("visitDuration");
+  });
+
   it("keeps Pages a plain card when the provider has no entry or exit pages", async () => {
     const controller = new AnalyticsDashboardController(vi.fn(), dashboardApi(), environment());
     controller.connect();

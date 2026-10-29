@@ -12,7 +12,7 @@ public sealed class PlausibleAnalyticsClientTests
     [Fact]
     public async Task Count_posts_authenticated_v2_query_with_exclusive_end_adjusted()
     {
-        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[42,31]}]}""");
+        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[42,31,null,null,null]}]}""");
         var client = CreateClient(handler);
 
         var result = await client.CountAsync(CreateConnection(), CreateQuery(), CancellationToken.None);
@@ -28,7 +28,7 @@ public sealed class PlausibleAnalyticsClientTests
     [Fact]
     public async Task Count_targets_configured_self_hosted_base_url()
     {
-        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[42,31]}]}""");
+        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[42,31,null,null,null]}]}""");
         var client = new PlausibleAnalyticsClient(
             new HttpClient(handler) { BaseAddress = new Uri("https://analytics.example.com/plausible/") },
             new AnalyticsProviderRequestGate());
@@ -41,7 +41,7 @@ public sealed class PlausibleAnalyticsClientTests
     [Fact]
     public async Task Count_matches_the_page_and_its_descendants_when_requested()
     {
-        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[42,31]}]}""");
+        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[42,31,null,null,null]}]}""");
         var client = CreateClient(handler);
         var query = CreateQuery() with { RequestPath = "/news", IncludeChildPaths = true };
 
@@ -393,6 +393,34 @@ public sealed class PlausibleAnalyticsClientTests
                 "pageviews,visitors,bounce_rate,time_on_page,scroll_depth",
                 "pageviews,visitors,bounce_rate",
                 "pageviews,visitors"
+            ],
+            handler.Bodies.Select(requestBody =>
+            {
+                using var body = JsonDocument.Parse(requestBody);
+                return string.Join(",", body.RootElement.GetProperty("metrics").EnumerateArray().Select(metric => metric.GetString()));
+            }));
+    }
+
+    [Fact]
+    public async Task Rejected_page_metrics_are_skipped_on_later_requests_to_the_same_instance()
+    {
+        var handler = new SequenceHandler(
+            (HttpStatusCode.BadRequest, """{"error":"Unknown metric time_on_page"}"""),
+            (HttpStatusCode.OK, """{"results":[{"dimensions":[],"metrics":[42,31,50]}]}"""),
+            (HttpStatusCode.OK, """{"results":[{"dimensions":[],"metrics":[42,31,50]}]}"""));
+        var client = CreateClient(handler);
+        var query = CreateQuery() with { RequestPath = "/news" };
+
+        await client.GetTotalsAsync(CreateConnection(), query, CancellationToken.None);
+        var totals = await client.GetTotalsAsync(CreateConnection(), query, CancellationToken.None);
+
+        Assert.Equal(50, totals.Engagement?.BounceRate);
+        Assert.Equal(3, handler.Bodies.Count);
+        Assert.Equal(
+            [
+                "pageviews,visitors,bounce_rate,time_on_page,scroll_depth",
+                "pageviews,visitors,bounce_rate",
+                "pageviews,visitors,bounce_rate"
             ],
             handler.Bodies.Select(requestBody =>
             {

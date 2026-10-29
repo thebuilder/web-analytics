@@ -1,7 +1,7 @@
 import type { AnalyticsEngagement } from "../api/types.gen.js";
 import { formatChartAxisValue } from "./chart-value.js";
 import type { DashboardMetric } from "./dashboard-url-state.js";
-import { metricComparison, type MetricComparison } from "./metric-comparison.js";
+import { comparisonPeriod, metricComparison, type MetricComparison } from "./metric-comparison.js";
 
 type NumberFormatter = (value: number, options?: Intl.NumberFormatOptions) => string;
 type MetricFormat = "count" | "decimal" | "percent" | "duration";
@@ -102,28 +102,13 @@ export function summaryComparison(
     ? pointComparison(current, previous, label, periodDays)
     : definition.format === "count"
       ? metricComparison(current, previous, label, periodDays)
-      : relativeComparison(current, previous, label, periodDays);
+      : metricComparison(current, previous, label, periodDays, { increase: "higher", decrease: "lower" });
   if (!comparison) return undefined;
   const better = definition.lowerIsBetter ? "decrease" : "increase";
   const tone = comparison.direction === "unchanged"
     ? "neutral"
     : comparison.direction === better ? "positive" : "negative";
   return { ...comparison, tone };
-}
-
-function periodLabel(periodDays: number): string {
-  return periodDays === 1 ? "24 hours" : `${periodDays} days`;
-}
-
-function relativeComparison(
-  current: number,
-  previous: number | null | undefined,
-  label: string,
-  periodDays: number,
-): MetricComparison | undefined {
-  if (previous === null || previous === undefined || previous <= 0) return undefined;
-  const percentage = Math.round(((current - previous) / previous) * 100);
-  return describe(percentage, `${percentage > 0 ? "+" : ""}${percentage}%`, `${Math.abs(percentage)}%`, label, periodDays);
 }
 
 // Rates change in percentage points, matching how Plausible reports bounce rate changes.
@@ -140,7 +125,7 @@ function pointComparison(
 
 function describe(change: number, display: string, amount: string, label: string, periodDays: number): MetricComparison {
   const direction = change > 0 ? "increase" : change < 0 ? "decrease" : "unchanged";
-  const period = periodLabel(periodDays);
+  const period = comparisonPeriod(periodDays);
   const description = direction === "unchanged"
     ? `No change in ${label} compared with the previous ${period}`
     : `${amount} ${direction === "increase" ? "higher" : "lower"} ${label} than the previous ${period}`;

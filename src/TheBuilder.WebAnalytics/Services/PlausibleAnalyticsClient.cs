@@ -13,8 +13,11 @@ namespace TheBuilder.WebAnalytics.Services;
 
 public sealed class PlausibleAnalyticsClient(
     HttpClient httpClient,
-    AnalyticsProviderRequestGate requestGate) : IAnalyticsProviderClient, IAnalyticsEventPropertyDiscoveryProviderClient
+    AnalyticsProviderRequestGate requestGate,
+    PlausibleMetricSupport? metricSupport = null) : IAnalyticsProviderClient, IAnalyticsEventPropertyDiscoveryProviderClient
 {
+    private readonly PlausibleMetricSupport _metricSupport = metricSupport ?? new PlausibleMetricSupport();
+
     private const string QueryPath = "api/v2/query";
     private static readonly string[] TrafficMetrics = ["pageviews", "visitors"];
     private static readonly string[] SessionMetrics = ["views_per_visit", "bounce_rate", "visit_duration"];
@@ -25,7 +28,12 @@ public sealed class PlausibleAnalyticsClient(
         AnalyticsConnection connection,
         CancellationToken cancellationToken) => Task.FromResult(connection.SiteId);
 
-    public async Task<AnalyticsTotals> GetTotalsAsync(
+    public Task<AnalyticsTotals> GetTotalsAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        CancellationToken cancellationToken) => CountAsync(connection, query, cancellationToken);
+
+    public async Task<AnalyticsTotals> CountAsync(
         AnalyticsConnection connection,
         AnalyticsQuery query,
         CancellationToken cancellationToken)
@@ -36,16 +44,6 @@ public sealed class PlausibleAnalyticsClient(
             Metric(row, 0, "pageviews"),
             Metric(row, 1, "visitors"),
             Engagement(row, engagementMetrics));
-    }
-
-    public async Task<AnalyticsTotals> CountAsync(
-        AnalyticsConnection connection,
-        AnalyticsQuery query,
-        CancellationToken cancellationToken)
-    {
-        var response = await QueryAsync(connection, query, ["pageviews", "visitors"], [], null, null, cancellationToken);
-        var row = SingleRow(response);
-        return new AnalyticsTotals(Metric(row, 0, "pageviews"), Metric(row, 1, "visitors"));
     }
 
     public async Task<IReadOnlyList<AnalyticsPoint>> GetTrendAsync(
@@ -274,6 +272,9 @@ public sealed class PlausibleAnalyticsClient(
         (string Dimension, string Value)? search = null,
         string? orderBy = null)
     {
+        var instance = httpClient.BaseAddress?.AbsoluteUri ?? string.Empty;
+        engagementMetrics = Supported(engagementMetrics, _metricSupport.Get(instance));
+        var fellBack = false;
         while (true)
         {
             try
@@ -288,6 +289,9 @@ public sealed class PlausibleAnalyticsClient(
                     cancellationToken,
                     includeTimeLabels: includeTimeLabels,
                     orderBy: orderBy);
+                // Remember the downgrade only once the smaller query succeeds, so an unrelated 400 never sticks.
+                if (fellBack)
+                    _metricSupport.Remember(instance, engagementMetrics.Length > 0 ? PlausibleMetricSupport.Level.Session : PlausibleMetricSupport.Level.None);
                 return (response, engagementMetrics);
             }
             catch (AnalyticsProviderApiException failure) when (
@@ -295,23 +299,26 @@ public sealed class PlausibleAnalyticsClient(
             {
                 // Older self-hosted Plausible versions reject the newer page metrics. Fall back to the
                 // long-standing session metrics, then to traffic only, so engagement never blocks a report.
-                engagementMetrics = engagementMetrics.All(metric => SessionMetrics.Contains(metric))
-                    ? []
-                    : engagementMetrics.Where(metric => SessionMetrics.Contains(metric)).ToArray();
+                engagementMetrics = Supported(
+                    engagementMetrics,
+                    engagementMetrics.All(metric => SessionMetrics.Contains(metric)) ? PlausibleMetricSupport.Level.None : PlausibleMetricSupport.Level.Session);
+                fellBack = true;
             }
         }
     }
 
+    private static string[] Supported(string[] metrics, PlausibleMetricSupport.Level support) => support switch
+    {
+        PlausibleMetricSupport.Level.All => metrics,
+        PlausibleMetricSupport.Level.Session => metrics.Where(metric => SessionMetrics.Contains(metric)).ToArray(),
+        _ => []
+    };
+
     private static string[] EngagementMetrics(AnalyticsQuery query)
     {
-        // Engagement describes visits, so it is left out while a goal filter narrows the report to conversions.
-        if (query.EventFilter is not null ||
-            query.Filters?.Any(filter => filter.Dimension == AnalyticsDimension.EventName) is true)
-            return [];
-        var pageScoped = !string.IsNullOrWhiteSpace(query.RequestPath) ||
-            query.Filters?.Any(filter => filter.Dimension == AnalyticsDimension.RequestPath) is true;
+        if (AnalyticsEngagementScope.IsGoalFiltered(query)) return [];
         // Plausible rejects views per visit with a page filter and needs one for time on page and scroll depth.
-        return pageScoped
+        return AnalyticsEngagementScope.IsPageScoped(query)
             ? ["bounce_rate", "time_on_page", "scroll_depth"]
             : ["views_per_visit", "bounce_rate", "visit_duration"];
     }

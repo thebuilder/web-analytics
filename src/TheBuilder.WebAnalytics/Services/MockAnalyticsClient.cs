@@ -118,7 +118,7 @@ public sealed class MockAnalyticsClient :
             row.Value,
             Scale(row.PageViews, scale),
             Scale(row.Visitors, scale),
-            BreakdownEngagement(scenario, dimension, row.Value)));
+            BreakdownEngagement(scenario, query, dimension, row.Value)));
         return Task.FromResult<IReadOnlyList<AnalyticsBreakdownRow>>(Filter(scaled, search, limit, row => row.Value));
     }
 
@@ -313,11 +313,11 @@ public sealed class MockAnalyticsClient :
         long visitors,
         DateTimeOffset moment)
     {
-        if (Scenario(connection) is not MockAnalyticsScenario.Complete) return null;
+        if (Scenario(connection) is not MockAnalyticsScenario.Complete || AnalyticsEngagementScope.IsGoalFiltered(query)) return null;
         var drift = Math.Sin((moment - DemoGrowthBaseline).TotalDays / 9d);
         var visits = visitors * 1.31d;
         var bounceRate = Math.Round(41d - drift * 3d);
-        if (!string.IsNullOrWhiteSpace(query.RequestPath))
+        if (AnalyticsEngagementScope.IsPageScoped(query))
             return new AnalyticsEngagement(
                 BounceRate: bounceRate,
                 TimeOnPage: Math.Round(74d + drift * 9d),
@@ -328,9 +328,9 @@ public sealed class MockAnalyticsClient :
             VisitDuration: Math.Round(162d + drift * 18d));
     }
 
-    private static AnalyticsEngagement? BreakdownEngagement(MockAnalyticsScenario scenario, AnalyticsDimension dimension, string value)
+    private static AnalyticsEngagement? BreakdownEngagement(MockAnalyticsScenario scenario, AnalyticsQuery query, AnalyticsDimension dimension, string value)
     {
-        if (scenario is not MockAnalyticsScenario.Complete || dimension is AnalyticsDimension.EventName) return null;
+        if (scenario is not MockAnalyticsScenario.Complete || dimension is AnalyticsDimension.EventName || AnalyticsEngagementScope.IsGoalFiltered(query)) return null;
         var seed = value.Aggregate(17, (hash, character) => hash * 31 + character) & 0x7fff;
         var bounceRate = 28d + seed % 31;
         return dimension is AnalyticsDimension.RequestPath or AnalyticsDimension.Route

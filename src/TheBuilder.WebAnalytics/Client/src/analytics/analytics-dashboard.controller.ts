@@ -30,6 +30,7 @@ import {
 import { loadDashboardBreakdown, loadDashboardBreakdowns, loadDashboardReports, type DashboardReportQuery, type DashboardReportUpdate } from "./dashboard-report-loader.js";
 import { AnalyticsFeatureDrilldownController } from "./analytics-feature-drilldown.controller.js";
 import { reportErrorMessage } from "./report-error.js";
+import { availableSummaryMetrics } from "./summary-metrics.js";
 import { DebouncedRequest, RequestCoordinator, type RequestResult } from "./request-coordinator.js";
 import { detectUtmCapability, type UtmCapability } from "./utm-capability.js";
 import { errorState, idleState, loadingState, successState, type AsyncState } from "./async-state.js";
@@ -517,9 +518,20 @@ export class AnalyticsDashboardController {
     return result.status === "success";
   }
 
+  // A metric the new report can't show (a page filter hides visit duration, a goal filter hides all engagement)
+  // resets to visitors, so the selection and URL don't spring back to it once the filter is removed.
+  #dropUnavailableMetric(summary: AnalyticsSummary): void {
+    const metric = this.state.metric;
+    if (trafficMetric(metric) === metric) return;
+    if (availableSummaryMetrics(summary.totals).some((available) => available.metric === metric)) return;
+    this.#set({ metric: "visitors" });
+    this.#syncUrlState();
+  }
+
   #applyReportUpdate(update: DashboardReportUpdate): void {
     if (update.panel === "summary") {
       this.#set({ summary: update.status === "error" ? errorState(update.error, this.state.summary) : successState(update.data) });
+      if (update.status !== "error") this.#dropUnavailableMetric(update.data);
     } else if (update.panel === "events") {
       this.#set({ events: update.status === "error" ? errorState(update.error, this.state.events) : successState(update.data) });
     } else if (update.panel === "flags") {
