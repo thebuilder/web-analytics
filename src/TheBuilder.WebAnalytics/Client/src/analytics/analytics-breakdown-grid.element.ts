@@ -4,7 +4,7 @@ import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { AnalyticsBreakdown, AnalyticsDimension, AnalyticsEventsReport, AnalyticsFlagsReport } from "../api/types.gen.js";
 import { breakdownMetricTotal, topBreakdownRows } from "./breakdown-rows.js";
 import { selectedCardDimension, type AcquisitionView, type DashboardCard } from "./dashboard-cards.js";
-import type { AnalyticsEventFilter, AnalyticsFilter, AnalyticsFlagFilter, AudienceDimension, DashboardMetric, UtmDimension } from "./dashboard-url-state.js";
+import type { AnalyticsEventFilter, AnalyticsFilter, AnalyticsFlagFilter, AudienceDimension, TrafficMetric, UtmDimension } from "./dashboard-url-state.js";
 import { topEventRows } from "./event-rows.js";
 import "./breakdown-table.element.js";
 import "./event-table.element.js";
@@ -21,7 +21,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
   @property({ attribute: false }) filters: AnalyticsFilter[] = [];
   @property({ attribute: false }) eventFilter?: AnalyticsEventFilter;
   @property({ attribute: false }) flagFilter?: AnalyticsFlagFilter;
-  @property() metric: DashboardMetric = "visitors";
+  @property() metric: TrafficMetric = "visitors";
   @property() audienceDimension: AudienceDimension = "DeviceType";
   @property() acquisitionView: AcquisitionView = "referrers";
   @property() utmDimension: UtmDimension = "UtmSource";

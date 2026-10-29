@@ -62,7 +62,9 @@ public sealed class MockAnalyticsClient :
     {
         cancellationToken.ThrowIfCancellationRequested();
         var scale = QueryScale(connection, query);
-        return Task.FromResult(new AnalyticsTotals(Scale(29430, scale), Scale(17260, scale)));
+        var pageViews = Scale(29430, scale);
+        var visitors = Scale(17260, scale);
+        return Task.FromResult(new AnalyticsTotals(pageViews, visitors, Engagement(connection, query, pageViews, visitors, query.From + (query.To - query.From) / 2)));
     }
 
     public Task<IReadOnlyList<AnalyticsPoint>> GetTrendAsync(
@@ -82,10 +84,13 @@ public sealed class MockAnalyticsClient :
                 - BellCurve(progress, 0.48, 0.10) * 0.06
                 + BellCurve(progress, 0.76, 0.15) * 0.09;
             var visitors = traffic * (0.98 - progress * 0.03);
+            var pageViews = Scale(980, scale * traffic);
+            var visitorCount = Scale(570, scale * visitors);
             return new AnalyticsPoint(
                 timestamp,
-                Scale(980, scale * traffic),
-                Scale(570, scale * visitors));
+                pageViews,
+                visitorCount,
+                Engagement(connection, query, pageViews, visitorCount, timestamp));
         }).ToArray();
         return Task.FromResult<IReadOnlyList<AnalyticsPoint>>(points);
     }
@@ -295,6 +300,29 @@ public sealed class MockAnalyticsClient :
             -DemoGrowthWindowDays,
             DemoGrowthWindowDays);
         return Math.Exp(daysFromBaseline * DemoDailyGrowthRate);
+    }
+
+    // Engagement only appears in the complete demo so the other scenarios keep the Vercel-shaped dashboard.
+    private static AnalyticsEngagement? Engagement(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        long pageViews,
+        long visitors,
+        DateTimeOffset moment)
+    {
+        if (Scenario(connection) is not MockAnalyticsScenario.Complete) return null;
+        var drift = Math.Sin((moment - DemoGrowthBaseline).TotalDays / 9d);
+        var visits = visitors * 1.31d;
+        var bounceRate = Math.Round(41d - drift * 3d);
+        if (!string.IsNullOrWhiteSpace(query.RequestPath))
+            return new AnalyticsEngagement(
+                BounceRate: bounceRate,
+                TimeOnPage: Math.Round(74d + drift * 9d),
+                ScrollDepth: Math.Round(61d + drift * 4d));
+        return new AnalyticsEngagement(
+            ViewsPerVisit: visits == 0 ? 0 : Math.Round(pageViews / visits, 2),
+            BounceRate: bounceRate,
+            VisitDuration: Math.Round(162d + drift * 18d));
     }
 
     private static long Scale(long value, double scale) => Math.Max(0, (long)Math.Round(value * scale));

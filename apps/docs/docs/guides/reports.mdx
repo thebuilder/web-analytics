@@ -22,9 +22,21 @@ The range also decides how history is grouped. A single day is grouped hourly, u
 
 ## Metrics and history
 
-Two metrics sit at the top of the dashboard. **Visitors** counts the distinct people who arrived in the selected range. **Page views** counts the pages they loaded.
+**Visitors** and **Page views** always sit at the top of the dashboard. Visitors counts the distinct people who arrived in the selected range. Page views counts the pages they loaded.
 
-Each metric is always compared against the preceding period of the same length. There is no toggle for it. The badge shows a signed percentage such as `+12%`, and reads in full as "12% more visitors than the previous 30 days". When the previous period has no data, the badge disappears instead of inventing a change.
+When the provider reports how visits went, engagement metrics join them. Today that is Plausible:
+
+| Metric | Shown | Meaning |
+| --- | --- | --- |
+| **Views per visit** | Site-wide | Average number of pages loaded in one visit. |
+| **Bounce rate** | Always | Share of visits that viewed one page and left. Lower is better. |
+| **Visit duration** | Site-wide | Average length of a visit. |
+| **Time on page** | For a page | Average time spent on the page per visit. |
+| **Scroll depth** | For a page | How far down the page visitors scrolled, on average. |
+
+"For a page" means the document workspace, or the dashboard filtered to one page. Engagement is left out while an event filter is active, because the report then counts conversions rather than visits.
+
+Each metric is always compared against the preceding period of the same length. There is no toggle for it. The badge shows a signed percentage such as `+12%`, and reads in full as "12% more visitors than the previous 30 days". Rates such as bounce rate change in percentage points, shown as `-3 pts`. The badge is green when the change is an improvement, so a falling bounce rate is green. When the previous period has no data, the badge disappears instead of inventing a change.
 
 Select a metric to plot it over time. The chart uses the interval implied by the range, and draws the final segment as in-progress while the current period is still running.
 

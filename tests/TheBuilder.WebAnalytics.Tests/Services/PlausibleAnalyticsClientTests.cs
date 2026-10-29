@@ -257,13 +257,15 @@ public sealed class PlausibleAnalyticsClientTests
     [Fact]
     public async Task Trend_preserves_reporting_timezone_labels_and_fills_empty_buckets()
     {
-        var handler = new RecordingHandler("""{"results":[{"dimensions":["2026-07-02"],"metrics":[12,8]}],"meta":{"time_labels":["2026-07-01","2026-07-02","2026-07-03"]}}""");
+        var handler = new RecordingHandler("""{"results":[{"dimensions":["2026-07-02"],"metrics":[12,8,1.33,44.4,95]}],"meta":{"time_labels":["2026-07-01","2026-07-02","2026-07-03"]}}""");
         var client = CreateClient(handler);
 
         var points = await client.GetTrendAsync(CreateConnection(), CreateQuery(), CancellationToken.None);
 
         Assert.Equal(["2026-07-01", "2026-07-02", "2026-07-03"], points.Select(point => point.Timestamp));
         Assert.Equal([0L, 12L, 0L], points.Select(point => point.PageViews));
+        Assert.Equal(new AnalyticsEngagement(1.33, 44.4, 95), points[1].Engagement);
+        Assert.Null(points[0].Engagement);
         using var body = JsonDocument.Parse(handler.Body!);
         Assert.True(body.RootElement.GetProperty("include").GetProperty("time_labels").GetBoolean());
         Assert.Equal("time:day", body.RootElement.GetProperty("dimensions")[0].GetString());
@@ -272,13 +274,100 @@ public sealed class PlausibleAnalyticsClientTests
     [Fact]
     public async Task Hourly_trend_keeps_provider_local_wall_clock_time()
     {
-        var handler = new RecordingHandler("""{"results":[{"dimensions":["2026-07-01 23:00:00"],"metrics":[4,3]}],"meta":{"time_labels":["2026-07-01 23:00:00"]}}""");
+        var handler = new RecordingHandler("""{"results":[{"dimensions":["2026-07-01 23:00:00"],"metrics":[4,3,1.33,0,40]}],"meta":{"time_labels":["2026-07-01 23:00:00"]}}""");
         var client = CreateClient(handler);
         var query = CreateQuery() with { Interval = AnalyticsInterval.Hour };
 
         var point = Assert.Single(await client.GetTrendAsync(CreateConnection(), query, CancellationToken.None));
 
         Assert.Equal("2026-07-01T23:00:00", point.Timestamp);
+    }
+
+    [Fact]
+    public async Task Totals_include_site_engagement_metrics()
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[42,31,1.17,48.5,124]}]}""");
+        var client = CreateClient(handler);
+
+        var totals = await client.GetTotalsAsync(CreateConnection(), CreateQuery(), CancellationToken.None);
+
+        Assert.Equal(new AnalyticsTotals(42, 31, new AnalyticsEngagement(1.17, 48.5, 124)), totals);
+        using var body = JsonDocument.Parse(handler.Body!);
+        Assert.Equal(
+            ["pageviews", "visitors", "views_per_visit", "bounce_rate", "visit_duration"],
+            body.RootElement.GetProperty("metrics").EnumerateArray().Select(metric => metric.GetString()));
+    }
+
+    [Fact]
+    public async Task Page_totals_report_time_on_page_and_scroll_depth()
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[42,31,48.5,71,null]}]}""");
+        var client = CreateClient(handler);
+        var query = CreateQuery() with { RequestPath = "/news" };
+
+        var totals = await client.GetTotalsAsync(CreateConnection(), query, CancellationToken.None);
+
+        Assert.Equal(new AnalyticsEngagement(BounceRate: 48.5, TimeOnPage: 71), totals.Engagement);
+        using var body = JsonDocument.Parse(handler.Body!);
+        Assert.Equal(
+            ["pageviews", "visitors", "bounce_rate", "time_on_page", "scroll_depth"],
+            body.RootElement.GetProperty("metrics").EnumerateArray().Select(metric => metric.GetString()));
+    }
+
+    [Fact]
+    public async Task Goal_filtered_totals_leave_engagement_out()
+    {
+        var handler = new RecordingHandler("""{"results":[{"dimensions":[],"metrics":[15,12]}]}""");
+        var client = CreateClient(handler);
+        var query = CreateQuery() with
+        {
+            Filters = [new AnalyticsFilter(AnalyticsDimension.EventName, "Read case")]
+        };
+
+        var totals = await client.GetTotalsAsync(CreateConnection(), query, CancellationToken.None);
+
+        Assert.Equal(new AnalyticsTotals(15, 12), totals);
+    }
+
+    [Fact]
+    public async Task Rejected_page_metrics_fall_back_to_session_metrics_then_traffic()
+    {
+        var handler = new SequenceHandler(
+            (HttpStatusCode.BadRequest, """{"error":"Unknown metric time_on_page"}"""),
+            (HttpStatusCode.BadRequest, """{"error":"Unknown metric bounce_rate"}"""),
+            (HttpStatusCode.OK, """{"results":[{"dimensions":[],"metrics":[42,31]}]}"""));
+        var client = CreateClient(handler);
+        var query = CreateQuery() with { RequestPath = "/news" };
+
+        var totals = await client.GetTotalsAsync(CreateConnection(), query, CancellationToken.None);
+
+        Assert.Equal(new AnalyticsTotals(42, 31), totals);
+        Assert.Equal(
+            [
+                "pageviews,visitors,bounce_rate,time_on_page,scroll_depth",
+                "pageviews,visitors,bounce_rate",
+                "pageviews,visitors"
+            ],
+            handler.Bodies.Select(requestBody =>
+            {
+                using var body = JsonDocument.Parse(requestBody);
+                return string.Join(",", body.RootElement.GetProperty("metrics").EnumerateArray().Select(metric => metric.GetString()));
+            }));
+    }
+
+    [Fact]
+    public async Task Rejected_traffic_query_still_fails()
+    {
+        var handler = new SequenceHandler(
+            (HttpStatusCode.BadRequest, "{}"),
+            (HttpStatusCode.BadRequest, "{}"));
+        var client = CreateClient(handler);
+
+        var failure = await Assert.ThrowsAsync<AnalyticsProviderApiException>(() =>
+            client.GetTotalsAsync(CreateConnection(), CreateQuery(), CancellationToken.None));
+
+        Assert.Equal(HttpStatusCode.BadRequest, failure.StatusCode);
+        Assert.Equal(2, handler.Bodies.Count);
     }
 
     [Fact]
@@ -408,6 +497,22 @@ public sealed class PlausibleAnalyticsClientTests
         {
             Request = request;
             Body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
+            return new HttpResponseMessage(statusCode)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json")
+            };
+        }
+    }
+
+    private sealed class SequenceHandler(params (HttpStatusCode StatusCode, string Body)[] responses) : HttpMessageHandler
+    {
+        private readonly List<string> bodies = [];
+        public IReadOnlyList<string> Bodies => bodies;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            bodies.Add(await request.Content!.ReadAsStringAsync(cancellationToken));
+            var (statusCode, body) = responses[bodies.Count - 1];
             return new HttpResponseMessage(statusCode)
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/json")

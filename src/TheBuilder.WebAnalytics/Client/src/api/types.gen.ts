@@ -88,6 +88,14 @@ export type AnalyticsDocumentRoute = {
     documentRoot: string;
 };
 
+export type AnalyticsEngagement = {
+    viewsPerVisit?: number | null;
+    bounceRate?: number | null;
+    visitDuration?: number | null;
+    timeOnPage?: number | null;
+    scrollDepth?: number | null;
+};
+
 export type AnalyticsEventDetails = {
     eventName: string;
     totals: AnalyticsEventTotals;
@@ -157,6 +165,7 @@ export type AnalyticsPoint = {
     timestamp: string;
     pageViews: number;
     visitors: number;
+    engagement?: AnalyticsEngagement | null;
 };
 
 export type AnalyticsProvider = 'Vercel' | 'Plausible';
@@ -197,6 +206,7 @@ export type AnalyticsSummary = {
 export type AnalyticsTotals = {
     pageViews: number;
     visitors: number;
+    engagement?: AnalyticsEngagement | null;
 };
 
 export type AnalyticsTrafficMetric = 'Visitors' | 'PageViews';

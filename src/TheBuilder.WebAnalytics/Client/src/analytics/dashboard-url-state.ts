@@ -4,7 +4,9 @@ import { normalizeCustomRange, normalizePresetRange, type AnalyticsDateRange, ty
 export type AnalyticsFilter = { dimension: AnalyticsDimension; value: string };
 export type AnalyticsFlagFilter = { flagKey: string; value: string };
 export type AnalyticsEventFilter = { eventName: string; property: string; value: string };
-export type DashboardMetric = "visitors" | "pageViews";
+export type TrafficMetric = "visitors" | "pageViews";
+export type EngagementMetric = "viewsPerVisit" | "bounceRate" | "visitDuration" | "timeOnPage" | "scrollDepth";
+export type DashboardMetric = TrafficMetric | EngagementMetric;
 export type AudienceDimension = "DeviceType" | "BrowserName";
 export type UtmDimension = "UtmSource" | "UtmMedium" | "UtmCampaign" | "UtmTerm" | "UtmContent";
 
@@ -26,6 +28,14 @@ const DIMENSIONS = new Set<AnalyticsDimension>([
   "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName",
 ]);
 const PRESETS = new Set([1, 7, 30, 90, 365]);
+const METRICS = new Set<DashboardMetric>([
+  "visitors", "pageViews", "viewsPerVisit", "bounceRate", "visitDuration", "timeOnPage", "scrollDepth",
+]);
+
+// Breakdowns rank by visitors or page views; engagement metrics only change the summary chart.
+export function trafficMetric(metric: DashboardMetric): TrafficMetric {
+  return metric === "pageViews" ? "pageViews" : "visitors";
+}
 
 export function serializeFilter(filter: AnalyticsFilter): string {
   return `${filter.dimension}:${filter.value}`;
@@ -69,7 +79,7 @@ export function parseDashboardUrlState(params: URLSearchParams): DashboardUrlSta
     connection: params.get("connection") || undefined,
     preset,
     range,
-    metric: params.get("metric") === "pageViews" ? "pageViews" : "visitors",
+    metric: parseMetric(params.get("metric")),
     audience: params.get("audience") === "BrowserName" ? "BrowserName" : "DeviceType",
     utm: parseUtmDimension(params.get("utm")),
     filters,
@@ -86,6 +96,10 @@ function validFilterValue(value: string | null, maximumLength: number, allowEmpt
     && !/[\u0000-\u001f\u007f]/.test(value)
     ? value
     : undefined;
+}
+
+function parseMetric(value: string | null): DashboardMetric {
+  return value && METRICS.has(value as DashboardMetric) ? value as DashboardMetric : "visitors";
 }
 
 function parseUtmDimension(value: string | null): UtmDimension {

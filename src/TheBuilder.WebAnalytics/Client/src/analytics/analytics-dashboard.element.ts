@@ -4,7 +4,7 @@ import type { AnalyticsDimension } from "../api/types.gen.js";
 import { countryDisplayName, countryFlagUrl, normalizeCountryCode } from "./country-display.js";
 import { breakdownValueIcon } from "./breakdown-value-icon.js";
 import type { AnalyticsDateRangeChangeDetail } from "./date-range-picker.element.js";
-import type { AnalyticsEventFilter, AnalyticsFilter, AnalyticsFlagFilter, AudienceDimension, DashboardMetric, UtmDimension } from "./dashboard-url-state.js";
+import { trafficMetric, type AnalyticsEventFilter, type AnalyticsFilter, type AnalyticsFlagFilter, type AudienceDimension, type DashboardMetric, type UtmDimension } from "./dashboard-url-state.js";
 import type { AcquisitionView } from "./dashboard-cards.js";
 import { AnalyticsDashboardController, type DashboardState } from "./analytics-dashboard.controller.js";
 import type { FeatureDrilldownState } from "./analytics-feature-drilldown.controller.js";
@@ -144,7 +144,7 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
         .loading=${isInitialLoading(expanded.report)}
         aria-busy=${expanded.report.status === "loading" ? "true" : "false"}
         .unavailable=${this.#error(expanded.report)}
-        .metric=${state.metric}
+        .metric=${trafficMetric(state.metric)}
         .baseUrl=${this.#controller.linkBaseUrl()}
         .linkValues=${expanded.dimension === "RequestPath" || expanded.dimension === "Route"}
         @search-breakdown=${(event: CustomEvent<{ search: string }>) => this.#controller.searchBreakdown(event.detail.search)}
@@ -274,7 +274,7 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
           .filters=${state.filters}
           .eventFilter=${state.eventFilter}
           .flagFilter=${state.flagFilter}
-          .metric=${state.metric}
+          .metric=${trafficMetric(state.metric)}
           .audienceDimension=${state.audienceDimension}
           .acquisitionView=${state.acquisitionView}
           .utmDimension=${state.utmDimension}

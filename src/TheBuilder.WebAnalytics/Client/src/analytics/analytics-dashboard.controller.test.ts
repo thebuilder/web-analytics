@@ -659,6 +659,24 @@ describe("AnalyticsDashboardController", () => {
     expect(api.flags).not.toHaveBeenCalled();
   });
 
+  it("keeps breakdowns when switching to an engagement metric", async () => {
+    const api = dashboardApi();
+    const target = environment();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, target);
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    await vi.waitFor(() => expect(Object.values(controller.state.breakdowns).every((report) => report.status !== "loading")).toBe(true));
+    api.summary.mockClear();
+    api.breakdown.mockClear();
+
+    controller.setMetric("bounceRate");
+
+    expect(target.currentUrl().searchParams.get("metric")).toBe("bounceRate");
+    await Promise.resolve();
+    expect(api.breakdown).not.toHaveBeenCalled();
+    expect(api.summary).not.toHaveBeenCalled();
+  });
+
   it("uses only UTM Source to detect Plus capability", async () => {
     const api = dashboardApi();
     const controller = new AnalyticsDashboardController(vi.fn(), api, environment());

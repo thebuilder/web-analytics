@@ -22,6 +22,7 @@ import {
   type AnalyticsFilter,
   type AnalyticsFlagFilter,
   type AudienceDimension,
+  trafficMetric,
   type DashboardMetric,
   type UtmDimension,
 } from "./dashboard-url-state.js";
@@ -232,7 +233,7 @@ export class AnalyticsDashboardController {
       (update) => this.#applyReportUpdate(update),
       this.#api,
       capabilities,
-      this.state.metric,
+      trafficMetric(this.state.metric),
     ));
     if (result.status !== "success") {
       if (result.status === "error") this.#failLoadingReports(reportErrorMessage(result.error), dimensions);
@@ -288,8 +289,10 @@ export class AnalyticsDashboardController {
 
   setMetric(metric: DashboardMetric): void {
     if (this.state.metric === metric) return;
+    const trafficChanged = trafficMetric(metric) !== trafficMetric(this.state.metric);
     this.#set({ metric });
     this.#syncUrlState();
+    if (!trafficChanged) return;
     const capabilities = this.#capabilities();
     const nonBreakdownReportPending = this.state.summary.status === "loading"
       || (capabilities.events && this.state.events.status === "loading")
@@ -530,7 +533,7 @@ export class AnalyticsDashboardController {
       signal,
       (update) => this.#applyReportUpdate(update),
       this.#api,
-      this.state.metric,
+      trafficMetric(this.state.metric),
       this.#capabilities().breakdownOrdering,
     ));
     if (result.status === "error") this.#failLoadingBreakdowns(reportErrorMessage(result.error), dimensions);
@@ -593,7 +596,7 @@ export class AnalyticsDashboardController {
       dimension,
       signal,
       this.#api,
-      this.state.metric,
+      trafficMetric(this.state.metric),
       this.#capabilities().breakdownOrdering,
     ));
     if (result.status === "cancelled" || result.status === "stale"

@@ -166,6 +166,39 @@ describe("analytics presentation components", () => {
     expect((onChange.mock.calls[0][0] as CustomEvent).detail).toEqual({ metric: "pageViews" });
   });
 
+  it("adds engagement tabs and charts the selected one", async () => {
+    const element = document.createElement("web-analytics-summary") as WebAnalyticsSummaryElement;
+    element.range = dateRangeForPreset(30);
+    element.metric = "bounceRate";
+    element.report = successState({
+      totals: { visitors: 12, pageViews: 34, engagement: { bounceRate: 38, visitDuration: 134 } },
+      previousTotals: { visitors: 10, pageViews: 30, engagement: { bounceRate: 41, visitDuration: 120 } },
+      points: [{ timestamp: "2026-07-01", visitors: 12, pageViews: 34, engagement: { bounceRate: 38 } }],
+    });
+    document.body.append(element);
+    await element.updateComplete;
+
+    const tabs = Array.from(element.shadowRoot?.querySelectorAll("[role=tab]") ?? []).map((tab) => tab.id);
+    expect(tabs).toEqual(["metric-visitors-tab", "metric-pageViews-tab", "metric-bounceRate-tab", "metric-visitDuration-tab"]);
+    expect(element.shadowRoot?.querySelector("#metric-bounceRate-tab")?.getAttribute("aria-selected")).toBe("true");
+    expect(element.shadowRoot?.querySelector("#metric-bounceRate-tab strong")?.textContent).toBe("38%");
+    expect(element.shadowRoot?.querySelector("#metric-bounceRate-tab .comparison")?.classList.contains("positive")).toBe(true);
+    expect(element.shadowRoot?.querySelector("#metric-visitDuration-tab strong")?.textContent).toBe("2m 14s");
+    expect(element.shadowRoot?.querySelector("web-analytics-history-chart")?.metric).toBe("bounceRate");
+  });
+
+  it("falls back to visitors when the selected metric is not reported", async () => {
+    const element = document.createElement("web-analytics-summary") as WebAnalyticsSummaryElement;
+    element.range = dateRangeForPreset(30);
+    element.metric = "timeOnPage";
+    element.report = successState({ totals: { visitors: 12, pageViews: 34 }, points: [] });
+    document.body.append(element);
+    await element.updateComplete;
+
+    expect(element.shadowRoot?.querySelectorAll("[role=tab]")).toHaveLength(2);
+    expect(element.shadowRoot?.querySelector("#metric-visitors-tab")?.getAttribute("aria-selected")).toBe("true");
+  });
+
   it("formats summary totals with the active backoffice locale", async () => {
     const element = document.createElement("web-analytics-summary") as WebAnalyticsSummaryElement;
     element.lang = "da-DK";

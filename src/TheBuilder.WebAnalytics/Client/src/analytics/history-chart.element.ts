@@ -17,16 +17,18 @@ import {
   Tooltip,
 } from "chart.js";
 import type { Plugin } from "chart.js";
-import type { AnalyticsInterval } from "../api/types.gen.js";
+import type { AnalyticsEngagement, AnalyticsInterval } from "../api/types.gen.js";
 import { formatChartAxisValue } from "./chart-value.js";
+import type { DashboardMetric } from "./dashboard-url-state.js";
+import { formatSummaryAxisValue, formatSummaryValue, summaryMetric, summaryMetricValue } from "./summary-metrics.js";
 import { formatAnalyticsDate, formatAnalyticsTooltipDate, isAnalyticsPeriodInProgress } from "./date-range.js";
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip);
 
 @customElement("web-analytics-history-chart")
 class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
-  @property({ attribute: false }) points: Array<{ timestamp: string; visitors: number; pageViews?: number; count?: number }> = [];
-  @property() metric: "visitors" | "pageViews" | "count" = "visitors";
+  @property({ attribute: false }) points: Array<{ timestamp: string; visitors: number; pageViews?: number; count?: number; engagement?: AnalyticsEngagement | null }> = [];
+  @property() metric: DashboardMetric | "count" = "visitors";
   @property() interval: AnalyticsInterval = "Day";
   @property() timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   #chart?: Chart;
@@ -84,7 +86,7 @@ class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
         labels: this.points.map((point) => formatAnalyticsDate(point.timestamp, this.interval, locale, this.timeZone)),
         datasets: [{
           label,
-          data: this.points.map((point) => point[this.metric] ?? 0),
+          data: this.points.map((point) => this.#value(point)),
           borderColor: lineColor,
           borderWidth: 2.25,
           backgroundColor: fillColor,
@@ -114,7 +116,7 @@ class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
             borderColor,
             borderWidth: 1,
             callbacks: {
-              label: (context) => `${label}  ${this.localize.number(context.parsed.y ?? 0)}`,
+              label: (context) => `${label}  ${this.#formatValue(context.parsed.y ?? 0)}`,
               title: (items) => {
                 const index = items[0]?.dataIndex ?? -1;
                 const point = this.points[index];
@@ -142,12 +144,12 @@ class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
             border: { display: false },
             grid: { color: gridColor },
             ticks: {
-              callback: (value) => formatChartAxisValue(
-                Number(value),
-                (number, options) => this.localize.number(number, options),
-              ),
+              callback: (value) => this.metric === "count"
+                ? formatChartAxisValue(Number(value), (number, options) => this.localize.number(number, options))
+                : formatSummaryAxisValue(this.metric, Number(value), (number, options) => this.localize.number(number, options)),
               color: mutedColor,
               maxTicksLimit: 5,
+              stepSize: this.#durationStep(),
               padding: 8,
             },
           },
@@ -169,8 +171,28 @@ class WebAnalyticsHistoryChartElement extends UmbElementMixin(LitElement) {
   }
 
   #metricLabel(): string {
-    if (this.metric === "visitors") return "Visitors";
-    return this.metric === "pageViews" ? "Page views" : "Total events";
+    return this.metric === "count" ? "Total events" : summaryMetric(this.metric).label;
+  }
+
+  // Empty periods have no rate or duration, so engagement gaps stay gaps instead of dropping to zero.
+  #value(point: WebAnalyticsHistoryChartElement["points"][number]): number | null {
+    if (this.metric === "count") return point.count ?? 0;
+    const value = summaryMetricValue(point, this.metric);
+    return value ?? (this.metric === "visitors" || this.metric === "pageViews" ? 0 : null);
+  }
+
+  // Whole minutes read better than Chart.js's default steps, such as 1m 40s.
+  #durationStep(): number | undefined {
+    if (this.metric === "count" || summaryMetric(this.metric).format !== "duration") return undefined;
+    const maximum = Math.max(0, ...this.points.map((point) => this.#value(point) ?? 0));
+    if (maximum <= 120) return undefined;
+    return maximum <= 300 ? 60 : maximum <= 1_200 ? 300 : 600;
+  }
+
+  #formatValue(value: number): string {
+    return this.metric === "count"
+      ? this.localize.number(value)
+      : formatSummaryValue(this.metric, value, (number, options) => this.localize.number(number, options));
   }
 
   #latestPeriodInProgress(): boolean {

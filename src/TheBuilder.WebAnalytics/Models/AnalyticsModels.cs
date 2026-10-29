@@ -110,12 +110,20 @@ public sealed record AnalyticsEventFilter(string EventName, string Property, str
 
 public sealed record AnalyticsEventDataFilter(string Property, string Value);
 
-public sealed record AnalyticsTotals(long PageViews, long Visitors);
+// Providers set only the values they can report for a query. Durations are seconds, rates are percentages.
+public sealed record AnalyticsEngagement(
+    double? ViewsPerVisit = null,
+    double? BounceRate = null,
+    double? VisitDuration = null,
+    double? TimeOnPage = null,
+    double? ScrollDepth = null);
 
-public sealed record AnalyticsPoint(string Timestamp, long PageViews, long Visitors)
+public sealed record AnalyticsTotals(long PageViews, long Visitors, AnalyticsEngagement? Engagement = null);
+
+public sealed record AnalyticsPoint(string Timestamp, long PageViews, long Visitors, AnalyticsEngagement? Engagement = null)
 {
-    public AnalyticsPoint(DateTimeOffset timestamp, long pageViews, long visitors)
-        : this(timestamp.ToString("O", CultureInfo.InvariantCulture), pageViews, visitors)
+    public AnalyticsPoint(DateTimeOffset timestamp, long pageViews, long visitors, AnalyticsEngagement? engagement = null)
+        : this(timestamp.ToString("O", CultureInfo.InvariantCulture), pageViews, visitors, engagement)
     {
     }
 }
