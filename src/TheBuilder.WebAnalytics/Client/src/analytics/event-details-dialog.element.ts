@@ -6,6 +6,7 @@ import type { AnalyticsEventDetails, AnalyticsEventProperty } from "../api/types
 import { renderAnalyticsDialogFrame } from "./analytics-dialog-frame.js";
 import { analyticsDialogStyles, analyticsWideDialogStyles } from "./analytics-dialog.styles.js";
 import { analyticsTableSkeletonStyles, renderAnalyticsTableSkeletonRows } from "./analytics-table-skeleton.js";
+import { analyticsRowFilterStyles, isPlainRowClick } from "./analytics-filter-action.js";
 import { openDialog } from "./dialog-lifecycle.js";
 import { renderReportTabs, reportTabsStyles } from "./report-tabs.js";
 
@@ -118,26 +119,20 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
             <tr class="empty-row"><td colspan="3"><umb-empty-state headline="Search unavailable"><p>${this.searchUnavailable}</p></umb-empty-state></td></tr>
           ` : values.length ? values.map((value) => {
             const activeFilter = this.filterProperty === property.name && this.filterValue === value.value;
+            const label = value.value || "(empty)";
+            const toggle = () => this.#applyFilter(property.name, value);
             return html`
-              <tr>
+              <tr class=${this.filteringEnabled ? "filter-row" : ""} @click=${(event: Event) => this.filteringEnabled && isPlainRowClick(event, this.shadowRoot) && toggle()}>
                 <th scope="row">
                   <span class="bar" style=${`--bar-width:${(value.count / maximum) * 100}%;--bar-minimum:${value.count > 0 ? "4px" : "0px"}`}></span>
-                  <span class="value-label">${value.value || "(empty)"}</span>
+                  ${this.filteringEnabled ? html`<button
+                    type="button"
+                    class="value-label row-filter"
+                    aria-pressed=${activeFilter}
+                    title=${activeFilter ? `Remove ${property.name} filter ${value.value || "empty"}` : `Filter by ${property.name} ${value.value || "empty"}`}
+                    @click=${toggle}>${label}</button>` : html`<span class="value-label">${label}</span>`}
                 </th>
-                <td>
-                  <span class="visitors-content">
-                    ${this.filteringEnabled ? html`<button
-                      type="button"
-                      class="filter-button"
-                      aria-pressed=${activeFilter}
-                      aria-label=${activeFilter ? `Remove ${property.name} filter ${value.value || "empty"}` : `Filter by ${property.name} ${value.value || "empty"}`}
-                      title=${activeFilter ? "Remove filter" : "Filter by this value"}
-                      @click=${() => this.#applyFilter(property.name, value)}>
-                      <uui-icon name=${activeFilter ? "icon-delete" : "icon-filter"}></uui-icon>
-                    </button>` : ""}
-                    <strong>${this.localize.number(value.visitors)}</strong>
-                  </span>
-                </td>
+                <td><strong>${this.localize.number(value.visitors)}</strong></td>
                 <td><strong>${this.localize.number(value.count)}</strong></td>
               </tr>
             `;
@@ -185,7 +180,7 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     });
   }
 
-  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsWideDialogStyles, analyticsTableSkeletonStyles, reportTabsStyles, css`
+  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsWideDialogStyles, analyticsTableSkeletonStyles, reportTabsStyles, analyticsRowFilterStyles, css`
     .dialog-content { display: flex; flex-direction: column; position: relative; }
     .property-controls { border-bottom: 1px solid var(--uui-color-border); display: grid; flex: 0 0 auto; gap: var(--uui-size-space-3); padding: 0 var(--analytics-dialog-inline-padding) var(--uui-size-space-4); }
     .property-controls uui-input { box-sizing: border-box; width: 100%; }
@@ -202,11 +197,6 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     thead th:not(:first-child), td { text-align: right; width: 8rem; }
     tbody th { font-weight: 500; min-width: 12rem; position: relative; }
     td { font-variant-numeric: tabular-nums; position: relative; z-index: 1; }
-    .visitors-content { display: inline-flex; position: relative; }
-    .filter-button { align-items: center; background: transparent; border: 0; border-radius: var(--uui-border-radius); color: var(--uui-color-interactive); cursor: pointer; display: inline-flex; inset-block-start: 50%; inset-inline-end: calc(100% + var(--uui-size-space-2)); justify-content: center; min-block-size: 2rem; min-inline-size: 2rem; opacity: 0; position: absolute; transform: translateY(-50%); }
-    tr:hover .filter-button, .filter-button:focus-visible, .filter-button[aria-pressed="true"] { opacity: 1; }
-    .filter-button:hover { background: var(--uui-color-surface-emphasis); }
-    .filter-button:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 1px; }
     .value-label { overflow-wrap: anywhere; position: relative; z-index: 1; }
     .bar { inset-block: var(--uui-size-space-1); inset-inline-start: var(--bar-inset); inline-size: calc(100% + 16rem - 2 * var(--bar-inset)); position: absolute; }
     .bar::before { background: color-mix(in srgb, var(--uui-color-interactive) 4%, var(--uui-color-surface)); block-size: 100%; border-radius: var(--uui-border-radius); content: ""; display: block; inline-size: max(var(--bar-minimum), var(--bar-width)); }

@@ -126,7 +126,7 @@ describe("event details dialog layout", () => {
 
     expect(dialog.shadowRoot?.querySelector('[role="tablist"]')).toBeNull();
     expect(dialog.shadowRoot?.querySelector('uui-input[type="search"]')).toBeNull();
-    expect(dialog.shadowRoot?.querySelector(".filter-button")).toBeNull();
+    expect(dialog.shadowRoot?.querySelector(".row-filter")).toBeNull();
     expect(dialog.shadowRoot?.querySelector(".active-filter")).toBeNull();
   });
 
@@ -144,7 +144,7 @@ describe("event details dialog layout", () => {
 
     expect(dialog.shadowRoot?.querySelector("tbody th strong")).toBeNull();
     expect([...dialog.shadowRoot?.querySelectorAll("tbody td strong") ?? []].map((metric) => metric.textContent)).toEqual(["12", "15"]);
-    expect(dialog.shadowRoot?.querySelector(".filter-button")).toBeNull();
+    expect(dialog.shadowRoot?.querySelector(".row-filter")).toBeNull();
   });
 
   it("delegates event property filter application with its metrics", async () => {
@@ -162,7 +162,7 @@ describe("event details dialog layout", () => {
     document.body.append(dialog);
     await dialog.updateComplete;
 
-    dialog.shadowRoot?.querySelector<HTMLButtonElement>(".filter-button")?.click();
+    dialog.shadowRoot?.querySelector<HTMLElement>("tbody td")?.click();
 
     expect((onFilter.mock.calls[0][0] as CustomEvent).detail).toEqual({
       property: "plan",

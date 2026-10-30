@@ -16,6 +16,7 @@ import {
 import { countryDisplayName, countryFlagUrl, normalizeCountryCode } from "./country-display.js";
 import { breakdownValueIcon } from "./breakdown-value-icon.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
+import { isPlainRowClick } from "./analytics-filter-action.js";
 import { googleFaviconUrl } from "./favicon.js";
 import { renderReportTabs, reportTabsStyles, selectedReportTabId, type ReportTabGroup } from "./report-tabs.js";
 import { breakdownEngagementMetrics, formatSummaryValue, summaryMetricValue, type SummaryMetric } from "./summary-metrics.js";
@@ -169,10 +170,7 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
   // The label button, the open-page link and the focusable share tooltip handle their own clicks, and
   // finishing a text selection is not a click on the row. A click anywhere else on the row filters.
   #rowClick(event: Event, toggleFilter: () => void): void {
-    if (event.composedPath().some((target) => target instanceof HTMLElement && target.matches("a, button, [tabindex]"))) return;
-    const root = this.shadowRoot as (ShadowRoot & { getSelection?: () => Selection | null }) | null;
-    if ((root?.getSelection?.() ?? document.getSelection())?.toString()) return;
-    toggleFilter();
+    if (isPlainRowClick(event, this.shadowRoot)) toggleFilter();
   }
 
   #metricLabel(): string {

@@ -244,7 +244,7 @@ describe("analytics presentation components", () => {
     expect(breakdown?.loading).toBe(false);
     expect(breakdown?.shadowRoot?.querySelector(".row-label")?.textContent).toContain("Denmark");
     expect(events?.loading).toBe(false);
-    expect(events?.shadowRoot?.querySelector(".row-action")?.textContent).toBe("Signup");
+    expect(events?.shadowRoot?.querySelector(".row-value")?.textContent).toBe("Signup");
     expect(flags?.shadowRoot?.querySelector(".row-action")?.textContent).toBe("new-checkout");
     expect(element.shadowRoot?.querySelectorAll('[aria-busy="true"]')).toHaveLength(3);
   });
@@ -352,7 +352,6 @@ describe("analytics presentation components", () => {
     await table.updateComplete;
     expect([...table.shadowRoot?.querySelectorAll("thead th") ?? []].map((header) => header.textContent?.trim())).toEqual(["Pages", "Page views"]);
     expect([...table.shadowRoot?.querySelectorAll(".metric-number") ?? []].map((value) => value.textContent)).toEqual(["15,119"]);
-    expect(table.shadowRoot?.querySelector(".filter-action")).toBeNull();
   });
 
   it("filters by a row when the row or its label is clicked, but not when its link is", async () => {
@@ -367,7 +366,11 @@ describe("analytics presentation components", () => {
     ];
     const onToggle = vi.fn();
     element.addEventListener("toggle-filter", (event) => onToggle((event as CustomEvent).detail));
-    document.body.append(element);
+    // The backoffice wraps dashboards in focusable scroll containers.
+    const container = document.createElement("div");
+    container.tabIndex = 0;
+    container.append(element);
+    document.body.append(container);
     await element.updateComplete;
 
     const rows = [...element.shadowRoot?.querySelectorAll<HTMLTableRowElement>("tbody tr") ?? []];
@@ -620,23 +623,35 @@ describe("analytics presentation components", () => {
     expect(element.shadowRoot?.querySelector(".empty a")).toBeNull();
   });
 
-  it("only offers global event filtering when the provider supports it", async () => {
+  it("opens event details on row click unless the provider can filter by event", async () => {
     const element = document.createElement("web-analytics-event-table") as HTMLElement & {
       rows: Array<{ eventName: string; visitors: number; count: number }>;
       filteringEnabled: boolean;
       updateComplete: Promise<unknown>;
     };
     element.rows = [{ eventName: "Read case", visitors: 12, count: 15 }];
+    const selected: string[] = [];
+    const toggled: unknown[] = [];
+    element.addEventListener("select-event", (event) => selected.push((event as CustomEvent<{ eventName: string }>).detail.eventName));
+    element.addEventListener("toggle-filter", (event) => toggled.push((event as CustomEvent).detail));
     document.body.append(element);
     await element.updateComplete;
-    expect(element.shadowRoot?.querySelector(".filter-action")).toBeNull();
     const metrics = [...element.shadowRoot?.querySelectorAll(".metric-value") ?? []];
     expect(metrics.map((metric) => metric.textContent)).toEqual(["12", "15"]);
     expect(metrics.every((metric) => metric.tagName === "STRONG")).toBe(true);
+    expect(element.shadowRoot?.querySelector(".details-link")).toBeNull();
+    element.shadowRoot?.querySelector<HTMLElement>("tbody td")?.click();
+    expect(selected).toEqual(["Read case"]);
+    expect(toggled).toEqual([]);
 
     element.filteringEnabled = true;
     await element.updateComplete;
-    expect(element.shadowRoot?.querySelector(".filter-action")?.getAttribute("aria-label")).toBe("Filter analytics by Read case event");
+    expect(element.shadowRoot?.querySelector(".row-filter")?.getAttribute("title")).toBe("Filter analytics by Read case event");
+    element.shadowRoot?.querySelector<HTMLElement>("tbody td")?.click();
+    expect(toggled).toEqual([{ dimension: "EventName", value: "Read case" }]);
+    element.shadowRoot?.querySelector<HTMLButtonElement>(".details-link")?.click();
+    expect(selected).toEqual(["Read case", "Read case"]);
+    expect(toggled).toHaveLength(1);
   });
 
   it("shows a stable empty state when event properties are unavailable", async () => {

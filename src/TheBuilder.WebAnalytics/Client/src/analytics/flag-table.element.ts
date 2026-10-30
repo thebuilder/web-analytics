@@ -2,7 +2,7 @@ import { LitElement, customElement, html, property } from "@umbraco-cms/backoffi
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import type { AnalyticsFlagRow } from "../api/types.gen.js";
 import type { AnalyticsFlagFilter } from "./dashboard-url-state.js";
-import { analyticsTableFilterActionStyles, renderAnalyticsFilterAction } from "./analytics-filter-action.js";
+import { analyticsRowFilterStyles, isPlainRowClick } from "./analytics-filter-action.js";
 import { analyticsTableSkeletonStyles } from "./analytics-table-skeleton.js";
 import { analyticsDrilldownFilterStyles, renderAnalyticsDrilldownFilter } from "./analytics-drilldown-filter.js";
 import { analyticsMetricTableStyles, renderAnalyticsMetricTable } from "./analytics-metric-table.js";
@@ -35,14 +35,22 @@ export class WebAnalyticsFlagTableElement extends UmbElementMixin(LitElement) {
             const filterLabel = activeFilter
               ? `Remove ${this.flagKey} flag value filter ${row.value}`
               : `Filter analytics by ${this.flagKey} flag value ${row.value}`;
+            const filterable = this.mode === "detail" && Boolean(this.flagKey);
+            const toggle = () => this.dispatchEvent(new CustomEvent("toggle-flag-filter", {
+              bubbles: true,
+              composed: true,
+              detail: { flagKey: this.flagKey, value: row.value },
+            }));
             return html`
-            <tr>
+            <tr class=${filterable ? "filter-row" : ""} @click=${(event: Event) => filterable && isPlainRowClick(event, this.shadowRoot) && toggle()}>
               <th scope="row">
                 <span class="bar" style=${`--bar-width:${(row.pageViews / maximum) * 100}%;--bar-minimum:${row.pageViews > 0 ? "4px" : "0px"}`}></span>
                 <span class="row-heading-content">
                   ${this.mode !== "detail"
                     ? html`<button class="row-action" type="button" @click=${() => this.#select(row.value)}>${row.value}</button>`
-                    : html`<span class="row-value">${row.value}</span>`}
+                    : filterable
+                      ? html`<button class="row-value row-filter" type="button" aria-pressed=${activeFilter} title=${filterLabel} @click=${toggle}>${row.value}</button>`
+                      : html`<span class="row-value">${row.value}</span>`}
                   ${this.mode === "overview" && this.flagFilter?.flagKey === row.value
                     ? renderAnalyticsDrilldownFilter({
                       label: this.flagFilter.value || "(empty)",
@@ -56,18 +64,7 @@ export class WebAnalyticsFlagTableElement extends UmbElementMixin(LitElement) {
                     : ""}
                 </span>
               </th>
-              <td><span class="metric-cell">
-                ${this.mode === "detail" && this.flagKey ? renderAnalyticsFilterAction({
-                  active: activeFilter,
-                  label: filterLabel,
-                  toggle: () => this.dispatchEvent(new CustomEvent("toggle-flag-filter", {
-                    bubbles: true,
-                    composed: true,
-                    detail: { flagKey: this.flagKey, value: row.value },
-                  })),
-                }) : ""}
-                <strong>${this.localize.number(row.visitors)}</strong>
-              </span></td>
+              <td><strong>${this.localize.number(row.visitors)}</strong></td>
               <td><strong>${this.localize.number(row.pageViews)}</strong></td>
             </tr>
           `;});
@@ -93,7 +90,7 @@ export class WebAnalyticsFlagTableElement extends UmbElementMixin(LitElement) {
     `;
   }
 
-  static styles = [analyticsTableSkeletonStyles, analyticsMetricTableStyles, analyticsTableFilterActionStyles, analyticsDrilldownFilterStyles];
+  static styles = [analyticsTableSkeletonStyles, analyticsMetricTableStyles, analyticsRowFilterStyles, analyticsDrilldownFilterStyles];
 }
 
 declare global { interface HTMLElementTagNameMap { "web-analytics-flag-table": WebAnalyticsFlagTableElement; } }
