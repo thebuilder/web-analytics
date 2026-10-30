@@ -331,7 +331,7 @@ describe("analytics presentation components", () => {
     expect(table.total).toBe(11_339);
     const headers = [...table.shadowRoot?.querySelectorAll("thead th") ?? []]
       .map((header) => header.textContent?.replace(/\s+/g, "").trim());
-    expect(headers).toEqual(["DevicesBrowsers", "Visitors"]);
+    expect(headers).toEqual(["DevicesBrowsers", "Device", "Visitors"]);
     const values = [...table.shadowRoot?.querySelectorAll("tbody .percentage-value > span:first-child") ?? []]
       .map((value) => value.textContent?.trim());
     expect(values).toEqual(["99%", "1%"]);
@@ -350,7 +350,7 @@ describe("analytics presentation components", () => {
 
     const table = element.shadowRoot?.querySelector<WebAnalyticsBreakdownTableElement>("web-analytics-breakdown-table")!;
     await table.updateComplete;
-    expect([...table.shadowRoot?.querySelectorAll("thead th") ?? []].map((header) => header.textContent?.trim())).toEqual(["Pages", "Page views"]);
+    expect([...table.shadowRoot?.querySelectorAll("thead th") ?? []].map((header) => header.textContent?.trim())).toEqual(["Pages", "Page", "Page views"]);
     expect([...table.shadowRoot?.querySelectorAll(".metric-number") ?? []].map((value) => value.textContent)).toEqual(["15,119"]);
   });
 
@@ -484,7 +484,7 @@ describe("analytics presentation components", () => {
     expect(cards[6]?.querySelector("web-analytics-flag-table")).not.toBeNull();
   });
 
-  it("keeps View all actions low priority while retaining emphasis for Retry", async () => {
+  it("opens View all from an icon in each card heading and keeps Retry emphasised", async () => {
     const element = document.createElement("web-analytics-breakdown-grid") as WebAnalyticsBreakdownGridElement;
     element.cards = dashboardCards("unavailable").filter((card) => card.kind === "breakdown" && card.dimension === "Country");
     element.breakdowns = {
@@ -495,22 +495,25 @@ describe("analytics presentation components", () => {
     document.body.append(element);
     await element.updateComplete;
 
-    const viewAllActions = [...element.shadowRoot?.querySelectorAll("uui-button") ?? []]
-      .filter((button) => button.textContent?.trim() === "View all");
-    expect(viewAllActions).toHaveLength(3);
-    expect(viewAllActions.map((button) => button.getAttribute("label"))).toEqual([
+    const viewAllActions = [...element.shadowRoot?.querySelectorAll<HTMLButtonElement>(".card-expand") ?? []];
+    expect(viewAllActions.map((button) => button.getAttribute("aria-label"))).toEqual([
       "View all Countries",
       "View all events",
       "View all flags",
     ]);
-    expect(viewAllActions.every((button) => button.getAttribute("look") === "default")).toBe(true);
-    expect(viewAllActions.every((button) => button.classList.contains("view-all") && button.hasAttribute("compact"))).toBe(true);
+    expect(viewAllActions.every((button) => button.title === "View all")).toBe(true);
+    expect(element.shadowRoot?.querySelector("uui-button")).toBeNull();
+    const opened: string[] = [];
+    element.addEventListener("view-events", () => opened.push("events"));
+    viewAllActions[1]?.click();
+    expect(opened).toEqual(["events"]);
 
     element.breakdowns = { Country: { status: "error", message: "Unavailable" } };
     element.supportsEvents = false;
     await element.updateComplete;
 
     const retry = element.shadowRoot?.querySelector("uui-button");
+    expect([...element.shadowRoot?.querySelectorAll(".card-expand") ?? []].map((button) => button.getAttribute("aria-label"))).toEqual(["View all flags"]);
     expect(retry?.textContent?.trim()).toBe("Retry");
     expect(retry?.getAttribute("look")).toBe("secondary");
   });
@@ -583,8 +586,12 @@ describe("analytics presentation components", () => {
     const parameterTabs = [...updatedAcquisitionTable.shadowRoot?.querySelectorAll<HTMLButtonElement>(".report-tabs.secondary [role=tab]") ?? []];
     expect(parameterTabs.map((tab) => tab.textContent?.trim())).toEqual(["Source", "Medium", "Campaign", "Term", "Content"]);
     const headerRows = updatedAcquisitionTable.shadowRoot?.querySelectorAll("thead tr");
-    expect([...headerRows?.[0].children ?? []].map((header) => header.textContent?.replace(/\s+/g, "").trim())).toEqual(["ReferrersUTM", "Visitors"]);
-    expect(headerRows?.[0].lastElementChild?.hasAttribute("rowspan")).toBe(false);
+    expect([...headerRows ?? []].map((row) => [...row.children].map((header) => header.textContent?.replace(/\s+/g, "").trim()))).toEqual([
+      ["ReferrersUTM"],
+      ["SourceMediumCampaignTermContent"],
+      ["Source", "Visitors"],
+    ]);
+    expect(headerRows?.[0].firstElementChild?.getAttribute("colspan")).toBe("2");
     expect(headerRows?.[1].firstElementChild?.getAttribute("colspan")).toBe("2");
     parameterTabs[4]?.click();
     expect((onChange.mock.calls[0][0] as CustomEvent).detail).toEqual({ dimension: "UtmContent" });

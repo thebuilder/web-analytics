@@ -77,43 +77,47 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
     layout = "report",
     wide = false,
     hint,
-    footer,
+    expand,
+    retry,
   }: {
     busy: boolean;
     content: TemplateResult;
     layout?: "report" | "empty";
     wide?: boolean;
     hint?: TemplateResult;
-    footer: {
-      visible: boolean;
-      content?: TemplateResult;
-    };
+    expand?: { label: string; open: () => void };
+    retry?: TemplateResult;
   }) {
     return html`
       <uui-box class=${`breakdown-card${wide ? " wide" : ""}`} aria-busy=${busy ? "true" : "false"}>
         <div class=${`breakdown-card-layout${layout === "empty" ? " empty-card-layout" : ""}`}>
           ${content}
           ${hint}
-          ${footer.visible ? html`<footer class="breakdown-footer">${footer.content}</footer>` : ""}
+          ${retry ? html`<div class="card-retry">${retry}</div>` : ""}
+          ${expand ? html`
+            <button type="button" class="card-expand" aria-label=${expand.label} title="View all" @click=${expand.open}>
+              <uui-icon name="icon-fullscreen" aria-hidden="true"></uui-icon>
+            </button>
+          ` : ""}
         </div>
       </uui-box>
     `;
   }
 
-  #renderBreakdownFooter(
+  #breakdownCardActions(
     loading: boolean,
     unavailable: string | undefined,
     hasRows: boolean,
     selected: ReturnType<typeof selectedCardDimension>,
-  ): TemplateResult | undefined {
-    if (!loading && hasRows && !unavailable) {
-      return html`
-        <uui-button class="view-all" compact look="default" label=${`View all ${selected.headline}`} @click=${() => this.#dispatch("view-breakdown", selected)}>View all</uui-button>
-      `;
-    }
-    return !loading && unavailable
-      ? html`<uui-button look="secondary" label=${`Retry ${selected.headline} report`} @click=${() => this.#dispatch("retry-reports")}>Retry</uui-button>`
-      : undefined;
+  ) {
+    return {
+      expand: !loading && hasRows && !unavailable
+        ? { label: `View all ${selected.headline}`, open: () => this.#dispatch("view-breakdown", selected) }
+        : undefined,
+      retry: !loading && unavailable
+        ? html`<uui-button look="secondary" label=${`Retry ${selected.headline} report`} @click=${() => this.#dispatch("retry-reports")}>Retry</uui-button>`
+        : undefined,
+    };
   }
 
   #renderCard(card: DashboardCard) {
@@ -135,6 +139,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
             .dimension=${selected.dimension}
             .metric=${this.metric}
             .compact=${true}
+            .cardHeading=${true}
             .total=${total}
             .rows=${rows}
             .loading=${loading}
@@ -146,10 +151,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
             .unavailable=${unavailable}>
           </web-analytics-breakdown-table>`,
       hint: planLimited && unavailable ? html`<p class="hint breakdown-hint">UTM reporting availability depends on your analytics plan and reporting window.</p>` : undefined,
-      footer: {
-        visible: true,
-        content: this.#renderBreakdownFooter(loading, unavailable, rows.length > 0, selected),
-      },
+      ...this.#breakdownCardActions(loading, unavailable, rows.length > 0, selected),
     });
   }
 
@@ -173,6 +175,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
             .dimension=${selected.dimension}
             .metric=${this.metric}
             .compact=${true}
+            .cardHeading=${true}
             .total=${total}
             .rows=${rows}
             .loading=${loading}
@@ -184,10 +187,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
             @heading-tab-change=${(event: CustomEvent<{ value: AcquisitionView }>) => this.#dispatch("acquisition-change", { view: event.detail.value })}
             @subheading-tab-change=${(event: CustomEvent<{ value: UtmDimension }>) => this.#dispatch("utm-change", { dimension: event.detail.value })}></web-analytics-breakdown-table>
       `,
-      footer: {
-        visible: true,
-        content: this.#renderBreakdownFooter(loading, unavailable, rows.length > 0, selected),
-      },
+      ...this.#breakdownCardActions(loading, unavailable, rows.length > 0, selected),
     });
   }
 
@@ -201,13 +201,8 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
     return this.#renderCardFrame({
       busy: this.events.status === "loading",
       layout: empty ? "empty" : "report",
-      content: html`<web-analytics-event-table .rows=${rows} .filters=${this.filters} .eventFilter=${this.eventFilter} .loading=${loading} .detailsEnabled=${this.supportsEventDetails}></web-analytics-event-table>`,
-      footer: {
-        visible: !empty,
-        content: !loading && rows.length
-          ? html`<uui-button class="view-all" compact look="default" label="View all events" @click=${() => this.#dispatch("view-events")}>View all</uui-button>`
-          : undefined,
-      },
+      content: html`<web-analytics-event-table .cardHeading=${true} .rows=${rows} .filters=${this.filters} .eventFilter=${this.eventFilter} .loading=${loading} .detailsEnabled=${this.supportsEventDetails}></web-analytics-event-table>`,
+      expand: !loading && rows.length ? { label: "View all events", open: () => this.#dispatch("view-events") } : undefined,
     });
   }
 
@@ -228,12 +223,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
           .flagFilter=${this.flagFilter}
           mode="overview"></web-analytics-flag-table>
       `,
-      footer: {
-        visible: !empty,
-        content: !loading && rows.length
-          ? html`<uui-button class="view-all" compact look="default" label="View all flags" @click=${() => this.#dispatch("view-flags")}>View all</uui-button>`
-          : undefined,
-      },
+      expand: !loading && rows.length ? { label: "View all flags", open: () => this.#dispatch("view-flags") } : undefined,
     });
   }
 
@@ -265,10 +255,13 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
     .feature-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr)); }
     .detail-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
     .breakdown-card { --uui-box-default-padding: 0; min-inline-size: 0; overflow: hidden; position: relative; }
-    .breakdown-card-layout { box-sizing: border-box; min-block-size: 100%; padding-bottom: var(--uui-size-layout-3); }
+    .breakdown-card-layout { box-sizing: border-box; min-block-size: 100%; padding-bottom: var(--uui-size-space-3); }
     .empty-card-layout { block-size: 100%; padding-bottom: 0; }
-    .breakdown-footer { align-items: center; background: color-mix(in srgb, var(--uui-color-surface-alt) 9%, var(--uui-color-surface)); border-top: 1px solid var(--uui-color-border); bottom: 0; box-sizing: border-box; display: flex; justify-content: flex-end; left: 0; min-block-size: var(--uui-size-layout-3); padding: 0 var(--uui-size-space-4); position: absolute; right: 0; }
-    .view-all { --uui-button-border-width: 0; --uui-button-content-align: right; }
+    .card-retry { display: flex; justify-content: flex-end; padding: var(--uui-size-space-3) var(--uui-size-space-5); }
+    /* Sits in the card's heading row, which every card table leaves room for at its end. */
+    .card-expand { align-items: center; appearance: none; background: transparent; block-size: 2rem; border: 0; border-radius: var(--uui-border-radius); color: var(--uui-color-text-alt); cursor: pointer; display: inline-flex; inline-size: 2rem; inset-block-start: 0.25rem; inset-inline-end: var(--uui-size-space-3); justify-content: center; position: absolute; z-index: 4; }
+    .card-expand:hover { background: color-mix(in srgb, var(--uui-color-interactive) 8%, var(--uui-color-surface)); color: var(--uui-color-interactive-emphasis); }
+    .card-expand:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
     .hint { color: var(--uui-color-text-alt); }
     .breakdown-hint { margin: 0; padding: var(--uui-size-space-3) var(--uui-size-space-5); }
   `];

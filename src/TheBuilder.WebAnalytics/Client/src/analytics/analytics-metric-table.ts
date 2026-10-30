@@ -3,6 +3,7 @@ import { renderAnalyticsTableSkeletonRows } from "./analytics-table-skeleton.js"
 
 export function renderAnalyticsMetricTable({
   caption,
+  heading,
   rowHeading,
   totalHeading,
   loading,
@@ -10,6 +11,8 @@ export function renderAnalyticsMetricTable({
   rows,
 }: {
   caption: string;
+  // A card's own heading row, above the column headings, with room for the card's View all button.
+  heading?: string;
   rowHeading: string;
   totalHeading: string;
   loading: boolean;
@@ -20,7 +23,11 @@ export function renderAnalyticsMetricTable({
     ${loading ? html`<span class="visually-hidden" role="status">Loading ${caption.toLocaleLowerCase()}</span>` : ""}
     <table aria-busy=${loading ? "true" : "false"}>
       <caption>${caption}</caption>
-      <thead><tr><th scope="col">${rowHeading}</th><th scope="col">Visitors</th><th scope="col">${totalHeading}</th></tr></thead>
+      ${heading ? html`<colgroup><col><col class="metric-col"><col class="metric-col"></colgroup>` : ""}
+      <thead>
+        ${heading ? html`<tr class="card-heading-row"><th scope="colgroup" colspan="3">${heading}</th></tr>` : ""}
+        <tr class=${heading ? "column-row" : ""}><th scope="col">${rowHeading}</th><th scope="col">Visitors</th><th scope="col">${totalHeading}</th></tr>
+      </thead>
       <tbody>${loading ? renderAnalyticsTableSkeletonRows(skeletonRows) : rows}</tbody>
     </table>
   `;
@@ -32,6 +39,9 @@ export const analyticsMetricTableStyles = css`
   caption { clip: rect(0 0 0 0); height: 1px; overflow: hidden; position: absolute; width: 1px; }
   th, td { box-sizing: border-box; padding: var(--uui-size-space-3) var(--uui-size-space-5); text-align: left; }
   thead th { border-bottom: 1px solid var(--uui-color-border); font-weight: 700; }
+  col.metric-col { width: var(--metric-column-width); }
+  .card-heading-row th { padding-inline-end: 3.5rem; }
+  .column-row th { block-size: 2.25rem; border-bottom: 0; color: var(--uui-color-text-alt); font-weight: 400; padding-block: var(--uui-size-space-2) 0; }
   thead th:not(:first-child), td { text-align: right; white-space: nowrap; width: var(--metric-column-width); }
   tbody tr { height: 2.5rem; }
   tbody th, tbody td { padding-block: 0; }

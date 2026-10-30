@@ -19,6 +19,7 @@ export class WebAnalyticsEventTableElement extends UmbElementMixin(LitElement) {
   @property({ attribute: false }) filters: AnalyticsFilter[] = [];
   @property({ attribute: false }) eventFilter?: AnalyticsEventFilter;
   @property({ type: Boolean }) detailsEnabled = true;
+  @property({ type: Boolean }) cardHeading = false;
 
   #select(eventName: string): void {
     this.dispatchEvent(new CustomEvent("select-event", {
@@ -67,8 +68,9 @@ export class WebAnalyticsEventTableElement extends UmbElementMixin(LitElement) {
     return html`
       ${renderAnalyticsMetricTable({
         caption: "Events",
-        rowHeading: "Events",
-        totalHeading: "Total events",
+        heading: this.cardHeading ? "Events" : undefined,
+        rowHeading: this.cardHeading ? "Event" : "Events",
+        totalHeading: this.cardHeading ? "Total" : "Total events",
         loading: this.loading,
         skeletonRows: this.skeletonRows,
         rows: body,

@@ -4,6 +4,7 @@ import type { AnalyticsBreakdownRow, AnalyticsDimension } from "../api/types.gen
 import {
   analyticsRowHref,
   breakdownBarRatio,
+  breakdownDimensionLabel,
   breakdownDisplayValue,
   breakdownMetricTotal,
   breakdownMetricValue,
@@ -35,6 +36,9 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
   @property({ type: Boolean }) loading = false;
   @property({ type: Boolean }) linkValues = false;
   @property({ type: Boolean }) compact = false;
+  // Cards put the headline or tabs in a row of their own, leaving room for the card's View all
+  // button, with the column headings below it.
+  @property({ type: Boolean }) cardHeading = false;
   @property({ type: Number }) skeletonRows = 10;
   @property({ type: Number }) total = 0;
   @property({ attribute: false }) rows: AnalyticsBreakdownRow[] = [];
@@ -182,29 +186,38 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
   }
 
   #renderHeading(engagement: ReadonlyArray<SummaryMetric> = []) {
+    const columns = this.compact ? 2 : 3 + engagement.length;
+    const heading = this.headingTabs
+      ? renderReportTabs(this.headingTabs, (value) => this.dispatchEvent(new CustomEvent("heading-tab-change", {
+          bubbles: true,
+          composed: true,
+          detail: { value },
+        })), BREAKDOWN_PANEL_ID)
+      : this.cardHeading ? this.headline : this.rowLabel ?? this.headline;
+    const metricHeadings = this.compact
+      ? html`<th scope="col">${this.#metricLabel()}</th>`
+      : html`<th scope="col">Visitors</th><th scope="col">Page views</th>${engagement.map(({ label }) => html`<th scope="col" class="engagement-heading">${label}</th>`)}`;
+    const subheading = this.subheadingTabs ? html`
+      <tr class="subheading-row"><th scope="col" colspan=${columns}>${renderReportTabs(this.subheadingTabs, (value) => this.dispatchEvent(new CustomEvent("subheading-tab-change", {
+        bubbles: true,
+        composed: true,
+        detail: { value },
+      })), BREAKDOWN_PANEL_ID)}</th></tr>
+    ` : nothing;
+    if (this.cardHeading) {
+      return html`
+        <colgroup><col>${Array.from({ length: columns - 1 }, () => html`<col class="metric-col">`)}</colgroup>
+        <thead>
+          <tr class="card-heading-row"><th scope="colgroup" colspan=${columns}>${heading}</th></tr>
+          ${subheading}
+          <tr class="column-row"><th scope="col">${this.rowLabel ?? breakdownDimensionLabel(this.dimension)}</th>${metricHeadings}</tr>
+        </thead>
+      `;
+    }
     return html`
       <thead>
-        <tr>
-          <th scope="col">${this.headingTabs
-            ? renderReportTabs(this.headingTabs, (value) => this.dispatchEvent(new CustomEvent("heading-tab-change", {
-                bubbles: true,
-                composed: true,
-                detail: { value },
-              })), BREAKDOWN_PANEL_ID)
-            : this.rowLabel ?? this.headline}</th>
-          ${this.compact
-            ? html`<th scope="col">${this.#metricLabel()}</th>`
-            : html`<th scope="col">Visitors</th><th scope="col">Page views</th>${engagement.map(({ label }) => html`<th scope="col" class="engagement-heading">${label}</th>`)}`}
-        </tr>
-        ${this.subheadingTabs ? html`
-          <tr class="subheading-row"><th scope="col" colspan=${this.compact ? 2 : 3 + engagement.length}>${this.subheadingTabs
-            ? renderReportTabs(this.subheadingTabs, (value) => this.dispatchEvent(new CustomEvent("subheading-tab-change", {
-                bubbles: true,
-                composed: true,
-                detail: { value },
-              })), BREAKDOWN_PANEL_ID)
-            : ""}</th></tr>
-        ` : ""}
+        <tr><th scope="col">${heading}</th>${metricHeadings}</tr>
+        ${subheading}
       </thead>
     `;
   }
@@ -234,6 +247,9 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
     caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     thead th { block-size: 2.5rem; border-bottom: 1px solid var(--uui-color-border); font-weight: 700; }
     thead th:nth-child(n + 2) { color: var(--uui-color-text-alt); text-align: right; white-space: nowrap; width: var(--metric-column-width); }
+    col.metric-col { width: var(--metric-column-width); }
+    .card-heading-row th { padding-inline-end: 3.5rem; }
+    .column-row th { block-size: 2.25rem; border-bottom: 0; color: var(--uui-color-text-alt); font-weight: 400; padding-block: var(--uui-size-space-2) 0; }
     .subheading-row th { background: color-mix(in srgb, var(--uui-color-surface-alt) 35%, var(--uui-color-surface)); padding-block: 0; }
     th, td { box-sizing: border-box; padding: var(--uui-size-space-3) var(--uui-size-space-5); text-align: left; }
     tbody tr { height: 2.5rem; }
