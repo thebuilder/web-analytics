@@ -126,7 +126,7 @@ describe("event details dialog layout", () => {
 
     expect(dialog.shadowRoot?.querySelector('[role="tablist"]')).toBeNull();
     expect(dialog.shadowRoot?.querySelector('uui-input[type="search"]')).toBeNull();
-    expect(dialog.shadowRoot?.querySelector(".filter-button")).toBeNull();
+    expect(dialog.shadowRoot?.querySelector(".row-label")).toBeNull();
     expect(dialog.shadowRoot?.querySelector(".active-filter")).toBeNull();
   });
 
@@ -144,7 +144,9 @@ describe("event details dialog layout", () => {
 
     expect(dialog.shadowRoot?.querySelector("tbody th strong")).toBeNull();
     expect([...dialog.shadowRoot?.querySelectorAll("tbody td strong") ?? []].map((metric) => metric.textContent)).toEqual(["12", "15"]);
-    expect(dialog.shadowRoot?.querySelector(".filter-button")).toBeNull();
+    expect(dialog.shadowRoot?.querySelector(".row-label")).toBeNull();
+    dialog.addEventListener("apply-event-property-filter", () => expect.unreachable());
+    dialog.shadowRoot?.querySelector<HTMLElement>("tbody td strong")?.click();
   });
 
   it("delegates event property filter application with its metrics", async () => {
@@ -162,13 +164,17 @@ describe("event details dialog layout", () => {
     document.body.append(dialog);
     await dialog.updateComplete;
 
-    dialog.shadowRoot?.querySelector<HTMLButtonElement>(".filter-button")?.click();
+    dialog.shadowRoot?.querySelector<HTMLElement>("tbody td strong")?.click();
+    dialog.shadowRoot?.querySelector<HTMLButtonElement>(".row-label")?.click();
 
-    expect((onFilter.mock.calls[0][0] as CustomEvent).detail).toEqual({
-      property: "plan",
-      value: "Pro",
-      visitors: 12,
-      count: 15,
-    });
+    expect(onFilter).toHaveBeenCalledTimes(2);
+    for (const [event] of onFilter.mock.calls) {
+      expect((event as CustomEvent).detail).toEqual({
+        property: "plan",
+        value: "Pro",
+        visitors: 12,
+        count: 15,
+      });
+    }
   });
 });

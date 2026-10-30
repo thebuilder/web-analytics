@@ -18,6 +18,7 @@ import { breakdownValueIcon } from "./breakdown-value-icon.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
 import { googleFaviconUrl } from "./favicon.js";
 import { renderReportTabs, reportTabsStyles, selectedReportTabId, type ReportTabGroup } from "./report-tabs.js";
+import { isPlainRowClick } from "./row-click.js";
 import { breakdownEngagementMetrics, formatSummaryValue, summaryMetricValue, type SummaryMetric } from "./summary-metrics.js";
 
 const BREAKDOWN_PANEL_ID = "breakdown-report-panel";
@@ -118,7 +119,7 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
             ? html`<span class="metric-share" title=${`${visitorPercentage.precise} of visitors`}>${visitorPercentage.display}</span>`
             : nothing;
           return html`
-          <tr class=${activeFilter ? "data-row filtered" : "data-row"} @click=${(event: Event) => this.#rowClick(event, toggleFilter)}>
+          <tr class=${activeFilter ? "data-row filtered" : "data-row"} @click=${(event: Event) => { if (isPlainRowClick(event, this.shadowRoot)) toggleFilter(); }}>
             <th scope="row">
               <span class="bar" style=${`--bar-width:${barRatio * 100}%;--bar-minimum:${metricValue > 0 ? "4px" : "0px"}`}></span>
               <span class="row-value">
@@ -164,18 +165,6 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
         `;})}</tbody>
       </table>
     `;
-  }
-
-  // The label button, the open-page link and the focusable share tooltip handle their own clicks, and
-  // finishing a text selection is not a click on the row. A click anywhere else on the row filters.
-  // Only targets inside the row count: the backoffice wraps the table in focusable scroll containers.
-  #rowClick(event: Event, toggleFilter: () => void): void {
-    const path = event.composedPath();
-    const insideRow = path.slice(0, path.indexOf(event.currentTarget as EventTarget));
-    if (insideRow.some((target) => target instanceof HTMLElement && target.matches("a, button, [tabindex]"))) return;
-    const root = this.shadowRoot as (ShadowRoot & { getSelection?: () => Selection | null }) | null;
-    if ((root?.getSelection?.() ?? document.getSelection())?.toString()) return;
-    toggleFilter();
   }
 
   #metricLabel(): string {
