@@ -161,7 +161,6 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
         .rows=${stateData(expanded) ?? []}
         .filters=${state.filters}
         .detailsEnabled=${state.capabilities?.eventDetails ?? false}
-        .filteringEnabled=${state.capabilities?.globalEventFiltering ?? false}
         .loading=${isInitialLoading(expanded)}
         aria-busy=${expanded.status === "loading" ? "true" : "false"}
         .unavailable=${this.#error(expanded)}
@@ -192,6 +191,8 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
         .eventName=${selected.eventName}
         .propertiesEnabled=${state.capabilities.eventProperties}
         .filteringEnabled=${state.capabilities.globalEventPropertyFiltering}
+        .eventFilteringEnabled=${state.capabilities.globalEventFiltering}
+        .eventFiltered=${state.filters.some((filter) => filter.dimension === "EventName" && filter.value === selected.eventName)}
         .details=${stateData(selected.details)}
         .loading=${isInitialLoading(selected.details)}
         .unavailable=${this.#error(selected.details)}
@@ -282,7 +283,6 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
           .baseUrl=${this.#controller.linkBaseUrl()}
           .supportsEvents=${capabilities?.events ?? false}
           .supportsEventDetails=${capabilities?.eventDetails ?? false}
-          .supportsGlobalEventFiltering=${capabilities?.globalEventFiltering ?? false}
           .supportsFlags=${capabilities?.flags ?? false}
           @view-breakdown=${(event: CustomEvent<{ dimension: AnalyticsDimension; headline: string }>) => this.#controller.openBreakdown(event.detail.dimension, event.detail.headline)}
           @view-events=${() => this.#controller.features.openEvents()}

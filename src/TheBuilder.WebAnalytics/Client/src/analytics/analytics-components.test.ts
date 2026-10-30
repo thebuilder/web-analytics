@@ -623,35 +623,26 @@ describe("analytics presentation components", () => {
     expect(element.shadowRoot?.querySelector(".empty a")).toBeNull();
   });
 
-  it("opens event details on row click unless the provider can filter by event", async () => {
-    const element = document.createElement("web-analytics-event-table") as HTMLElement & {
-      rows: Array<{ eventName: string; visitors: number; count: number }>;
-      filteringEnabled: boolean;
-      updateComplete: Promise<unknown>;
-    };
+  it("opens event details when an event row is clicked", async () => {
+    const element = document.createElement("web-analytics-event-table") as WebAnalyticsEventTableElement;
     element.rows = [{ eventName: "Read case", visitors: 12, count: 15 }];
     const selected: string[] = [];
-    const toggled: unknown[] = [];
     element.addEventListener("select-event", (event) => selected.push((event as CustomEvent<{ eventName: string }>).detail.eventName));
-    element.addEventListener("toggle-filter", (event) => toggled.push((event as CustomEvent).detail));
     document.body.append(element);
     await element.updateComplete;
     const metrics = [...element.shadowRoot?.querySelectorAll(".metric-value") ?? []];
     expect(metrics.map((metric) => metric.textContent)).toEqual(["12", "15"]);
     expect(metrics.every((metric) => metric.tagName === "STRONG")).toBe(true);
-    expect(element.shadowRoot?.querySelector(".details-link")).toBeNull();
+    expect(element.shadowRoot?.querySelector(".row-filter")?.getAttribute("title")).toBe("View details for Read case");
     element.shadowRoot?.querySelector<HTMLElement>("tbody td")?.click();
-    expect(selected).toEqual(["Read case"]);
-    expect(toggled).toEqual([]);
-
-    element.filteringEnabled = true;
-    await element.updateComplete;
-    expect(element.shadowRoot?.querySelector(".row-filter")?.getAttribute("title")).toBe("Filter analytics by Read case event");
-    element.shadowRoot?.querySelector<HTMLElement>("tbody td")?.click();
-    expect(toggled).toEqual([{ dimension: "EventName", value: "Read case" }]);
-    element.shadowRoot?.querySelector<HTMLButtonElement>(".details-link")?.click();
+    element.shadowRoot?.querySelector<HTMLButtonElement>(".row-filter")?.click();
     expect(selected).toEqual(["Read case", "Read case"]);
-    expect(toggled).toHaveLength(1);
+
+    element.detailsEnabled = false;
+    await element.updateComplete;
+    element.shadowRoot?.querySelector<HTMLElement>("tbody td")?.click();
+    expect(selected).toHaveLength(2);
+    expect(element.shadowRoot?.querySelector(".row-filter")).toBeNull();
   });
 
   it("shows a stable empty state when event properties are unavailable", async () => {

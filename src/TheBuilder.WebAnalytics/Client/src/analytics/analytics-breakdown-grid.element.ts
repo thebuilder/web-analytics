@@ -28,7 +28,6 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
   @property() utmDimension: UtmDimension = "UtmSource";
   @property() baseUrl?: string;
   @property({ type: Boolean }) supportsEvents = true;
-  @property({ type: Boolean }) supportsGlobalEventFiltering = false;
   @property({ type: Boolean }) supportsEventDetails = true;
   @property({ type: Boolean }) supportsFlags = true;
 
@@ -202,7 +201,7 @@ export class WebAnalyticsBreakdownGridElement extends UmbElementMixin(LitElement
     return this.#renderCardFrame({
       busy: this.events.status === "loading",
       layout: empty ? "empty" : "report",
-      content: html`<web-analytics-event-table .rows=${rows} .filters=${this.filters} .eventFilter=${this.eventFilter} .loading=${loading} .detailsEnabled=${this.supportsEventDetails} .filteringEnabled=${this.supportsGlobalEventFiltering}></web-analytics-event-table>`,
+      content: html`<web-analytics-event-table .rows=${rows} .filters=${this.filters} .eventFilter=${this.eventFilter} .loading=${loading} .detailsEnabled=${this.supportsEventDetails}></web-analytics-event-table>`,
       footer: {
         visible: !empty,
         content: !loading && rows.length

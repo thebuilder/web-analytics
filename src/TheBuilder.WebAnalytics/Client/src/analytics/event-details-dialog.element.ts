@@ -15,6 +15,8 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
   @property() eventName = "Event";
   @property({ type: Boolean }) propertiesEnabled = false;
   @property({ type: Boolean }) filteringEnabled = false;
+  @property({ type: Boolean }) eventFilteringEnabled = false;
+  @property({ type: Boolean }) eventFiltered = false;
   @property({ type: Boolean }) loading = false;
   @property() unavailable?: string;
   @property({ attribute: false }) details?: AnalyticsEventDetails;
@@ -29,6 +31,14 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
 
   protected firstUpdated(): void { openDialog(this); }
   #backToEvents(): void { this.dispatchEvent(new CustomEvent("back-to-events", { bubbles: true, composed: true })); }
+
+  #toggleEventFilter(): void {
+    this.dispatchEvent(new CustomEvent("toggle-filter", {
+      bubbles: true,
+      composed: true,
+      detail: { dimension: "EventName", value: this.eventName },
+    }));
+  }
 
   #activeProperty(): AnalyticsEventProperty | undefined {
     return this.details?.properties.find((property) => property.name === this._propertyName)
@@ -165,6 +175,12 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
               <span>${this.eventName}</span>
             </button>
       `,
+      controls: this.eventFilteringEnabled ? html`
+        <uui-button class="event-filter" look="secondary" compact label=${this.eventFiltered ? `Remove ${this.eventName} event filter` : `Filter analytics by ${this.eventName} event`} @click=${this.#toggleEventFilter}>
+          <uui-icon name=${this.eventFiltered ? "icon-delete" : "icon-filter"} aria-hidden="true"></uui-icon>
+          ${this.eventFiltered ? "Remove filter" : "Filter by this event"}
+        </uui-button>
+      ` : undefined,
       body: html`
         <div class="dialog-content analytics-dialog-body" aria-busy=${this.loading}>
           ${this.details ? html`
@@ -181,6 +197,7 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
   }
 
   static styles = [UmbTextStyles, analyticsDialogStyles, analyticsWideDialogStyles, analyticsTableSkeletonStyles, reportTabsStyles, analyticsRowFilterStyles, css`
+    .event-filter uui-icon { margin-inline-end: var(--uui-size-space-1); }
     .dialog-content { display: flex; flex-direction: column; position: relative; }
     .property-controls { border-bottom: 1px solid var(--uui-color-border); display: grid; flex: 0 0 auto; gap: var(--uui-size-space-3); padding: 0 var(--analytics-dialog-inline-padding) var(--uui-size-space-4); }
     .property-controls uui-input { box-sizing: border-box; width: 100%; }
@@ -206,7 +223,6 @@ export class WebAnalyticsEventDetailsDialogElement extends UmbElementMixin(LitEl
     .loading-overlay { background: color-mix(in srgb, var(--uui-color-surface) 82%, transparent); inset: 0; padding: var(--uui-size-space-5); position: absolute; z-index: 4; }
     .error-overlay { background: color-mix(in srgb, var(--uui-color-warning) 8%, var(--uui-color-surface)); border: 1px solid color-mix(in srgb, var(--uui-color-warning) 28%, var(--uui-color-border)); border-radius: var(--uui-border-radius); inset-block-start: var(--uui-size-space-3); inset-inline: var(--uui-size-space-3); padding: var(--uui-size-space-4); position: absolute; z-index: 5; }
     .empty-row td { padding: var(--uui-size-space-5); text-align: left; }
-    @media (hover: none) { .filter-button { opacity: 1; } }
   `];
 }
 

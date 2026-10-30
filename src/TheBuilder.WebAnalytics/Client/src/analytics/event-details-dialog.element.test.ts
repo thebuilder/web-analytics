@@ -32,6 +32,28 @@ describe("event details dialog layout", () => {
     expect(onBack).toHaveBeenCalledOnce();
   });
 
+  it("filters by the event from the header only where the provider supports it", async () => {
+    const dialog = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
+    dialog.eventName = "Read case";
+    const toggled: unknown[] = [];
+    dialog.addEventListener("toggle-filter", (event) => toggled.push((event as CustomEvent).detail));
+    document.body.append(dialog);
+    await dialog.updateComplete;
+    expect(dialog.shadowRoot?.querySelector(".event-filter")).toBeNull();
+
+    dialog.eventFilteringEnabled = true;
+    await dialog.updateComplete;
+    const button = dialog.shadowRoot?.querySelector<HTMLElement>(".analytics-dialog-headline .event-filter");
+    expect(button?.getAttribute("label")).toBe("Filter analytics by Read case event");
+    button?.click();
+    expect(toggled).toEqual([{ dimension: "EventName", value: "Read case" }]);
+
+    dialog.eventFiltered = true;
+    await dialog.updateComplete;
+    expect(button?.getAttribute("label")).toBe("Remove Read case event filter");
+    expect(button?.textContent).toContain("Remove filter");
+  });
+
   it("reserves the report height while initial details are loading", async () => {
     const dialog = document.createElement("web-analytics-event-details-dialog") as WebAnalyticsEventDetailsDialogElement;
     dialog.loading = true;
