@@ -168,8 +168,11 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
 
   // The label button, the open-page link and the focusable share tooltip handle their own clicks, and
   // finishing a text selection is not a click on the row. A click anywhere else on the row filters.
+  // Only targets inside the row count: the backoffice wraps the table in focusable scroll containers.
   #rowClick(event: Event, toggleFilter: () => void): void {
-    if (event.composedPath().some((target) => target instanceof HTMLElement && target.matches("a, button, [tabindex]"))) return;
+    const path = event.composedPath();
+    const insideRow = path.slice(0, path.indexOf(event.currentTarget as EventTarget));
+    if (insideRow.some((target) => target instanceof HTMLElement && target.matches("a, button, [tabindex]"))) return;
     const root = this.shadowRoot as (ShadowRoot & { getSelection?: () => Selection | null }) | null;
     if ((root?.getSelection?.() ?? document.getSelection())?.toString()) return;
     toggleFilter();

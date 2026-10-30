@@ -387,6 +387,23 @@ describe("analytics presentation components", () => {
     expect(rows[1].querySelector(".row-label")?.getAttribute("title")).toBe("Remove /pricing filter");
   });
 
+  it("still filters by a row clicked inside a focusable ancestor, such as a scroll container", async () => {
+    const element = document.createElement("web-analytics-breakdown-table") as WebAnalyticsBreakdownTableElement;
+    element.dimension = "RequestPath";
+    element.rows = [{ value: "/", visitors: 10, pageViews: 20 }];
+    const onToggle = vi.fn();
+    element.addEventListener("toggle-filter", (event) => onToggle((event as CustomEvent).detail));
+    const scrollContainer = document.createElement("div");
+    scrollContainer.tabIndex = 0;
+    scrollContainer.append(element);
+    document.body.append(scrollContainer);
+    await element.updateComplete;
+
+    element.shadowRoot?.querySelector<HTMLElement>("tbody .metric-number")!.click();
+
+    expect(onToggle.mock.calls).toEqual([[{ dimension: "RequestPath", value: "/" }]]);
+  });
+
   it.each(["ReferrerHostname", "Referrer"] as const)("renders %s rows as secure external links with favicons for attributed hosts", async (dimension) => {
     const element = document.createElement("web-analytics-breakdown-table") as WebAnalyticsBreakdownTableElement;
     element.dimension = dimension;
