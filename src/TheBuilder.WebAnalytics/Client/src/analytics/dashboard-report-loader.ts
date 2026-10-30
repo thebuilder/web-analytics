@@ -3,7 +3,7 @@ import { dashboardApi, type DashboardApi } from "./dashboard-api.js";
 import { reportErrorMessage } from "./report-error.js";
 import { settleRequest, type SettledRequestResult } from "./request-coordinator.js";
 import { isUtmDimension } from "./utm-capability.js";
-import type { DashboardMetric } from "./dashboard-url-state.js";
+import type { TrafficMetric } from "./breakdown-rows.js";
 
 type SummaryOptions = NonNullable<Parameters<DashboardApi["summary"]>[0]>;
 export type DashboardReportQuery = NonNullable<SummaryOptions["query"]>;
@@ -29,7 +29,7 @@ export async function loadDashboardBreakdowns(
   signal: AbortSignal,
   onUpdate: (update: Extract<DashboardReportUpdate, { panel: "breakdown" }>) => void,
   api: BreakdownApi = dashboardApi,
-  metric: DashboardMetric = "visitors",
+  metric: TrafficMetric = "visitors",
   breakdownOrdering = true,
 ): Promise<void> {
   const publish = (update: Extract<DashboardReportUpdate, { panel: "breakdown" }>) => {
@@ -49,7 +49,7 @@ export async function loadDashboardReports(
   onUpdate: (update: DashboardReportUpdate) => void,
   api: ReportApi = dashboardApi,
   capabilities: { events: boolean; flags: boolean; breakdownOrdering: boolean } = { events: true, flags: true, breakdownOrdering: true },
-  metric: DashboardMetric = "visitors",
+  metric: TrafficMetric = "visitors",
 ): Promise<DashboardReportEvidence> {
   let baselineSucceeded = false;
   let utmSucceeded = false;
@@ -86,7 +86,7 @@ function createBreakdownTasks(
   dimensions: ReadonlyArray<AnalyticsDimension>,
   signal: AbortSignal,
   api: BreakdownApi,
-  metric: DashboardMetric,
+  metric: TrafficMetric,
   breakdownOrdering: boolean,
   onLoaded: (loaded: LoadedDashboardBreakdown) => void,
 ): ReadonlyArray<() => Promise<void>> {
@@ -100,7 +100,7 @@ export async function loadDashboardBreakdown(
   dimension: AnalyticsDimension,
   signal: AbortSignal,
   api: BreakdownApi = dashboardApi,
-  metric: DashboardMetric = "visitors",
+  metric: TrafficMetric = "visitors",
   breakdownOrdering = true,
 ): Promise<LoadedDashboardBreakdown> {
   const orderBy = breakdownOrdering ? (metric === "pageViews" ? "PageViews" : "Visitors") : undefined;

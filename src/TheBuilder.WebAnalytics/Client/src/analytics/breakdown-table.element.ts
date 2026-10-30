@@ -4,6 +4,7 @@ import type { AnalyticsBreakdownRow, AnalyticsDimension } from "../api/types.gen
 import {
   analyticsRowHref,
   breakdownBarRatio,
+  breakdownDimensionLabel,
   breakdownDisplayValue,
   breakdownMetricTotal,
   breakdownMetricValue,
@@ -16,9 +17,10 @@ import {
 import { countryDisplayName, countryFlagUrl, normalizeCountryCode } from "./country-display.js";
 import { breakdownValueIcon } from "./breakdown-value-icon.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
-import { renderAnalyticsFilterAction } from "./analytics-filter-action.js";
+import { isPlainRowClick } from "./analytics-filter-action.js";
 import { googleFaviconUrl } from "./favicon.js";
 import { renderReportTabs, reportTabsStyles, selectedReportTabId, type ReportTabGroup } from "./report-tabs.js";
+import { breakdownEngagementMetrics, formatSummaryValue, summaryMetricValue, type SummaryMetric } from "./summary-metrics.js";
 
 const BREAKDOWN_PANEL_ID = "breakdown-report-panel";
 
@@ -34,6 +36,9 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
   @property({ type: Boolean }) loading = false;
   @property({ type: Boolean }) linkValues = false;
   @property({ type: Boolean }) compact = false;
+  // Cards put the headline or tabs in a row of their own, leaving room for the card's View all
+  // button, with the column headings below it.
+  @property({ type: Boolean }) cardHeading = false;
   @property({ type: Number }) skeletonRows = 10;
   @property({ type: Number }) total = 0;
   @property({ attribute: false }) rows: AnalyticsBreakdownRow[] = [];
@@ -64,17 +69,21 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
     const percentageTotal = this.total > 0 ? this.total : breakdownMetricTotal(rows, this.metric);
     const visitorTotal = breakdownMetricTotal(rows, "visitors");
     const message = this.unavailable ?? (rows.length === 0 ? this.emptyMessage : undefined);
+    const engagement = this.#engagementColumns(rows);
 
     const labelledBy = [this.headingTabs, this.subheadingTabs]
       .map((group) => group ? selectedReportTabId(group) : undefined)
       .filter(Boolean)
       .join(" ");
     return html`
-      <table id=${BREAKDOWN_PANEL_ID} class=${this.compact ? "compact-table" : nothing} aria-labelledby=${labelledBy || nothing}>
+      <table
+        id=${BREAKDOWN_PANEL_ID}
+        class=${this.compact ? "compact-table" : engagement.length ? "engagement-table" : nothing}
+        aria-labelledby=${labelledBy || nothing}>
         <caption>${this.headline}</caption>
-        ${this.#renderHeading()}
+        ${this.#renderHeading(engagement)}
         <tbody>${message ? html`
-          <tr class="message-row"><td colspan=${this.compact ? "2" : "3"}><p>${message}</p></td></tr>
+          <tr class="message-row"><td colspan=${this.compact ? 2 : 3 + engagement.length}><p>${message}</p></td></tr>
         ` : rows.map((row, index) => {
           const isReferrer = this.dimension === "ReferrerHostname" || this.dimension === "Referrer";
           const href = isReferrer
@@ -104,21 +113,17 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
           const tooltipId = `breakdown-value-${index}`;
           const activeFilter = this.filters.some((filter) => filter.dimension === this.dimension && filter.value === row.value);
           const filterLabel = activeFilter ? `Remove ${displayValue} filter` : `Filter analytics by ${displayValue}`;
-          const filterAction = renderAnalyticsFilterAction({
-            active: activeFilter,
-            label: filterLabel,
-            toggle: () => this.dispatchEvent(new CustomEvent("toggle-filter", {
-                bubbles: true,
-                composed: true,
-                detail: { dimension: this.dimension, value: row.value },
-            })),
-          });
+          const toggleFilter = () => this.dispatchEvent(new CustomEvent("toggle-filter", {
+            bubbles: true,
+            composed: true,
+            detail: { dimension: this.dimension, value: row.value },
+          }));
           const expandedPercentageMode = !this.compact && isPercentageDimension(this.dimension);
           const expandedPercentage = expandedPercentageMode
             ? html`<span class="metric-share" title=${`${visitorPercentage.precise} of visitors`}>${visitorPercentage.display}</span>`
             : nothing;
           return html`
-          <tr>
+          <tr class=${activeFilter ? "data-row filtered" : "data-row"} @click=${(event: Event) => this.#rowClick(event, toggleFilter)}>
             <th scope="row">
               <span class="bar" style=${`--bar-width:${barRatio * 100}%;--bar-minimum:${metricValue > 0 ? "4px" : "0px"}`}></span>
               <span class="row-value">
@@ -131,15 +136,13 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
                   : hasValueIconFallback
                     ? html`<uui-icon class="breakdown-value-icon breakdown-value-icon-fallback" name="icon-globe" aria-hidden="true"></uui-icon>`
                     : nothing}
-                <span class="row-label" title=${displayValue}>${href
-                  ? html`<a href=${href} target="_blank" rel="noopener noreferrer"><span class="link-label">${displayValue}</span><uui-icon class="external-indicator" name="icon-out" aria-hidden="true"></uui-icon><span class="visually-hidden"> (opens in a new tab)</span></a>`
-                  : displayValue}</span>
+                <button class="row-label" type="button" title=${filterLabel} aria-pressed=${activeFilter} @click=${toggleFilter}>${displayValue}</button>
+                ${href ? html`<a class="open-link" href=${href} target="_blank" rel="noopener noreferrer" title=${`Open ${displayValue}`}><uui-icon name="icon-out" aria-hidden="true"></uui-icon><span class="visually-hidden">Open ${displayValue} in a new tab</span></a>` : nothing}
               </span>
             </th>
             ${percentageMode ? html`
               <td>
                 <span class="metric-cell">
-                  ${filterAction}
                   <span class="percentage-value" tabindex="0" aria-describedby=${tooltipId}>
                     <span aria-hidden="true">${percentage.display}</span>
                     <span class="visually-hidden">${this.localize.number(metricValue)} ${this.#metricLabel().toLocaleLowerCase()}, ${percentage.precise} of the total</span>
@@ -151,10 +154,16 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
                 </span>
               </td>
             ` : this.compact ? html`
-              <td><span class="metric-cell">${filterAction}<span class="metric-number">${this.localize.number(metricValue)}</span></span></td>
+              <td><span class="metric-cell"><span class="metric-number">${this.localize.number(metricValue)}</span></span></td>
             ` : html`
-              <td><span class="metric-cell">${this.metric === "visitors" || expandedPercentageMode ? filterAction : nothing}${expandedPercentage}<span class="metric-number">${this.localize.number(row.visitors)}</span></span></td>
-              <td><span class="metric-cell">${this.metric === "pageViews" && !expandedPercentageMode ? filterAction : nothing}<span class="metric-number">${this.localize.number(row.pageViews)}</span></span></td>
+              <td><span class="metric-cell">${expandedPercentage}<span class="metric-number">${this.localize.number(row.visitors)}</span></span></td>
+              <td><span class="metric-cell"><span class="metric-number">${this.localize.number(row.pageViews)}</span></span></td>
+              ${engagement.map(({ metric }) => {
+                const value = summaryMetricValue(row, metric);
+                return html`<td class="engagement-value">${value === undefined
+                  ? html`<span aria-hidden="true">-</span><span class="visually-hidden">No data</span>`
+                  : formatSummaryValue(metric, value, (number, options) => this.localize.number(number, options))}</td>`;
+              })}
             `}
           </tr>
         `;})}</tbody>
@@ -162,40 +171,59 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
     `;
   }
 
+  // The label button, the open-page link and the focusable share tooltip handle their own clicks, and
+  // finishing a text selection is not a click on the row. A click anywhere else on the row filters.
+  #rowClick(event: Event, toggleFilter: () => void): void {
+    if (isPlainRowClick(event, this.shadowRoot)) toggleFilter();
+  }
+
   #metricLabel(): string {
     return this.metric === "visitors" ? "Visitors" : "Page views";
   }
 
-  #renderHeading() {
+  #engagementColumns(rows: AnalyticsBreakdownRow[]): ReadonlyArray<SummaryMetric> {
+    return this.compact ? [] : breakdownEngagementMetrics(rows);
+  }
+
+  #renderHeading(engagement: ReadonlyArray<SummaryMetric> = []) {
+    const columns = this.compact ? 2 : 3 + engagement.length;
+    const heading = this.headingTabs
+      ? renderReportTabs(this.headingTabs, (value) => this.dispatchEvent(new CustomEvent("heading-tab-change", {
+          bubbles: true,
+          composed: true,
+          detail: { value },
+        })), BREAKDOWN_PANEL_ID)
+      : this.cardHeading ? this.headline : this.rowLabel ?? this.headline;
+    const metricHeadings = this.compact
+      ? html`<th scope="col">${this.#metricLabel()}</th>`
+      : html`<th scope="col">Visitors</th><th scope="col">Page views</th>${engagement.map(({ label }) => html`<th scope="col" class="engagement-heading">${label}</th>`)}`;
+    const subheading = this.subheadingTabs ? html`
+      <tr class="subheading-row"><th scope="col" colspan=${columns}>${renderReportTabs(this.subheadingTabs, (value) => this.dispatchEvent(new CustomEvent("subheading-tab-change", {
+        bubbles: true,
+        composed: true,
+        detail: { value },
+      })), BREAKDOWN_PANEL_ID)}</th></tr>
+    ` : nothing;
+    if (this.cardHeading) {
+      return html`
+        <colgroup><col>${Array.from({ length: columns - 1 }, () => html`<col class="metric-col">`)}</colgroup>
+        <thead>
+          <tr class="card-heading-row"><th scope="colgroup" colspan=${columns}>${heading}</th></tr>
+          ${subheading}
+          <tr class="column-row"><th scope="col">${this.rowLabel ?? breakdownDimensionLabel(this.dimension)}</th>${metricHeadings}</tr>
+        </thead>
+      `;
+    }
     return html`
       <thead>
-        <tr>
-          <th scope="col">${this.headingTabs
-            ? renderReportTabs(this.headingTabs, (value) => this.dispatchEvent(new CustomEvent("heading-tab-change", {
-                bubbles: true,
-                composed: true,
-                detail: { value },
-              })), BREAKDOWN_PANEL_ID)
-            : this.rowLabel ?? this.headline}</th>
-          ${this.compact
-            ? html`<th scope="col">${this.#metricLabel()}</th>`
-            : html`<th scope="col">Visitors</th><th scope="col">Page views</th>`}
-        </tr>
-        ${this.subheadingTabs ? html`
-          <tr class="subheading-row"><th scope="col" colspan=${this.compact ? "2" : "3"}>${this.subheadingTabs
-            ? renderReportTabs(this.subheadingTabs, (value) => this.dispatchEvent(new CustomEvent("subheading-tab-change", {
-                bubbles: true,
-                composed: true,
-                detail: { value },
-              })), BREAKDOWN_PANEL_ID)
-            : ""}</th></tr>
-        ` : ""}
+        <tr><th scope="col">${heading}</th>${metricHeadings}</tr>
+        ${subheading}
       </thead>
     `;
   }
 
   static styles = [reportTabsStyles, css`
-    :host { display: block; overflow: visible; }
+    :host { container-type: inline-size; display: block; overflow: visible; }
     table {
       --bar-inset: var(--uui-size-space-3);
       --metric-column-width: 8.5rem;
@@ -205,13 +233,23 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
       table-layout: fixed;
       width: 100%;
     }
+    /* Bars span the label and the two traffic columns; engagement columns sit beside them. */
     table:not(.compact-table) {
       --metric-column-width: 9.5rem;
       --metric-columns-width: calc(var(--metric-column-width) * 2);
     }
+    table.engagement-table { --metric-column-width: 7rem; }
+    thead th.engagement-heading:nth-child(n + 2) { width: 7.5rem; }
+    .engagement-value { color: var(--uui-color-text-alt); }
+    @container (max-width: 40rem) {
+      .engagement-heading, .engagement-value { display: none; }
+    }
     caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     thead th { block-size: 2.5rem; border-bottom: 1px solid var(--uui-color-border); font-weight: 700; }
     thead th:nth-child(n + 2) { color: var(--uui-color-text-alt); text-align: right; white-space: nowrap; width: var(--metric-column-width); }
+    col.metric-col { width: var(--metric-column-width); }
+    .card-heading-row th { padding-inline-end: 3.5rem; }
+    .column-row th { block-size: 2.25rem; border-bottom: 0; color: var(--uui-color-text-alt); font-weight: 400; padding-block: var(--uui-size-space-2) 0; }
     .subheading-row th { background: color-mix(in srgb, var(--uui-color-surface-alt) 35%, var(--uui-color-surface)); padding-block: 0; }
     th, td { box-sizing: border-box; padding: var(--uui-size-space-3) var(--uui-size-space-5); text-align: left; }
     tbody tr { height: 2.5rem; }
@@ -221,19 +259,16 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
     .metric-cell { align-items: center; display: flex; gap: var(--uui-size-space-2); justify-content: flex-end; }
     .metric-number { font-weight: 700; min-inline-size: 0; }
     .metric-share { color: color-mix(in srgb, var(--uui-color-text) 60%, transparent); font-weight: 700; margin-inline-end: var(--uui-size-space-3); }
-    .filter-action { align-items: center; appearance: none; background: transparent; block-size: 1.75rem; border: 0; border-radius: var(--uui-border-radius); color: var(--uui-color-text-alt); cursor: pointer; display: inline-flex; font: inherit; inline-size: 1.75rem; justify-content: center; opacity: 0; padding: 0; }
-    tbody tr:hover .filter-action, .filter-action:focus-visible, .filter-action[aria-pressed="true"] { opacity: 1; }
-    .filter-action:hover { background: color-mix(in srgb, var(--uui-color-interactive) 10%, var(--uui-color-surface)); color: var(--uui-color-interactive-emphasis); }
-    .filter-action[aria-pressed="true"] { background: color-mix(in srgb, var(--uui-color-interactive) 15%, var(--uui-color-surface)); color: var(--uui-color-interactive-emphasis); }
-    .filter-action:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 1px; }
+    .data-row { cursor: pointer; }
     tbody th { position: relative; font-weight: 500; min-width: 10rem; }
     .row-value { align-items: center; display: flex; gap: var(--uui-size-space-3); min-inline-size: 0; position: relative; z-index: 1; }
-    .row-label { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .row-label a { align-items: center; color: inherit; display: flex; gap: var(--uui-size-space-1); min-inline-size: 0; text-decoration: none; }
-    .link-label { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .row-label a:hover .link-label, .row-label a:focus-visible .link-label { text-decoration: underline; text-underline-offset: 0.12em; }
-    .external-indicator { color: var(--uui-color-text-alt); flex: 0 0 auto; font-size: var(--uui-type-small-size); opacity: 0; transition: opacity 150ms ease-out; }
-    .row-label a:hover .external-indicator, .row-label a:focus-visible .external-indicator { opacity: 1; }
+    .row-label { appearance: none; background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; min-inline-size: 0; overflow: hidden; padding: 0; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+    tbody tr:hover .row-label { text-decoration: underline; text-underline-offset: 0.12em; }
+    .row-label:focus-visible, .open-link:focus-visible { outline: 2px solid var(--uui-color-selected); outline-offset: 2px; }
+    .filtered .row-label { color: var(--uui-color-interactive-emphasis); font-weight: 700; }
+    .open-link { align-items: center; text-decoration: none; border-radius: var(--uui-border-radius); color: var(--uui-color-text-alt); display: inline-flex; flex: 0 0 auto; font-size: var(--uui-type-small-size); justify-content: center; opacity: 0; padding: var(--uui-size-space-1); transition: opacity 150ms ease-out; }
+    tbody tr:hover .open-link, .open-link:focus-visible { opacity: 1; }
+    .open-link:hover { color: var(--uui-color-interactive-emphasis); }
     .country-flag { border-radius: var(--uui-border-radius); flex: 0 0 auto; object-fit: cover; }
     .referrer-favicon { border-radius: var(--uui-border-radius); flex: 0 0 auto; object-fit: contain; }
     .breakdown-value-icon { block-size: 1.25rem; flex: 0 0 auto; font-size: var(--uui-size-5); inline-size: 1.25rem; object-fit: contain; }
@@ -306,8 +341,8 @@ export class WebAnalyticsBreakdownTableElement extends UmbElementMixin(LitElemen
     .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
     .message-row td { color: var(--uui-color-text-alt); padding: var(--uui-size-space-5); text-align: left; }
     .message-row p { margin: 0; }
-    @media (hover: none) { .filter-action { opacity: 1; } .external-indicator { opacity: 0.65; } }
-    @media (prefers-reduced-motion: reduce) { .external-indicator, .percentage-tooltip { transition: none; } }
+    @media (hover: none) { .open-link { opacity: 0.65; } }
+    @media (prefers-reduced-motion: reduce) { .open-link, .percentage-tooltip { transition: none; } }
   `];
 }
 

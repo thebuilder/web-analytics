@@ -3,7 +3,7 @@ import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
 import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import type { AnalyticsEventRow } from "../api/types.gen.js";
 import { renderAnalyticsDialogFrame } from "./analytics-dialog-frame.js";
-import { analyticsDialogStyles, analyticsEventDialogStyles } from "./analytics-dialog.styles.js";
+import { analyticsDialogStyles, analyticsWideDialogStyles } from "./analytics-dialog.styles.js";
 import type { AnalyticsFilter } from "./dashboard-url-state.js";
 import { notifyDialogSearch, openDialog, searchInputValue } from "./dialog-lifecycle.js";
 import "./event-table.element.js";
@@ -15,7 +15,6 @@ export class WebAnalyticsEventDialogElement extends UmbElementMixin(LitElement) 
   @property({ attribute: false }) rows: AnalyticsEventRow[] = [];
   @property({ attribute: false }) filters: AnalyticsFilter[] = [];
   @property({ type: Boolean }) detailsEnabled = true;
-  @property({ type: Boolean }) filteringEnabled = false;
   @state() private _search = "";
 
   protected firstUpdated(): void { openDialog(this); }
@@ -41,14 +40,14 @@ export class WebAnalyticsEventDialogElement extends UmbElementMixin(LitElement) 
           ${!this.loading && this.unavailable ? html`<umb-empty-state headline="Events unavailable"><p>${this.unavailable}</p></umb-empty-state>` : ""}
           ${!this.loading && !this.unavailable && this._search && this.rows.length === 0 ? html`<umb-empty-state headline="No matching events"><p>Try a different search.</p></umb-empty-state>` : ""}
           ${this.loading || (!this.unavailable && (!this._search || this.rows.length > 0)) ? html`
-            <web-analytics-event-table .rows=${this.rows} .filters=${this.filters} .loading=${this.loading} .detailsEnabled=${this.detailsEnabled} .filteringEnabled=${this.filteringEnabled}></web-analytics-event-table>
+            <web-analytics-event-table .rows=${this.rows} .filters=${this.filters} .loading=${this.loading} .detailsEnabled=${this.detailsEnabled}></web-analytics-event-table>
           ` : ""}
         </div>
       `,
     });
   }
 
-  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsEventDialogStyles, css`
+  static styles = [UmbTextStyles, analyticsDialogStyles, analyticsWideDialogStyles, css`
     uui-input { box-sizing: border-box; width: 100%; }
     uui-input [slot="prepend"] { align-items: center; display: flex; margin-inline: var(--uui-size-space-3) var(--uui-size-space-2); }
     .results { overflow: auto; scrollbar-gutter: stable; }

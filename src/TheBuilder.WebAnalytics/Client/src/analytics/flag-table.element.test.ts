@@ -65,10 +65,10 @@ describe("flag table", () => {
     document.body.append(table);
     await table.updateComplete;
 
-    const action = table.shadowRoot?.querySelector<HTMLButtonElement>(".filter-action");
+    const action = table.shadowRoot?.querySelector<HTMLButtonElement>(".row-filter");
     expect(action?.getAttribute("aria-pressed")).toBe("true");
-    expect(action?.getAttribute("aria-label")).toContain("Remove new-pricing-page flag value filter control");
-    action?.click();
+    expect(action?.getAttribute("title")).toContain("Remove new-pricing-page flag value filter control");
+    table.shadowRoot?.querySelector<HTMLElement>("tbody td")?.click();
 
     expect((onFilter.mock.calls[0][0] as CustomEvent).detail).toEqual({
       flagKey: "new-pricing-page",
@@ -77,7 +77,7 @@ describe("flag table", () => {
 
     table.mode = "list";
     await table.updateComplete;
-    expect(table.shadowRoot?.querySelector(".filter-action")).toBeNull();
+    expect(table.shadowRoot?.querySelector(".row-filter")).toBeNull();
   });
 
   it("shows and removes the active flag value on the overview row", async () => {

@@ -22,12 +22,15 @@ import {
   type AnalyticsFilter,
   type AnalyticsFlagFilter,
   type AudienceDimension,
+  trafficMetric,
   type DashboardMetric,
+  type PagesDimension,
   type UtmDimension,
 } from "./dashboard-url-state.js";
 import { loadDashboardBreakdown, loadDashboardBreakdowns, loadDashboardReports, type DashboardReportQuery, type DashboardReportUpdate } from "./dashboard-report-loader.js";
 import { AnalyticsFeatureDrilldownController } from "./analytics-feature-drilldown.controller.js";
 import { reportErrorMessage } from "./report-error.js";
+import { availableSummaryMetrics } from "./summary-metrics.js";
 import { DebouncedRequest, RequestCoordinator, type RequestResult } from "./request-coordinator.js";
 import { detectUtmCapability, type UtmCapability } from "./utm-capability.js";
 import { errorState, idleState, loadingState, successState, type AsyncState } from "./async-state.js";
@@ -55,6 +58,7 @@ export type DashboardState = {
   events: AsyncState<AnalyticsEventsReport>;
   flags: AsyncState<AnalyticsFlagsReport>;
   metric: DashboardMetric;
+  pagesDimension: PagesDimension;
   audienceDimension: AudienceDimension;
   acquisitionView: AcquisitionView;
   utmDimension: UtmDimension;
@@ -99,6 +103,7 @@ export class AnalyticsDashboardController {
     events: loadingState(),
     flags: loadingState(),
     metric: "visitors",
+    pagesDimension: "RequestPath",
     audienceDimension: "DeviceType",
     acquisitionView: "referrers",
     utmDimension: "UtmSource",
@@ -113,6 +118,7 @@ export class AnalyticsDashboardController {
   readonly #initializationRequest = new RequestCoordinator();
   readonly #reportRequest = new RequestCoordinator();
   readonly #utmRequest = new RequestCoordinator();
+  readonly #pagesRequest = new RequestCoordinator();
   readonly #expandedRequest = new DebouncedRequest();
   readonly #utmCapabilityByConnection = new Map<string, UtmCapability>();
   #documentId?: string;
@@ -178,6 +184,7 @@ export class AnalyticsDashboardController {
     this.#initializationRequest.cancel();
     this.#reportRequest.cancel();
     this.#utmRequest.cancel();
+    this.#pagesRequest.cancel();
     this.#expandedRequest.cancel();
   }
 
@@ -201,6 +208,7 @@ export class AnalyticsDashboardController {
     if (selectedConnection?.isConfigured === false) {
       this.#reportRequest.cancel();
       this.#utmRequest.cancel();
+      this.#pagesRequest.cancel();
       this.#set({
         summary: idleState(),
         breakdowns: {},
@@ -211,6 +219,7 @@ export class AnalyticsDashboardController {
       return;
     }
     this.#utmRequest.cancel();
+    this.#pagesRequest.cancel();
     const capabilities = this.#capabilities();
     const supportsUtm = capabilities.dimensions.includes("UtmSource");
     const utmCapability = supportsUtm ? this.#utmCapabilityByConnection.get(connection) ?? "unknown" : "unavailable";
@@ -232,7 +241,7 @@ export class AnalyticsDashboardController {
       (update) => this.#applyReportUpdate(update),
       this.#api,
       capabilities,
-      this.state.metric,
+      trafficMetric(this.state.metric),
     ));
     if (result.status !== "success") {
       if (result.status === "error") this.#failLoadingReports(reportErrorMessage(result.error), dimensions);
@@ -251,6 +260,7 @@ export class AnalyticsDashboardController {
 
   setConnection(connection: string): void {
     this.#utmRequest.cancel();
+    this.#pagesRequest.cancel();
     const documentRoute = this.#documentId
       ? activeDocumentRoute(this.#documentRoutes, this.#culture, connection)
       : undefined;
@@ -288,14 +298,24 @@ export class AnalyticsDashboardController {
 
   setMetric(metric: DashboardMetric): void {
     if (this.state.metric === metric) return;
+    const trafficChanged = trafficMetric(metric) !== trafficMetric(this.state.metric);
     this.#set({ metric });
     this.#syncUrlState();
+    if (!trafficChanged) return;
     const capabilities = this.#capabilities();
     const nonBreakdownReportPending = this.state.summary.status === "loading"
       || (capabilities.events && this.state.events.status === "loading")
       || (capabilities.flags && this.state.flags.status === "loading");
     void (nonBreakdownReportPending ? this.loadReports() : this.#loadBreakdowns());
   }
+  setPagesDimension(pagesDimension: PagesDimension): void {
+    if (pagesDimension === this.state.pagesDimension || !supportsDimension(this.#capabilities(), pagesDimension)) return;
+    this.#pagesRequest.cancel();
+    this.#set({ pagesDimension });
+    this.#syncUrlState();
+    if (this.state.breakdowns[pagesDimension]?.status !== "success") void this.#loadPagesBreakdown(pagesDimension);
+  }
+
   setAudienceDimension(audienceDimension: AudienceDimension): void { this.#set({ audienceDimension }); this.#syncUrlState(); }
   setAcquisitionView(acquisitionView: AcquisitionView): void {
     if (acquisitionView === "utm" && this.state.utmCapability !== "available") return;
@@ -498,9 +518,20 @@ export class AnalyticsDashboardController {
     return result.status === "success";
   }
 
+  // A metric the new report can't show (a page filter hides visit duration, a goal filter hides all engagement)
+  // resets to visitors, so the selection and URL don't spring back to it once the filter is removed.
+  #dropUnavailableMetric(summary: AnalyticsSummary): void {
+    const metric = this.state.metric;
+    if (trafficMetric(metric) === metric) return;
+    if (availableSummaryMetrics(summary.totals).some((available) => available.metric === metric)) return;
+    this.#set({ metric: "visitors" });
+    this.#syncUrlState();
+  }
+
   #applyReportUpdate(update: DashboardReportUpdate): void {
     if (update.panel === "summary") {
       this.#set({ summary: update.status === "error" ? errorState(update.error, this.state.summary) : successState(update.data) });
+      if (update.status !== "error") this.#dropUnavailableMetric(update.data);
     } else if (update.panel === "events") {
       this.#set({ events: update.status === "error" ? errorState(update.error, this.state.events) : successState(update.data) });
     } else if (update.panel === "flags") {
@@ -520,6 +551,7 @@ export class AnalyticsDashboardController {
     this.features.closeDialogs();
     this.#set({ expandedBreakdown: undefined });
     this.#utmRequest.cancel();
+    this.#pagesRequest.cancel();
     const { dimensions } = this.#dashboardReportPlan();
     this.#set({
       breakdowns: Object.fromEntries(dimensions.map((dimension) => [dimension, loadingState(this.state.breakdowns[dimension])])),
@@ -530,7 +562,7 @@ export class AnalyticsDashboardController {
       signal,
       (update) => this.#applyReportUpdate(update),
       this.#api,
-      this.state.metric,
+      trafficMetric(this.state.metric),
       this.#capabilities().breakdownOrdering,
     ));
     if (result.status === "error") this.#failLoadingBreakdowns(reportErrorMessage(result.error), dimensions);
@@ -557,7 +589,7 @@ export class AnalyticsDashboardController {
     const plan = dashboardReportPlan(
       utmCapability,
       this.state.acquisitionView,
-      this.state.utmDimension,
+      { pages: this.state.pagesDimension, audience: this.state.audienceDimension, utm: this.state.utmDimension },
       referrerDimension,
     );
     const supported = new Set(capabilities.dimensions);
@@ -567,7 +599,12 @@ export class AnalyticsDashboardController {
         return result;
       }
       const options = card.options.filter(({ dimension }) => supported.has(dimension));
-      if (options.length) result.push({ ...card, options });
+      // Without alternatives, a collapsible card shows as a plain card instead of a single tab.
+      if (card.collapsesToSingleOption && options.length === 1) {
+        result.push({ kind: "breakdown", dimension: options[0].dimension, headline: options[0].headline, span: card.span });
+      } else if (options.length) {
+        result.push({ ...card, options });
+      }
       return result;
     }, []);
     return { cards, dimensions: plan.dimensions.filter((dimension) => supported.has(dimension)) };
@@ -577,6 +614,10 @@ export class AnalyticsDashboardController {
     return this.state.capabilities ?? unavailableCapabilities;
   }
 
+  async #loadPagesBreakdown(dimension: PagesDimension): Promise<void> {
+    await this.#loadOnDemandBreakdown(dimension, this.#pagesRequest, () => this.state.pagesDimension === dimension);
+  }
+
   #ensureUtmBreakdown(dimension: UtmDimension): void {
     const report = this.state.breakdowns[dimension];
     if (report?.status === "success") return;
@@ -584,22 +625,32 @@ export class AnalyticsDashboardController {
   }
 
   async #loadUtmBreakdown(dimension: UtmDimension): Promise<void> {
+    if (this.state.utmCapability !== "available" || this.state.acquisitionView !== "utm") return;
+    await this.#loadOnDemandBreakdown(dimension, this.#utmRequest,
+      () => this.state.acquisitionView === "utm" && this.state.utmDimension === dimension);
+  }
+
+  // Loads one breakdown that only one tab shows, ignoring the result once that tab is no longer selected.
+  async #loadOnDemandBreakdown(
+    dimension: AnalyticsDimension,
+    request: RequestCoordinator,
+    isSelected: () => boolean,
+  ): Promise<void> {
     const connection = this.state.connection;
-    if (!connection || this.state.utmCapability !== "available" || this.state.acquisitionView !== "utm") return;
+    if (!connection) return;
     const previous = this.state.breakdowns[dimension];
     this.#set({ breakdowns: { ...this.state.breakdowns, [dimension]: loadingState(previous) } });
-    const result = await this.#utmRequest.run((signal) => loadDashboardBreakdown(
+    const result = await request.run((signal) => loadDashboardBreakdown(
       this.#reportQuery(connection, this.#visitFilterQuery()),
       dimension,
       signal,
       this.#api,
-      this.state.metric,
+      trafficMetric(this.state.metric),
       this.#capabilities().breakdownOrdering,
     ));
     if (result.status === "cancelled" || result.status === "stale"
       || this.state.connection !== connection
-      || this.state.acquisitionView !== "utm"
-      || this.state.utmDimension !== dimension) return;
+      || !isSelected()) return;
     if (result.status === "error") {
       this.#set({ breakdowns: { ...this.state.breakdowns, [dimension]: errorState(reportErrorMessage(result.error), previous) } });
       return;
@@ -663,6 +714,7 @@ export class AnalyticsDashboardController {
     const patch: Partial<DashboardState> = {
       connection: parsed.connection,
       metric: parsed.metric,
+      pagesDimension: parsed.pages,
       audienceDimension: parsed.audience,
       utmDimension: parsed.utm,
       filters: parsed.filters,
@@ -689,6 +741,7 @@ export class AnalyticsDashboardController {
       range: this.state.range,
       metric: this.state.metric,
       audience: this.state.audienceDimension,
+      pages: this.state.pagesDimension,
       utm: this.state.utmDimension,
       filters: this.state.filters,
       flagFilter: this.state.flagFilter,

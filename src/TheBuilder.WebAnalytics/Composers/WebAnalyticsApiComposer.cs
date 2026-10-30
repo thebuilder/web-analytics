@@ -22,6 +22,7 @@ namespace TheBuilder.WebAnalytics.Composers
             builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<AnalyticsReportCache>();
             builder.Services.AddSingleton<AnalyticsProviderRequestGate>();
+            builder.Services.AddSingleton<PlausibleMetricSupport>();
             foreach (var provider in AnalyticsProviderCatalog.Default.Registrations)
                 provider.RegisterClient(builder.Services);
             builder.Services.AddSingleton<MockAnalyticsClient>();

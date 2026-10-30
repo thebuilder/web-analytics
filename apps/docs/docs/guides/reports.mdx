@@ -22,23 +22,37 @@ The range also decides how history is grouped. A single day is grouped hourly, u
 
 ## Metrics and history
 
-Two metrics sit at the top of the dashboard. **Visitors** counts the distinct people who arrived in the selected range. **Page views** counts the pages they loaded.
+**Visitors** and **Page views** always sit at the top of the dashboard. Visitors counts the distinct people who arrived in the selected range. Page views counts the pages they loaded.
 
-Each metric is always compared against the preceding period of the same length. There is no toggle for it. The badge shows a signed percentage such as `+12%`, and reads in full as "12% more visitors than the previous 30 days". When the previous period has no data, the badge disappears instead of inventing a change.
+When the provider reports how visits went, engagement metrics join them. Today that is Plausible:
+
+| Metric | Shown | Meaning |
+| --- | --- | --- |
+| **Views per visit** | Site-wide | Average number of pages loaded in one visit. |
+| **Bounce rate** | Always | Share of visits that viewed one page and left. Lower is better. |
+| **Visit duration** | Site-wide | Average length of a visit. |
+| **Time on page** | For a page | Average time spent on the page per visit. |
+| **Scroll depth** | For a page | How far down the page visitors scrolled, on average. |
+
+"For a page" means the document workspace, or the dashboard filtered to one page. Engagement is left out while an event filter is active, because the report then counts conversions rather than visits.
+
+Each metric is always compared against the preceding period of the same length. There is no toggle for it. The badge shows a signed percentage such as `+12%`, and reads in full as "12% more visitors than the previous 30 days". Rates such as bounce rate change in percentage points, shown as `-3 pts`. The badge is green when the change is an improvement, so a falling bounce rate is green. When the previous period has no data, the badge disappears instead of inventing a change.
 
 Select a metric to plot it over time. The chart uses the interval implied by the range, and draws the final segment as in-progress while the current period is still running.
 
 ## Breakdowns
 
-Breakdowns rank the pages, sources, places, and devices behind those totals. Each card lists the top entries with a proportional bar and the metric value. **View all** opens a searchable dialog with the complete list.
+Breakdowns rank the pages, sources, places, and devices behind those totals. Each card lists the top entries with a proportional bar and the metric value. The expand icon in a card's header (**View all**) opens a searchable dialog with the complete list.
 
 | Card | Shows |
 | --- | --- |
-| **Pages** | The most-visited request paths. (Hidden on a document report, which is already scoped to one page.) |
+| **Pages** | The most-visited request paths. When the provider reports how visits start and end, **Entry pages** and **Exit pages** tabs list the pages visits started and ended on. (Hidden on a document report, which is already scoped to one page.) |
 | **Acquisition** | Where traffic came from. A **Referrers** tab lists the sites and sources that sent visitors; when the connection supports UTM reporting, a **UTM** tab adds sub-tabs for **Source**, **Medium**, **Campaign**, **Term**, and **Content** from tagged marketing links. |
 | **Countries** | Visitors grouped by country. |
 | **Audience** | A tabbed card covering **Devices** and **Browsers**. |
 | **Operating systems** | Visitors grouped by operating system. |
+
+On a provider with engagement metrics, the **View all** dialog adds columns beside visitors and page views: bounce rate, time on page, and scroll depth for pages, and bounce rate and visit duration for sources, places, and devices. A dash means the provider had no value for that row. On a narrow screen the dialog keeps only the traffic columns.
 
 The **UTM** tab appears only when the selected connection can report those dimensions, which depends on the provider and its plan. On a plan-limited connection the card says so, rather than showing an empty tab.
 
@@ -46,7 +60,7 @@ The **UTM** tab appears only when the selected connection can report those dimen
 
 ## Events
 
-When the provider records custom events, the dashboard adds an **Events** panel listing each event and its total. **View all events** opens the full searchable list, and opening an event drills into its properties.
+When the provider records custom events, the dashboard adds an **Events** panel listing each event and its total. Its expand icon opens the full searchable list, and opening an event drills into its properties.
 
 ![Custom event details with a property drill-down](../screenshots/custom-event-details.png)
 
@@ -54,13 +68,13 @@ A property drill-down splits one event by a recorded property, for example which
 
 ## Feature flags
 
-On a Vercel connection that reports feature flags, a **Flags** panel lists each flag with its totals, and **View all flags** opens the complete list. Plausible has no feature flags, so the panel does not appear on a Plausible connection.
+On a Vercel connection that reports feature flags, a **Flags** panel lists each flag with its totals, and its expand icon opens the complete list. Plausible has no feature flags, so the panel does not appear on a Plausible connection.
 
 ![Audience, events, and feature-flag panels](../screenshots/audience-events-and-flags.png)
 
 ## Filtering and drill-downs
 
-Any breakdown row can become a filter. Hover or keyboard-focus a row to reveal **Filter by this value**. Applying it narrows every report on the dashboard, for example to visitors from one country, or traffic from one referrer.
+Any breakdown row can become a filter. Click the row to apply it, and click it again to remove it. The filter narrows every report on the dashboard, for example to visitors from one country, or traffic from one referrer. Pages and referrers also show an open icon on hover, which opens the page or site in a new tab. Events and flags work one level down. Clicking an event or a flag opens its details, and clicking a property or flag value there filters by that value. Where the provider can filter by an event, such as Plausible, the event details also have a **Filter by this event** button.
 
 Active filters appear as a **Filters** group beneath the header. Remove one from its chip, or choose **Clear all** to go back to the unfiltered view. The URL carries the filters, the date range, and the selected breakdown tabs, so you can bookmark or share a filtered view.
 

@@ -18,6 +18,8 @@ public sealed class MockAnalyticsClient :
         {
             [AnalyticsDimension.RequestPath] = [new("/", 12840, 7240), new("/products", 8950, 5110), new("/pricing", 5670, 3420), new("/guides/analytics", 3280, 2160)],
             [AnalyticsDimension.Route] = [new("/", 12840, 7240), new("/products", 8950, 5110), new("/pricing", 5670, 3420), new("/guides/[slug]", 3280, 2160)],
+            [AnalyticsDimension.EntryPage] = [new("/", 9120, 5480), new("/guides/analytics", 3940, 2610), new("/pricing", 2760, 1830), new("/products", 2210, 1490)],
+            [AnalyticsDimension.ExitPage] = [new("/pricing", 6830, 3970), new("/", 5410, 3260), new("/products", 4190, 2540), new("/guides/analytics", 1860, 1220)],
             [AnalyticsDimension.ReferrerHostname] = [new("google.com", 9340, 6110), new("linkedin.com", 4280, 2870), new("vercel.com", 3160, 2040), new("Direct", 2870, 1830)],
             [AnalyticsDimension.Country] = [new("DK", 10540, 6420), new("US", 8360, 4910), new("DE", 4720, 2890), new("GB", 3910, 2410)],
             [AnalyticsDimension.DeviceType] = [new("Desktop", 18940, 10420), new("Mobile", 9210, 6030), new("Tablet", 1280, 810)],
@@ -62,7 +64,9 @@ public sealed class MockAnalyticsClient :
     {
         cancellationToken.ThrowIfCancellationRequested();
         var scale = QueryScale(connection, query);
-        return Task.FromResult(new AnalyticsTotals(Scale(29430, scale), Scale(17260, scale)));
+        var pageViews = Scale(29430, scale);
+        var visitors = Scale(17260, scale);
+        return Task.FromResult(new AnalyticsTotals(pageViews, visitors, Engagement(connection, query, pageViews, visitors, query.From + (query.To - query.From) / 2)));
     }
 
     public Task<IReadOnlyList<AnalyticsPoint>> GetTrendAsync(
@@ -82,10 +86,13 @@ public sealed class MockAnalyticsClient :
                 - BellCurve(progress, 0.48, 0.10) * 0.06
                 + BellCurve(progress, 0.76, 0.15) * 0.09;
             var visitors = traffic * (0.98 - progress * 0.03);
+            var pageViews = Scale(980, scale * traffic);
+            var visitorCount = Scale(570, scale * visitors);
             return new AnalyticsPoint(
                 timestamp,
-                Scale(980, scale * traffic),
-                Scale(570, scale * visitors));
+                pageViews,
+                visitorCount,
+                Engagement(connection, query, pageViews, visitorCount, timestamp));
         }).ToArray();
         return Task.FromResult<IReadOnlyList<AnalyticsPoint>>(points);
     }
@@ -110,7 +117,8 @@ public sealed class MockAnalyticsClient :
         var scaled = filtered.Select(row => new AnalyticsBreakdownRow(
             row.Value,
             Scale(row.PageViews, scale),
-            Scale(row.Visitors, scale)));
+            Scale(row.Visitors, scale),
+            BreakdownEngagement(scenario, query, dimension, row.Value)));
         return Task.FromResult<IReadOnlyList<AnalyticsBreakdownRow>>(Filter(scaled, search, limit, row => row.Value));
     }
 
@@ -295,6 +303,39 @@ public sealed class MockAnalyticsClient :
             -DemoGrowthWindowDays,
             DemoGrowthWindowDays);
         return Math.Exp(daysFromBaseline * DemoDailyGrowthRate);
+    }
+
+    // Engagement only appears in the complete demo so the other scenarios keep the Vercel-shaped dashboard.
+    private static AnalyticsEngagement? Engagement(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        long pageViews,
+        long visitors,
+        DateTimeOffset moment)
+    {
+        if (Scenario(connection) is not MockAnalyticsScenario.Complete || AnalyticsEngagementScope.IsGoalFiltered(query)) return null;
+        var drift = Math.Sin((moment - DemoGrowthBaseline).TotalDays / 9d);
+        var visits = visitors * 1.31d;
+        var bounceRate = Math.Round(41d - drift * 3d);
+        if (AnalyticsEngagementScope.IsPageScoped(query))
+            return new AnalyticsEngagement(
+                BounceRate: bounceRate,
+                TimeOnPage: Math.Round(74d + drift * 9d),
+                ScrollDepth: Math.Round(61d + drift * 4d));
+        return new AnalyticsEngagement(
+            ViewsPerVisit: visits == 0 ? 0 : Math.Round(pageViews / visits, 2),
+            BounceRate: bounceRate,
+            VisitDuration: Math.Round(162d + drift * 18d));
+    }
+
+    private static AnalyticsEngagement? BreakdownEngagement(MockAnalyticsScenario scenario, AnalyticsQuery query, AnalyticsDimension dimension, string value)
+    {
+        if (scenario is not MockAnalyticsScenario.Complete || dimension is AnalyticsDimension.EventName || AnalyticsEngagementScope.IsGoalFiltered(query)) return null;
+        var seed = value.Aggregate(17, (hash, character) => hash * 31 + character) & 0x7fff;
+        var bounceRate = 28d + seed % 31;
+        return dimension is AnalyticsDimension.RequestPath or AnalyticsDimension.Route
+            ? new AnalyticsEngagement(BounceRate: bounceRate, TimeOnPage: 35d + seed % 140, ScrollDepth: 40d + seed % 51)
+            : new AnalyticsEngagement(BounceRate: bounceRate, VisitDuration: 70d + seed % 190);
     }
 
     private static long Scale(long value, double scale) => Math.Max(0, (long)Math.Round(value * scale));

@@ -5,6 +5,8 @@ const UNKNOWN_LABEL = "unknown";
 
 const DIMENSION_LABELS: Partial<Record<AnalyticsDimension, string>> = {
   RequestPath: "Page",
+  EntryPage: "Entry page",
+  ExitPage: "Exit page",
   Route: "Page",
   ReferrerHostname: "Referrer",
   Referrer: "Referrer",

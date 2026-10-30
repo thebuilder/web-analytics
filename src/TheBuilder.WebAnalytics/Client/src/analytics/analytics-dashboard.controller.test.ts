@@ -659,6 +659,86 @@ describe("AnalyticsDashboardController", () => {
     expect(api.flags).not.toHaveBeenCalled();
   });
 
+  it("keeps breakdowns when switching to an engagement metric", async () => {
+    const api = dashboardApi();
+    const target = environment();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, target);
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    await vi.waitFor(() => expect(Object.values(controller.state.breakdowns).every((report) => report.status !== "loading")).toBe(true));
+    api.summary.mockClear();
+    api.breakdown.mockClear();
+
+    controller.setMetric("bounceRate");
+
+    expect(target.currentUrl().searchParams.get("metric")).toBe("bounceRate");
+    await Promise.resolve();
+    expect(api.breakdown).not.toHaveBeenCalled();
+    expect(api.summary).not.toHaveBeenCalled();
+  });
+
+  it("resets an engagement metric to visitors when the new report no longer has it", async () => {
+    const api = dashboardApi();
+    const target = environment();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, target);
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.summary.status).toBe("success"));
+    controller.setMetric("visitDuration");
+
+    controller.toggleFilter("RequestPath", "/pricing");
+
+    await vi.waitFor(() => expect(controller.state.metric).toBe("visitors"));
+    expect(target.currentUrl().searchParams.get("metric")).not.toBe("visitDuration");
+  });
+
+  it("keeps Pages a plain card when the provider has no entry or exit pages", async () => {
+    const controller = new AnalyticsDashboardController(vi.fn(), dashboardApi(), environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.capabilities).toBeDefined());
+
+    expect(controller.cards()[0]).toEqual({ kind: "breakdown", dimension: "RequestPath", headline: "Pages", span: "wide" });
+  });
+
+  it("shows Audience as a plain card when the provider reports only devices", async () => {
+    const api = dashboardApi();
+    const capabilities = { ...fullCapabilities, dimensions: fullCapabilities.dimensions.filter((dimension) => dimension !== "BrowserName") };
+    api.connections.mockImplementation(async () => ok({
+      enabled: true,
+      defaultRangeDays: 30,
+      connections: [{ key: "11111111-1111-1111-1111-111111111111", displayName: "Main", provider: "Plausible", capabilities, isDefault: true, isConfigured: true, baseUrl: "https://example.com", warnings: [] }],
+    }));
+    const controller = new AnalyticsDashboardController(vi.fn(), api, environment());
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.capabilities).toBeDefined());
+
+    expect(controller.cards()).toContainEqual({ kind: "breakdown", dimension: "DeviceType", headline: "Devices", span: "normal" });
+  });
+
+  it("loads entry and exit pages only when their tab is opened", async () => {
+    const api = dashboardApi();
+    const capabilities = { ...fullCapabilities, dimensions: [...fullCapabilities.dimensions, "EntryPage", "ExitPage"] as typeof fullCapabilities.dimensions };
+    api.connections.mockImplementation(async () => ok({
+      enabled: true,
+      defaultRangeDays: 30,
+      connections: [{ key: "11111111-1111-1111-1111-111111111111", displayName: "Main", provider: "Plausible", capabilities, isDefault: true, isConfigured: true, baseUrl: "https://example.com", warnings: [] }],
+    }));
+    const target = environment();
+    const controller = new AnalyticsDashboardController(vi.fn(), api, target);
+    controller.connect();
+    await vi.waitFor(() => expect(controller.state.breakdowns.RequestPath?.status).toBe("success"));
+
+    const pages = controller.cards()[0];
+    expect(pages.kind === "tabbed-breakdown" && pages.options.map(({ dimension }) => dimension)).toEqual(["RequestPath", "EntryPage", "ExitPage"]);
+    expect(api.breakdown.mock.calls.map(([options]) => options.path.dimension)).not.toContain("EntryPage");
+    api.breakdown.mockClear();
+
+    controller.setPagesDimension("EntryPage");
+
+    await vi.waitFor(() => expect(controller.state.breakdowns.EntryPage?.status).toBe("success"));
+    expect(api.breakdown.mock.calls.map(([options]) => options.path.dimension)).toEqual(["EntryPage"]);
+    expect(target.currentUrl().searchParams.get("pages")).toBe("EntryPage");
+  });
+
   it("uses only UTM Source to detect Plus capability", async () => {
     const api = dashboardApi();
     const controller = new AnalyticsDashboardController(vi.fn(), api, environment());

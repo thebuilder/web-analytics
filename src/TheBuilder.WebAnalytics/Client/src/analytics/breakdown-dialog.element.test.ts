@@ -96,7 +96,6 @@ describe("breakdown dialog", () => {
     expect(shares.map((share) => share.textContent)).toEqual(["50%", "50%"]);
     expect(shares.every((share) => share.closest("td")?.cellIndex === 1)).toBe(true);
     expect([...shares[0].parentElement?.children ?? []].map((element) => element.className)).toEqual([
-      "filter-action",
       "metric-share",
       "metric-number",
     ]);

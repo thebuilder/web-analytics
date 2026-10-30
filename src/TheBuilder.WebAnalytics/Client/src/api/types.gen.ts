@@ -13,6 +13,7 @@ export type AnalyticsBreakdownRow = {
     value: string;
     pageViews: number;
     visitors: number;
+    engagement?: AnalyticsEngagement | null;
 };
 
 export type AnalyticsCapabilities = {
@@ -72,7 +73,7 @@ export type AnalyticsCredentialDescriptor = {
     documentationUrl: string;
 };
 
-export type AnalyticsDimension = 'RequestPath' | 'Route' | 'ReferrerHostname' | 'Referrer' | 'Country' | 'DeviceType' | 'BrowserName' | 'OsName' | 'UtmSource' | 'UtmMedium' | 'UtmCampaign' | 'UtmTerm' | 'UtmContent' | 'EventName';
+export type AnalyticsDimension = 'RequestPath' | 'Route' | 'ReferrerHostname' | 'Referrer' | 'Country' | 'DeviceType' | 'BrowserName' | 'OsName' | 'UtmSource' | 'UtmMedium' | 'UtmCampaign' | 'UtmTerm' | 'UtmContent' | 'EventName' | 'EntryPage' | 'ExitPage';
 
 export type AnalyticsDocumentRoute = {
     connection: string;
@@ -86,6 +87,14 @@ export type AnalyticsDocumentRoute = {
     warnings: Array<string>;
     displayName: string;
     documentRoot: string;
+};
+
+export type AnalyticsEngagement = {
+    viewsPerVisit?: number | null;
+    bounceRate?: number | null;
+    visitDuration?: number | null;
+    timeOnPage?: number | null;
+    scrollDepth?: number | null;
 };
 
 export type AnalyticsEventDetails = {
@@ -157,6 +166,7 @@ export type AnalyticsPoint = {
     timestamp: string;
     pageViews: number;
     visitors: number;
+    engagement?: AnalyticsEngagement | null;
 };
 
 export type AnalyticsProvider = 'Vercel' | 'Plausible';
@@ -197,6 +207,7 @@ export type AnalyticsSummary = {
 export type AnalyticsTotals = {
     pageViews: number;
     visitors: number;
+    engagement?: AnalyticsEngagement | null;
 };
 
 export type AnalyticsTrafficMetric = 'Visitors' | 'PageViews';

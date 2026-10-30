@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -12,9 +13,14 @@ namespace TheBuilder.WebAnalytics.Services;
 
 public sealed class PlausibleAnalyticsClient(
     HttpClient httpClient,
-    AnalyticsProviderRequestGate requestGate) : IAnalyticsProviderClient, IAnalyticsEventPropertyDiscoveryProviderClient
+    AnalyticsProviderRequestGate requestGate,
+    PlausibleMetricSupport? metricSupport = null) : IAnalyticsProviderClient, IAnalyticsEventPropertyDiscoveryProviderClient
 {
+    private readonly PlausibleMetricSupport _metricSupport = metricSupport ?? new PlausibleMetricSupport();
+
     private const string QueryPath = "api/v2/query";
+    private static readonly string[] TrafficMetrics = ["pageviews", "visitors"];
+    private static readonly string[] SessionMetrics = ["views_per_visit", "bounce_rate", "visit_duration"];
 
     public AnalyticsProviderDefinition Definition => PlausibleProvider.Definition;
 
@@ -32,9 +38,12 @@ public sealed class PlausibleAnalyticsClient(
         AnalyticsQuery query,
         CancellationToken cancellationToken)
     {
-        var response = await QueryAsync(connection, query, ["pageviews", "visitors"], [], null, null, cancellationToken);
+        var (response, engagementMetrics) = await QueryTrafficAsync(connection, query, [], EngagementMetrics(query), cancellationToken);
         var row = SingleRow(response);
-        return new AnalyticsTotals(Metric(row, 0, "pageviews"), Metric(row, 1, "visitors"));
+        return new AnalyticsTotals(
+            Metric(row, 0, "pageviews"),
+            Metric(row, 1, "visitors"),
+            Engagement(row, engagementMetrics));
     }
 
     public async Task<IReadOnlyList<AnalyticsPoint>> GetTrendAsync(
@@ -50,13 +59,11 @@ public sealed class PlausibleAnalyticsClient(
             AnalyticsInterval.Month => "time:month",
             _ => throw new ArgumentOutOfRangeException(nameof(query))
         };
-        var response = await QueryAsync(
+        var (response, engagementMetrics) = await QueryTrafficAsync(
             connection,
             query,
-            ["pageviews", "visitors"],
             [dimension],
-            null,
-            null,
+            EngagementMetrics(query),
             cancellationToken,
             includeTimeLabels: true);
         var labels = response.Meta?.TimeLabels
@@ -71,7 +78,7 @@ public sealed class PlausibleAnalyticsClient(
         if (rows.Keys.Except(labels, StringComparer.Ordinal).Any())
             throw new JsonException("Plausible returned a time bucket outside the requested labels.");
         return labels.Select(label => rows.TryGetValue(label, out var row)
-            ? new AnalyticsPoint(NormalizeTimeLabel(label), Metric(row, 0, "pageviews"), Metric(row, 1, "visitors"))
+            ? new AnalyticsPoint(NormalizeTimeLabel(label), Metric(row, 0, "pageviews"), Metric(row, 1, "visitors"), Engagement(row, engagementMetrics))
             : new AnalyticsPoint(NormalizeTimeLabel(label), 0, 0)).ToArray();
     }
 
@@ -85,14 +92,14 @@ public sealed class PlausibleAnalyticsClient(
         AnalyticsTrafficMetric? orderBy = null)
     {
         var plausibleDimension = ToApiDimension(dimension);
-        var response = await QueryAsync(
+        var (response, engagementMetrics) = await QueryTrafficAsync(
             connection,
             query,
-            ["pageviews", "visitors"],
             [plausibleDimension],
-            limit,
-            string.IsNullOrWhiteSpace(search) ? null : (plausibleDimension, search.Trim()),
+            BreakdownEngagementMetrics(query, dimension),
             cancellationToken,
+            limit: limit,
+            search: string.IsNullOrWhiteSpace(search) ? null : (plausibleDimension, search.Trim()),
             orderBy: orderBy switch
             {
                 AnalyticsTrafficMetric.PageViews => "pageviews",
@@ -103,7 +110,8 @@ public sealed class PlausibleAnalyticsClient(
         return response.Results!.Select(row => new AnalyticsBreakdownRow(
             Dimension(row, 0, plausibleDimension),
             Metric(row, 0, "pageviews"),
-            Metric(row, 1, "visitors"))).ToArray();
+            Metric(row, 1, "visitors"),
+            Engagement(row, engagementMetrics))).ToArray();
     }
 
     public async Task<IReadOnlyList<AnalyticsEventRow>> GetEventsAsync(
@@ -253,6 +261,97 @@ public sealed class PlausibleAnalyticsClient(
             Metric(row, 1, "visitors"))).ToArray();
     }
 
+    private async Task<(PlausibleResponse Response, string[] EngagementMetrics)> QueryTrafficAsync(
+        AnalyticsConnection connection,
+        AnalyticsQuery query,
+        string[] dimensions,
+        string[] engagementMetrics,
+        CancellationToken cancellationToken,
+        bool includeTimeLabels = false,
+        int? limit = null,
+        (string Dimension, string Value)? search = null,
+        string? orderBy = null)
+    {
+        var instance = httpClient.BaseAddress?.AbsoluteUri ?? string.Empty;
+        engagementMetrics = Supported(engagementMetrics, _metricSupport.Get(instance));
+        var fellBack = false;
+        while (true)
+        {
+            try
+            {
+                var response = await QueryAsync(
+                    connection,
+                    query,
+                    [.. TrafficMetrics, .. engagementMetrics],
+                    dimensions,
+                    limit,
+                    search,
+                    cancellationToken,
+                    includeTimeLabels: includeTimeLabels,
+                    orderBy: orderBy);
+                // Remember the downgrade only once the smaller query succeeds, so an unrelated 400 never sticks.
+                if (fellBack)
+                    _metricSupport.Remember(instance, engagementMetrics.Length > 0 ? PlausibleMetricSupport.Level.Session : PlausibleMetricSupport.Level.None);
+                return (response, engagementMetrics);
+            }
+            catch (AnalyticsProviderApiException failure) when (
+                failure.StatusCode == HttpStatusCode.BadRequest && engagementMetrics.Length > 0)
+            {
+                // Older self-hosted Plausible versions reject the newer page metrics. Fall back to the
+                // long-standing session metrics, then to traffic only, so engagement never blocks a report.
+                engagementMetrics = Supported(
+                    engagementMetrics,
+                    engagementMetrics.All(metric => SessionMetrics.Contains(metric)) ? PlausibleMetricSupport.Level.None : PlausibleMetricSupport.Level.Session);
+                fellBack = true;
+            }
+        }
+    }
+
+    private static string[] Supported(string[] metrics, PlausibleMetricSupport.Level support) => support switch
+    {
+        PlausibleMetricSupport.Level.All => metrics,
+        PlausibleMetricSupport.Level.Session => metrics.Where(metric => SessionMetrics.Contains(metric)).ToArray(),
+        _ => []
+    };
+
+    private static string[] EngagementMetrics(AnalyticsQuery query)
+    {
+        if (AnalyticsEngagementScope.IsGoalFiltered(query)) return [];
+        // Plausible rejects views per visit with a page filter and needs one for time on page and scroll depth.
+        return AnalyticsEngagementScope.IsPageScoped(query)
+            ? ["bounce_rate", "time_on_page", "scroll_depth"]
+            : ["views_per_visit", "bounce_rate", "visit_duration"];
+    }
+
+    // Session metrics cannot be split by goal, and only page rows have a time on page or scroll depth.
+    private static string[] BreakdownEngagementMetrics(AnalyticsQuery query, AnalyticsDimension dimension)
+    {
+        if (EngagementMetrics(query).Length == 0) return [];
+        return dimension switch
+        {
+            AnalyticsDimension.EventName => [],
+            AnalyticsDimension.RequestPath => ["bounce_rate", "time_on_page", "scroll_depth"],
+            _ => ["bounce_rate", "visit_duration"]
+        };
+    }
+
+    private static AnalyticsEngagement? Engagement(PlausibleRow row, string[] engagementMetrics)
+    {
+        if (engagementMetrics.Length == 0) return null;
+        double? Value(string name)
+        {
+            var index = Array.IndexOf(engagementMetrics, name);
+            return index < 0 ? null : OptionalMetric(row, TrafficMetrics.Length + index, name);
+        }
+        var engagement = new AnalyticsEngagement(
+            ViewsPerVisit: Value("views_per_visit"),
+            BounceRate: Value("bounce_rate"),
+            VisitDuration: Value("visit_duration"),
+            TimeOnPage: Value("time_on_page"),
+            ScrollDepth: Value("scroll_depth"));
+        return engagement == new AnalyticsEngagement() ? null : engagement;
+    }
+
     private async Task<PlausibleResponse> QueryAsync(
         AnalyticsConnection connection,
         AnalyticsQuery query,
@@ -382,6 +481,8 @@ public sealed class PlausibleAnalyticsClient(
     internal static string ToApiDimension(AnalyticsDimension dimension) => dimension switch
     {
         AnalyticsDimension.RequestPath => "event:page",
+        AnalyticsDimension.EntryPage => "visit:entry_page",
+        AnalyticsDimension.ExitPage => "visit:exit_page",
         AnalyticsDimension.Referrer => "visit:referrer",
         AnalyticsDimension.Country => "visit:country",
         AnalyticsDimension.DeviceType => "visit:device",
@@ -407,6 +508,16 @@ public sealed class PlausibleAnalyticsClient(
         row.Metrics is not null && index < row.Metrics.Count && row.Metrics[index].TryGetInt64(out var value)
             ? value
             : throw new JsonException($"Plausible metric '{name}' was missing or invalid.");
+
+    private static double? OptionalMetric(PlausibleRow row, int index, string name)
+    {
+        if (row.Metrics is null || index >= row.Metrics.Count) return null;
+        var value = row.Metrics[index];
+        if (value.ValueKind == JsonValueKind.Null) return null;
+        return value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number)
+            ? number
+            : throw new JsonException($"Plausible metric '{name}' was invalid.");
+    }
 
     private static string Dimension(PlausibleRow row, int index, string name) =>
         row.Dimensions is not null && index < row.Dimensions.Count && !string.IsNullOrWhiteSpace(row.Dimensions[index])

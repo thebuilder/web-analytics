@@ -4,8 +4,8 @@ import type { AnalyticsDimension } from "../api/types.gen.js";
 import { countryDisplayName, countryFlagUrl, normalizeCountryCode } from "./country-display.js";
 import { breakdownValueIcon } from "./breakdown-value-icon.js";
 import type { AnalyticsDateRangeChangeDetail } from "./date-range-picker.element.js";
-import type { AnalyticsEventFilter, AnalyticsFilter, AnalyticsFlagFilter, AudienceDimension, DashboardMetric, UtmDimension } from "./dashboard-url-state.js";
-import type { AcquisitionView } from "./dashboard-cards.js";
+import { trafficMetric, type AnalyticsEventFilter, type AnalyticsFilter, type AnalyticsFlagFilter, type AudienceDimension, type DashboardMetric, type PagesDimension, type UtmDimension } from "./dashboard-url-state.js";
+import { isPageDimension, type AcquisitionView } from "./dashboard-cards.js";
 import { AnalyticsDashboardController, type DashboardState } from "./analytics-dashboard.controller.js";
 import type { FeatureDrilldownState } from "./analytics-feature-drilldown.controller.js";
 import { isInitialLoading, stateData, type AsyncState } from "./async-state.js";
@@ -144,9 +144,9 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
         .loading=${isInitialLoading(expanded.report)}
         aria-busy=${expanded.report.status === "loading" ? "true" : "false"}
         .unavailable=${this.#error(expanded.report)}
-        .metric=${state.metric}
+        .metric=${trafficMetric(state.metric)}
         .baseUrl=${this.#controller.linkBaseUrl()}
-        .linkValues=${expanded.dimension === "RequestPath" || expanded.dimension === "Route"}
+        .linkValues=${isPageDimension(expanded.dimension)}
         @search-breakdown=${(event: CustomEvent<{ search: string }>) => this.#controller.searchBreakdown(event.detail.search)}
         @breakdown-dimension-change=${(event: CustomEvent<{ dimension: AnalyticsDimension; headline: string }>) => this.#controller.openBreakdown(event.detail.dimension, event.detail.headline)}
         @analytics-dialog-close=${() => this.#controller.closeBreakdown()}></web-analytics-breakdown-dialog>
@@ -161,7 +161,6 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
         .rows=${stateData(expanded) ?? []}
         .filters=${state.filters}
         .detailsEnabled=${state.capabilities?.eventDetails ?? false}
-        .filteringEnabled=${state.capabilities?.globalEventFiltering ?? false}
         .loading=${isInitialLoading(expanded)}
         aria-busy=${expanded.status === "loading" ? "true" : "false"}
         .unavailable=${this.#error(expanded)}
@@ -192,6 +191,8 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
         .eventName=${selected.eventName}
         .propertiesEnabled=${state.capabilities.eventProperties}
         .filteringEnabled=${state.capabilities.globalEventPropertyFiltering}
+        .eventFilteringEnabled=${state.capabilities.globalEventFiltering}
+        .eventFiltered=${state.filters.some((filter) => filter.dimension === "EventName" && filter.value === selected.eventName)}
         .details=${stateData(selected.details)}
         .loading=${isInitialLoading(selected.details)}
         .unavailable=${this.#error(selected.details)}
@@ -274,14 +275,14 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
           .filters=${state.filters}
           .eventFilter=${state.eventFilter}
           .flagFilter=${state.flagFilter}
-          .metric=${state.metric}
+          .metric=${trafficMetric(state.metric)}
+          .pagesDimension=${state.pagesDimension}
           .audienceDimension=${state.audienceDimension}
           .acquisitionView=${state.acquisitionView}
           .utmDimension=${state.utmDimension}
           .baseUrl=${this.#controller.linkBaseUrl()}
           .supportsEvents=${capabilities?.events ?? false}
           .supportsEventDetails=${capabilities?.eventDetails ?? false}
-          .supportsGlobalEventFiltering=${capabilities?.globalEventFiltering ?? false}
           .supportsFlags=${capabilities?.flags ?? false}
           @view-breakdown=${(event: CustomEvent<{ dimension: AnalyticsDimension; headline: string }>) => this.#controller.openBreakdown(event.detail.dimension, event.detail.headline)}
           @view-events=${() => this.#controller.features.openEvents()}
@@ -290,6 +291,7 @@ export class WebAnalyticsDashboardElement extends UmbElementMixin(LitElement) {
           @select-flag=${(event: CustomEvent<{ flagKey: string }>) => this.#controller.features.selectFlag(event.detail.flagKey)}
           @clear-event-filter=${() => this.#controller.clearEventFilter()}
           @retry-reports=${() => this.#controller.retryReports()}
+          @pages-change=${(event: CustomEvent<{ dimension: PagesDimension }>) => this.#controller.setPagesDimension(event.detail.dimension)}
           @audience-change=${(event: CustomEvent<{ dimension: AudienceDimension }>) => this.#controller.setAudienceDimension(event.detail.dimension)}
           @acquisition-change=${(event: CustomEvent<{ view: AcquisitionView }>) => this.#controller.setAcquisitionView(event.detail.view)}
           @utm-change=${(event: CustomEvent<{ dimension: UtmDimension }>) => this.#controller.setUtmDimension(event.detail.dimension)}></web-analytics-breakdown-grid>

@@ -1,5 +1,5 @@
 import type { AnalyticsCapabilities, AnalyticsDimension } from "../api/types.gen.js";
-import type { AnalyticsEventFilter, AnalyticsFilter, AnalyticsFlagFilter, AudienceDimension, UtmDimension } from "./dashboard-url-state.js";
+import type { AnalyticsEventFilter, AnalyticsFilter, AnalyticsFlagFilter, AudienceDimension, PagesDimension, UtmDimension } from "./dashboard-url-state.js";
 import type { AcquisitionView } from "./dashboard-cards.js";
 
 export const unavailableCapabilities: AnalyticsCapabilities = {
@@ -14,6 +14,7 @@ export const unavailableCapabilities: AnalyticsCapabilities = {
 };
 
 type DashboardSelection = {
+  pagesDimension: PagesDimension;
   audienceDimension: AudienceDimension;
   acquisitionView: AcquisitionView;
   utmDimension: UtmDimension;
@@ -38,6 +39,7 @@ export function normalizeDashboardSelection(
     : utmDimensions.find((dimension) => supported.has(dimension)) ?? "UtmSource";
   const supportsUtm = utmDimensions.some((dimension) => supported.has(dimension));
   return {
+    pagesDimension: supported.has(selection.pagesDimension) ? selection.pagesDimension : "RequestPath",
     audienceDimension,
     acquisitionView: supportsUtm ? selection.acquisitionView : "referrers",
     utmDimension,

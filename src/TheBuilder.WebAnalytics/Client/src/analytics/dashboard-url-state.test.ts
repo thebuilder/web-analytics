@@ -22,6 +22,16 @@ describe("analytics dashboard URL state", () => {
     expect(state.includeChildPaths).toBe(true);
   });
 
+  it("restores the selected page report", () => {
+    expect(parseDashboardUrlState(new URLSearchParams("pages=ExitPage")).pages).toBe("ExitPage");
+    expect(parseDashboardUrlState(new URLSearchParams("pages=Nope")).pages).toBe("RequestPath");
+  });
+
+  it("restores engagement metrics and ignores unknown ones", () => {
+    expect(parseDashboardUrlState(new URLSearchParams("metric=bounceRate")).metric).toBe("bounceRate");
+    expect(parseDashboardUrlState(new URLSearchParams("metric=revenue")).metric).toBe("visitors");
+  });
+
   it("writes analytics state while preserving unrelated Umbraco parameters", () => {
     const url = writeDashboardUrlState(new URL("https://example.com/umbraco/section/analytics?umbDebug=true&filter=Country%3AUS"), {
       connection: "main",

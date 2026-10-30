@@ -1,11 +1,14 @@
 import type { AnalyticsDimension } from "../api/types.gen.js";
 import { normalizeCustomRange, normalizePresetRange, type AnalyticsDateRange, type DatePreset } from "./date-range.js";
+import type { TrafficMetric } from "./breakdown-rows.js";
 
 export type AnalyticsFilter = { dimension: AnalyticsDimension; value: string };
 export type AnalyticsFlagFilter = { flagKey: string; value: string };
 export type AnalyticsEventFilter = { eventName: string; property: string; value: string };
-export type DashboardMetric = "visitors" | "pageViews";
+export type EngagementMetric = "viewsPerVisit" | "bounceRate" | "visitDuration" | "timeOnPage" | "scrollDepth";
+export type DashboardMetric = TrafficMetric | EngagementMetric;
 export type AudienceDimension = "DeviceType" | "BrowserName";
+export type PagesDimension = "RequestPath" | "EntryPage" | "ExitPage";
 export type UtmDimension = "UtmSource" | "UtmMedium" | "UtmCampaign" | "UtmTerm" | "UtmContent";
 
 export type DashboardUrlState = {
@@ -14,6 +17,7 @@ export type DashboardUrlState = {
   range?: AnalyticsDateRange;
   metric: DashboardMetric;
   audience: AudienceDimension;
+  pages: PagesDimension;
   utm: UtmDimension;
   filters: AnalyticsFilter[];
   flagFilter?: AnalyticsFlagFilter;
@@ -24,8 +28,17 @@ export type DashboardUrlState = {
 const DIMENSIONS = new Set<AnalyticsDimension>([
   "RequestPath", "Route", "ReferrerHostname", "Referrer", "Country", "DeviceType",
   "BrowserName", "OsName", "UtmSource", "UtmMedium", "UtmCampaign", "UtmTerm", "UtmContent", "EventName",
+  "EntryPage", "ExitPage",
 ]);
 const PRESETS = new Set([1, 7, 30, 90, 365]);
+const METRICS = new Set<DashboardMetric>([
+  "visitors", "pageViews", "viewsPerVisit", "bounceRate", "visitDuration", "timeOnPage", "scrollDepth",
+]);
+
+// Breakdowns rank by visitors or page views; engagement metrics only change the summary chart.
+export function trafficMetric(metric: DashboardMetric): TrafficMetric {
+  return metric === "pageViews" ? "pageViews" : "visitors";
+}
 
 export function serializeFilter(filter: AnalyticsFilter): string {
   return `${filter.dimension}:${filter.value}`;
@@ -69,8 +82,9 @@ export function parseDashboardUrlState(params: URLSearchParams): DashboardUrlSta
     connection: params.get("connection") || undefined,
     preset,
     range,
-    metric: params.get("metric") === "pageViews" ? "pageViews" : "visitors",
+    metric: parseMetric(params.get("metric")),
     audience: params.get("audience") === "BrowserName" ? "BrowserName" : "DeviceType",
+    pages: parsePagesDimension(params.get("pages")),
     utm: parseUtmDimension(params.get("utm")),
     filters,
     flagFilter,
@@ -88,15 +102,23 @@ function validFilterValue(value: string | null, maximumLength: number, allowEmpt
     : undefined;
 }
 
+function parsePagesDimension(value: string | null): PagesDimension {
+  return value === "EntryPage" || value === "ExitPage" ? value : "RequestPath";
+}
+
+function parseMetric(value: string | null): DashboardMetric {
+  return value && METRICS.has(value as DashboardMetric) ? value as DashboardMetric : "visitors";
+}
+
 function parseUtmDimension(value: string | null): UtmDimension {
   return value === "UtmMedium" || value === "UtmCampaign" || value === "UtmTerm" || value === "UtmContent"
     ? value
     : "UtmSource";
 }
 
-export function writeDashboardUrlState(url: URL, state: Required<Pick<DashboardUrlState, "preset" | "range" | "metric" | "audience" | "utm" | "filters">> & Partial<Pick<DashboardUrlState, "connection" | "flagFilter" | "eventFilter" | "includeChildPaths">>): URL {
+export function writeDashboardUrlState(url: URL, state: Required<Pick<DashboardUrlState, "preset" | "range" | "metric" | "audience" | "utm" | "filters">> & Partial<Pick<DashboardUrlState, "pages">> & Partial<Pick<DashboardUrlState, "connection" | "flagFilter" | "eventFilter" | "includeChildPaths">>): URL {
   const params = url.searchParams;
-  for (const name of ["connection", "range", "from", "to", "tz", "metric", "audience", "utm", "filter", "filterFlagKey", "filterFlagValue", "filterEventName", "filterEventProperty", "filterEventValue", "includeChildPaths"]) params.delete(name);
+  for (const name of ["connection", "range", "from", "to", "tz", "metric", "audience", "pages", "utm", "filter", "filterFlagKey", "filterFlagValue", "filterEventName", "filterEventProperty", "filterEventValue", "includeChildPaths"]) params.delete(name);
   if (state.connection) params.set("connection", state.connection);
   params.set("range", String(state.preset));
   params.set("from", state.range.from);
@@ -104,6 +126,7 @@ export function writeDashboardUrlState(url: URL, state: Required<Pick<DashboardU
   params.set("tz", state.range.timeZone);
   params.set("metric", state.metric);
   params.set("audience", state.audience);
+  if (state.pages && state.pages !== "RequestPath") params.set("pages", state.pages);
   params.set("utm", state.utm);
   state.filters.forEach((filter) => params.append("filter", serializeFilter(filter)));
   if (state.includeChildPaths) params.set("includeChildPaths", "true");
