@@ -69,19 +69,6 @@
   margin: 0 auto 2.5rem;
   text-align: center;
 }
-/* A short brand-gradient line marks each section. The bar-chart motif is
-   reserved for the logo, so the divider stays quiet. */
-.rule {
-  display: block;
-  width: 44px;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--brand-gradient);
-  margin: 0 0 1.15rem;
-}
-.home-block__head .rule {
-  margin-inline: auto;
-}
 .home-block__head h2,
 .split__copy h2,
 .cta h2 {
