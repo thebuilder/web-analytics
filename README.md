@@ -22,7 +22,7 @@ Web Analytics is read-only. It does **not** install, replace, or configure track
 
 ## Install
 
-Web Analytics supports Umbraco CMS 17.1 through 18.x. Add it to the Umbraco web project:
+Web Analytics supports Umbraco CMS 17.1 through 19.x: Umbraco 17 and 18 on .NET 10, Umbraco 19 on .NET 11. Add it to the Umbraco web project:
 
 ```sh
 dotnet add package TheBuilder.WebAnalytics
