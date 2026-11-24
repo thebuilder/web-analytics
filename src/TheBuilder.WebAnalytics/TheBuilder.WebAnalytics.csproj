@@ -1,9 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <StaticWebAssetBasePath>/</StaticWebAssetBasePath>
+    <!-- Umbraco 17 and 18 run on .NET 10, Umbraco 19 on .NET 11 only, so each target framework gets its own range. -->
+    <UmbracoVersion Condition="'$(UmbracoVersion)' == '' and '$(TargetFramework)' == 'net11.0'">[19.0.0-rc1,20.0.0)</UmbracoVersion>
+    <!-- Umbraco 19 is only out as a release candidate, so the net11.0 range starts at one, which NuGet
+         warns about for a stable package. Remove this with the move to 19.0.0. -->
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
     <UmbracoVersion Condition="'$(UmbracoVersion)' == ''">[17.1.0,19.0.0)</UmbracoVersion>
   </PropertyGroup>
 
@@ -37,8 +42,12 @@
     <PackageReference Include="Umbraco.Cms.Web.Common" Version="$(UmbracoVersion)" />
     <PackageReference Include="Umbraco.Cms.Api.Common" Version="$(UmbracoVersion)" />
     <PackageReference Include="Umbraco.Cms.Api.Management" Version="$(UmbracoVersion)" />
-    <!-- Keep these at or above the versions Umbraco's transitive graph requires
-         so restore does not report vulnerable or downgraded transitive packages. -->
+  </ItemGroup>
+
+  <!-- Keep these at or above the versions Umbraco 17 and 18's transitive graph requires
+       so restore does not report vulnerable or downgraded transitive packages.
+       Umbraco 19 already requires newer versions. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="MailKit" Version="4.18.1" />
     <PackageReference Include="MessagePack" Version="3.1.12" />
     <PackageReference Include="Microsoft.OpenApi" Version="2.12.2" />
@@ -69,8 +78,11 @@
     <BackofficeBuildInput Include="$(MSBuildProjectDirectory)/../../pnpm-lock.yaml" />
   </ItemGroup>
 
+  <!-- The project packs for .NET 10 and .NET 11, and the two framework builds run in parallel. The client is built
+       once, in the outer build before them, so one cannot empty the output folder while the other packs it. -->
   <Target Name="BuildBackofficeAssetsForPack"
-          Condition="'$(_IsPacking)' == 'true' and '$(NoBuild)' != 'true'"
+          BeforeTargets="DispatchToInnerBuilds"
+          Condition="'$(_IsPacking)' == 'true' and '$(NoBuild)' != 'true' and '$(TargetFramework)' == ''"
           Inputs="@(BackofficeBuildInput)"
           Outputs="$(BackofficeManifest);$(BackofficeEntryPoint);$(BackofficeBuildStamp)">
     <Exec Command="corepack pnpm --filter thebuilder-web-analytics build"

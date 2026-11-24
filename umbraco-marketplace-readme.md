@@ -15,7 +15,7 @@ Document reports follow Umbraco's existing Content permissions, so an editor who
 
 ## Install
 
-Needs Umbraco CMS 17.1 through 18.x, and a public site already collecting analytics with Vercel or Plausible. Plausible Cloud serves the Stats API on Business plans only.
+Needs Umbraco CMS 17.1 through 19.x, and a public site already collecting analytics with Vercel or Plausible. Plausible Cloud serves the Stats API on Business plans only.
 
 ```sh
 dotnet add package TheBuilder.WebAnalytics

@@ -56,7 +56,7 @@ pnpm client:check                                           # frontend type-chec
 dotnet test tests/TheBuilder.WebAnalytics.Tests/TheBuilder.WebAnalytics.Tests.csproj   # .NET tests
 ```
 
-CI runs the .NET suite against Umbraco 17.1, the latest 17.x, and the latest 18.x. Target one line locally by passing the version, for example `-p:UmbracoVersion=18.*`.
+CI runs the .NET suite against Umbraco 17.1, the latest 17.x, and the latest 18.x on .NET 10, and the latest 19.x on .NET 11. You need both the .NET 10 and .NET 11 SDKs. Target one line locally by passing the framework and the version, for example `-p:TargetFrameworks=net10.0 -p:UmbracoVersion=18.*` or `-p:TargetFrameworks=net11.0 -p:UmbracoVersion=19.*`.
 
 ## Work on the documentation site
 

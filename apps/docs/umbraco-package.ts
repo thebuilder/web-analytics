@@ -11,7 +11,7 @@ export const webAnalyticsPackage = defineUmbracoPackage({
     github: "https://github.com/thebuilder/web-analytics",
   },
   logo: "/logo-mark.svg",
-  compatibility: { umbraco: ">=17.1 <19", dotnet: ">=10" },
+  compatibility: { umbraco: ">=17.1 <20", dotnet: ">=10" },
   status: "stable",
   categories: ["Analytics", "Editor Tools"],
 });

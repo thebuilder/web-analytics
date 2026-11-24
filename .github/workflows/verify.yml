@@ -48,16 +48,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        umbraco-version: [17.1.0, 17.*, 18.*]
+        include:
+          - umbraco-version: 17.1.0
+            framework: net10.0
+          - umbraco-version: 17.*
+            framework: net10.0
+          - umbraco-version: 18.*
+            framework: net10.0
+          # Umbraco 19 runs on .NET 11 only. The prerelease wildcard picks up release candidates until 19.0.0 ships.
+          - umbraco-version: 19.*-*
+            framework: net11.0
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: |
+            10.0.x
+            11.0.x
       - name: Test package
-        run: dotnet test tests/TheBuilder.WebAnalytics.Tests/TheBuilder.WebAnalytics.Tests.csproj --configuration Release '-p:UmbracoVersion=${{ matrix.umbraco-version }}'
+        run: dotnet test tests/TheBuilder.WebAnalytics.Tests/TheBuilder.WebAnalytics.Tests.csproj --configuration Release '-p:TargetFrameworks=${{ matrix.framework }}' '-p:UmbracoVersion=${{ matrix.umbraco-version }}'
 
   sample-and-docs:
     name: Sample and docs
@@ -68,7 +79,9 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: |
+            10.0.x
+            11.0.x
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
@@ -92,7 +105,9 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: |
+            10.0.x
+            11.0.x
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
